@@ -1,0 +1,38 @@
+name: Curfew catch-up（朝の自動再デプロイ）
+
+# デプロイ・カーフュー（23時〜7時JST）で止まった pages.yml を毎朝7時15分に拾い直す。
+# bridge-app の同名ワークフローと同じ仕組み。
+on:
+  schedule:
+    - cron: '15 22 * * *'   # 22:15 UTC = 翌朝 7:15 JST
+  workflow_dispatch:
+
+permissions:
+  actions: write
+
+jobs:
+  rerun:
+    runs-on: ubuntu-latest
+    steps:
+      - name: カーフューで失敗した最新デプロイを再実行
+        uses: actions/github-script@v7
+        with:
+          script: |
+            try {
+              const res = await github.rest.actions.listWorkflowRuns({
+                owner: context.repo.owner, repo: context.repo.repo,
+                workflow_id: 'pages.yml', branch: 'main', per_page: 1,
+              });
+              const run = res.data.workflow_runs[0];
+              if (!run) { core.info('pages.yml: 実行履歴なし'); return; }
+              if (run.conclusion === 'failure') {
+                core.notice(`pages.yml: 最新run(#${run.run_number})が失敗していたため再実行します`);
+                await github.rest.actions.reRunWorkflow({
+                  owner: context.repo.owner, repo: context.repo.repo, run_id: run.id,
+                });
+              } else {
+                core.info(`pages.yml: 最新runは ${run.conclusion} — 再実行不要`);
+              }
+            } catch (e) {
+              core.warning(`pages.yml: 確認に失敗 — ${e.message}`);
+            }

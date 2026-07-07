@@ -1,0 +1,7 @@
+User-agent: *
+Allow: /
+Disallow: /kanri/
+Disallow: /douga/
+Disallow: /pr-video-maker/
+
+Sitemap: https://rikima81.com/sitemap.xml

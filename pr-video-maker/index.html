@@ -1,0 +1,1776 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>PR動画メーカー</title>
+<!-- PWA（GitHub Pages配信時に有効。GAS配信ではmeta/linkは無視または404になるだけで無害） -->
+<meta name="theme-color" content="#2C5F8A">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;600;700;900&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#FAFAFA;
+    --text:#1a1a1a;
+    --main:#2C5F8A;
+    --accent:#F0A500;
+    --card-bg:#ffffff;
+    --border:#e0e0e0;
+    --ok:#1e8e3e;
+    --ng:#c0392b;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+  html,body{background:var(--bg);color:var(--text);}
+  body{
+    font-family:'Noto Sans JP','Hiragino Sans',sans-serif;
+    font-size:16px;
+    line-height:1.8;
+  }
+  header.app-header{
+    padding:16px 24px;
+    background:var(--main);
+    color:#fff;
+  }
+  header.app-header h1{
+    font-size:18px;
+    font-weight:700;
+    letter-spacing:0.04em;
+  }
+  header.app-header .sub{
+    font-size:12px;
+    opacity:0.85;
+  }
+  #support-banner{
+    display:none;
+    background:var(--ng);
+    color:#fff;
+    padding:16px 24px;
+    font-weight:600;
+  }
+  #support-banner.visible{display:block;}
+
+  main.layout{
+    display:grid;
+    grid-template-columns:1fr;
+    gap:16px;
+    padding:16px;
+    max-width:1440px;
+    margin:0 auto;
+  }
+  @media(min-width:900px){
+    main.layout{
+      grid-template-columns:minmax(360px,520px) 1fr;
+      gap:24px;
+      padding:24px;
+      align-items:start;
+    }
+    .col-right{
+      position:sticky;
+      top:16px;
+    }
+  }
+
+  .card{
+    background:var(--card-bg);
+    border-radius:8px;
+    box-shadow:0 2px 8px rgba(0,0,0,0.08);
+    padding:16px;
+    margin-bottom:16px;
+  }
+  .card h2{
+    font-size:16px;
+    font-weight:700;
+    color:var(--main);
+    margin-bottom:16px;
+    border-left:4px solid var(--accent);
+    padding-left:8px;
+    line-height:1.4;
+  }
+
+  .btn{
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    border:none;
+    border-radius:6px;
+    padding:12px 28px;
+    font-weight:600;
+    font-size:15px;
+    font-family:inherit;
+    cursor:pointer;
+    min-height:44px;
+    min-width:44px;
+    background:var(--main);
+    color:#fff;
+    line-height:1.2;
+  }
+  .btn:active{opacity:0.85;}
+  .btn:disabled{opacity:0.4;cursor:not-allowed;}
+  .btn.accent{background:var(--accent);color:#1a1a1a;}
+  .btn.ghost{
+    background:#fff;
+    color:var(--main);
+    border:1px solid var(--main);
+  }
+  .btn.danger{background:var(--ng);}
+  .btn.small{
+    padding:8px 12px;
+    font-size:14px;
+  }
+  .btn.icon{
+    padding:8px;
+    width:44px;
+    height:44px;
+    font-size:16px;
+  }
+
+  .field{margin-bottom:16px;}
+  .field:last-child{margin-bottom:0;}
+  .field > .label{
+    display:block;
+    font-size:13px;
+    font-weight:600;
+    color:#555;
+    margin-bottom:8px;
+  }
+  .seg{
+    display:flex;
+    flex-wrap:wrap;
+    gap:8px;
+  }
+  .seg button{
+    flex:1 1 auto;
+    min-height:44px;
+    min-width:44px;
+    border:1px solid var(--border);
+    border-radius:6px;
+    background:#fff;
+    color:var(--text);
+    font-family:inherit;
+    font-size:14px;
+    font-weight:600;
+    padding:8px 16px;
+    cursor:pointer;
+  }
+  .seg button.active{
+    background:var(--main);
+    border-color:var(--main);
+    color:#fff;
+  }
+  input[type="text"], textarea{
+    width:100%;
+    min-height:44px;
+    border:1px solid var(--border);
+    border-radius:6px;
+    padding:8px 12px;
+    font-family:inherit;
+    font-size:16px;
+    background:#fff;
+    color:var(--text);
+  }
+  textarea{resize:vertical;}
+  input[type="range"]{
+    width:100%;
+    height:44px;
+    accent-color:var(--main);
+  }
+  .check-row{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    min-height:44px;
+    cursor:pointer;
+    font-size:14px;
+    font-weight:600;
+    color:#333;
+  }
+  .check-row input[type="checkbox"]{
+    width:22px;
+    height:22px;
+    accent-color:var(--main);
+    flex-shrink:0;
+  }
+  .row{
+    display:flex;
+    align-items:center;
+    gap:16px;
+    flex-wrap:wrap;
+  }
+  .row .grow{flex:1;}
+  .filename{
+    font-size:13px;
+    color:#555;
+    word-break:break-all;
+  }
+  .note{
+    font-size:13px;
+    color:#555;
+  }
+  .note.warn{color:var(--ng);font-weight:600;}
+  .summary-box{
+    background:#f3f6f9;
+    border:1px solid var(--border);
+    border-radius:6px;
+    padding:12px;
+    font-size:14px;
+    line-height:1.7;
+  }
+  .summary-box strong{color:var(--main);}
+
+  /* 写真リスト */
+  #photo-list{
+    display:flex;
+    flex-direction:column;
+    gap:8px;
+    margin-bottom:16px;
+  }
+  .photo-item{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    border:1px solid var(--border);
+    border-radius:8px;
+    padding:8px;
+    background:#fff;
+    cursor:pointer;
+  }
+  .photo-item.active{
+    border-color:var(--accent);
+    box-shadow:0 0 0 2px rgba(240,165,0,0.35);
+  }
+  .photo-item .thumb{
+    width:72px;
+    height:54px;
+    border-radius:4px;
+    background:#222;
+    object-fit:cover;
+    flex-shrink:0;
+  }
+  .photo-item .meta{
+    flex:1;
+    min-width:0;
+  }
+  .photo-item .order{
+    font-size:13px;
+    font-weight:700;
+    color:var(--main);
+  }
+  .photo-item .badges{
+    display:flex;
+    flex-wrap:wrap;
+    gap:4px;
+    margin-top:2px;
+  }
+  .badge{
+    display:inline-block;
+    font-size:11px;
+    font-weight:700;
+    line-height:1;
+    padding:4px 6px;
+    border-radius:4px;
+    background:#eef2f6;
+    color:#555;
+  }
+  .badge.ok{background:#e3f2e6;color:var(--ok);}
+  .badge.ng{background:#fdeaea;color:var(--ng);}
+  .photo-item .ctrl{
+    display:flex;
+    gap:4px;
+    flex-shrink:0;
+  }
+  .photo-item .ctrl .btn.icon{
+    width:40px;
+    height:40px;
+  }
+  #drop-zone{
+    border:2px dashed var(--border);
+    border-radius:8px;
+    padding:24px 16px;
+    text-align:center;
+    color:#555;
+    font-size:14px;
+    margin-bottom:16px;
+    cursor:pointer;
+  }
+  #drop-zone.dragover{
+    border-color:var(--accent);
+    background:#fff8ea;
+  }
+
+  /* プレビュー */
+  .canvas-wrap{
+    display:flex;
+    justify-content:center;
+    background:#222;
+    border-radius:8px;
+    padding:16px;
+    margin-bottom:16px;
+  }
+  #preview-canvas{
+    max-width:100%;
+    max-height:62vh;
+    border-radius:4px;
+    background:#000;
+  }
+  .preview-actions{
+    display:flex;
+    gap:16px;
+    flex-wrap:wrap;
+  }
+  .preview-time{
+    font-size:13px;
+    color:#555;
+    margin-top:8px;
+    min-height:24px;
+  }
+
+  /* モザイク編集モーダル */
+  #mosaic-overlay{
+    display:none;
+    position:fixed;
+    inset:0;
+    background:rgba(26,26,26,0.8);
+    z-index:150;
+    align-items:center;
+    justify-content:center;
+    padding:8px;
+  }
+  #mosaic-overlay.visible{display:flex;}
+  .mosaic-box{
+    background:#fff;
+    border-radius:8px;
+    box-shadow:0 2px 8px rgba(0,0,0,0.3);
+    padding:16px;
+    width:100%;
+    max-width:960px;
+    max-height:96vh;
+    overflow:auto;
+  }
+  .mosaic-box h3{
+    font-size:16px;
+    font-weight:700;
+    color:var(--main);
+    margin-bottom:8px;
+  }
+  .mosaic-canvas-wrap{
+    display:flex;
+    justify-content:center;
+    background:#222;
+    border-radius:8px;
+    padding:8px;
+    margin:8px 0 16px;
+  }
+  #mosaic-canvas{
+    max-width:100%;
+    max-height:56vh;
+    touch-action:none;
+    cursor:crosshair;
+  }
+  .mosaic-actions{
+    display:flex;
+    gap:8px;
+    flex-wrap:wrap;
+    margin-bottom:8px;
+  }
+
+  /* 書き出しオーバーレイ */
+  #export-overlay{
+    display:none;
+    position:fixed;
+    inset:0;
+    background:rgba(26,26,26,0.7);
+    z-index:100;
+    align-items:center;
+    justify-content:center;
+    padding:16px;
+  }
+  #export-overlay.visible{display:flex;}
+  .export-box{
+    background:#fff;
+    border-radius:8px;
+    box-shadow:0 2px 8px rgba(0,0,0,0.3);
+    padding:24px;
+    width:100%;
+    max-width:420px;
+    text-align:center;
+  }
+  .export-box h3{
+    font-size:16px;
+    font-weight:700;
+    color:var(--main);
+    margin-bottom:16px;
+  }
+  .export-box .warn{
+    font-size:13px;
+    color:var(--ng);
+    font-weight:600;
+    margin-bottom:16px;
+  }
+  .progress-track{
+    width:100%;
+    height:16px;
+    border-radius:8px;
+    background:#eee;
+    overflow:hidden;
+    margin-bottom:8px;
+  }
+  .progress-fill{
+    height:100%;
+    width:0%;
+    background:var(--accent);
+    transition:width 0.1s linear;
+  }
+  .progress-text{
+    font-size:14px;
+    color:#555;
+    margin-bottom:16px;
+  }
+
+  /* トースト */
+  #toast{
+    position:fixed;
+    left:50%;
+    bottom:24px;
+    transform:translateX(-50%) translateY(120%);
+    background:#1a1a1a;
+    color:#fff;
+    padding:12px 28px;
+    border-radius:6px;
+    font-size:14px;
+    font-weight:600;
+    box-shadow:0 2px 8px rgba(0,0,0,0.3);
+    transition:transform 0.25s ease;
+    z-index:200;
+    max-width:90vw;
+    text-align:center;
+  }
+  #toast.visible{transform:translateX(-50%) translateY(0);}
+
+  @media(max-width:680px){
+    body{font-size:15px;}
+    main.layout{padding:16px 8px;}
+    .btn{padding:12px 16px;}
+  }
+</style>
+</head>
+<body>
+
+<header class="app-header">
+  <h1>PR動画メーカー</h1>
+  <div class="sub">毎週金曜夕方のPR動画をブラウザだけで作成 — モザイク・テロップ・セリフ・BGM（写真は端末の外に送信されません）</div>
+</header>
+
+<div id="support-banner">このブラウザは動画書き出しに対応していません。iPhoneはSafari、PCはChromeをお使いください</div>
+
+<main class="layout">
+  <!-- 左カラム：素材・編集・設定 -->
+  <section class="col-left">
+    <div class="card">
+      <h2>1. 素材写真を追加（最大30枚）</h2>
+      <div id="drop-zone">ここをタップして写真を選択<br>（PCはドラッグ＆ドロップも可・複数選択OK）</div>
+      <input type="file" id="photo-file" accept="image/*" multiple style="display:none;">
+      <div id="photo-list"></div>
+      <div class="note" id="photo-count">写真がまだありません</div>
+      <div class="note warn" style="margin-top:8px;">★ 生徒の顔が写っている写真は、必ずモザイクをかけてから書き出してください</div>
+    </div>
+
+    <div class="card" id="edit-card">
+      <h2>2. 選択中の写真を編集 <span id="edit-target" style="font-size:13px;color:#555;font-weight:600;"></span></h2>
+      <div class="note" id="edit-empty">写真を追加して、一覧から選択すると編集できます</div>
+      <div id="edit-body" style="display:none;">
+        <div class="field">
+          <span class="label">モザイク（生徒の顔）</span>
+          <div class="row">
+            <button type="button" class="btn accent" id="mosaic-open-btn">顔にモザイクをかける</button>
+            <span class="note" id="mosaic-status"></span>
+          </div>
+          <label class="check-row" style="margin-top:8px;">
+            <input type="checkbox" id="noface-check">
+            <span>この写真に生徒の顔は写っていない（モザイク不要）</span>
+          </label>
+        </div>
+        <div class="field">
+          <span class="label">テロップ（画面下の字幕）</span>
+          <input type="text" id="telop-input" placeholder="例）そろばんで集中力がぐんぐん育つ！">
+        </div>
+        <div class="field">
+          <span class="label">セリフ（吹き出し・任意）</span>
+          <input type="text" id="speaker-input" placeholder="話す人（例）りきま先生" style="margin-bottom:8px;">
+          <textarea id="serifu-input" rows="2" placeholder="例）金曜は自習室も使えるで！"></textarea>
+        </div>
+        <div class="field">
+          <span class="label">セリフ音声（任意・この写真の表示中に再生）</span>
+          <div class="row">
+            <button type="button" class="btn ghost small" id="voice-select-btn">音声ファイルを選択</button>
+            <button type="button" class="btn small danger" id="voice-clear-btn" style="display:none;">解除</button>
+          </div>
+          <input type="file" id="voice-file" accept=".mp3,.m4a,.wav,audio/mpeg,audio/mp4,audio/x-m4a,audio/wav" style="display:none;">
+          <div class="filename" id="voice-name" style="margin-top:8px;">未設定</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>3. オープニング・エンドカード</h2>
+      <div class="field">
+        <span class="label">教室名</span>
+        <input type="text" id="school-input" value="総合学習教室ブリッジ">
+      </div>
+      <div class="field">
+        <label class="check-row">
+          <input type="checkbox" id="opening-check" checked>
+          <span>オープニングを付ける（3秒）</span>
+        </label>
+        <input type="text" id="opening-input" placeholder="今週のタイトル（例）そろばん教室のとある金曜日" style="margin-top:8px;">
+      </div>
+      <div class="field">
+        <label class="check-row">
+          <input type="checkbox" id="ending-check" checked>
+          <span>エンドカードを付ける（4秒）</span>
+        </label>
+        <textarea id="ending-input" rows="2" style="margin-top:8px;">無料体験 受付中！
+お気軽にお問い合わせください</textarea>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>4. 動画設定</h2>
+      <div class="field">
+        <span class="label">アスペクト比</span>
+        <div class="seg" id="aspect-seg">
+          <button type="button" data-aspect="9:16" class="active">9:16（リール向け）</button>
+          <button type="button" data-aspect="1:1">1:1</button>
+          <button type="button" data-aspect="16:9">16:9</button>
+        </div>
+      </div>
+      <div class="field">
+        <span class="label">1枚あたり: <span id="per-label">5.0</span>秒</span>
+        <input type="range" id="per-range" min="2" max="10" step="0.5" value="5">
+      </div>
+      <div class="field">
+        <span class="label">写真の動き</span>
+        <div class="seg" id="motion-seg">
+          <button type="button" data-motion="kenburns" class="active">ゆっくりズーム（おすすめ）</button>
+          <button type="button" data-motion="none">なし（静止）</button>
+        </div>
+      </div>
+      <div class="field">
+        <span class="label">画質</span>
+        <div class="seg" id="quality-seg">
+          <button type="button" data-quality="5000000" class="active">標準</button>
+          <button type="button" data-quality="8000000">高画質</button>
+          <button type="button" data-quality="2500000">軽量</button>
+        </div>
+      </div>
+      <div class="summary-box" id="duration-summary">写真を追加すると長さの目安が表示されます</div>
+    </div>
+
+    <div class="card">
+      <h2>5. BGM（任意・動画の長さに合わせてループ）</h2>
+      <div class="field">
+        <div class="row">
+          <button type="button" class="btn ghost" id="bgm-select-btn">音声ファイルを選択</button>
+          <button type="button" class="btn small danger" id="bgm-clear-btn" style="display:none;">解除</button>
+        </div>
+        <input type="file" id="bgm-file" accept=".mp3,.m4a,.wav,audio/mpeg,audio/mp4,audio/x-m4a,audio/wav" style="display:none;">
+        <div class="filename" id="bgm-name" style="margin-top:8px;">未設定（BGMなしでも書き出せます）</div>
+      </div>
+      <div class="field">
+        <span class="label">BGM音量: <span id="bgm-vol-label">70</span>%（セリフ音声の間は自動で小さくなります）</span>
+        <input type="range" id="bgm-vol-range" min="10" max="100" step="5" value="70">
+      </div>
+    </div>
+  </section>
+
+  <!-- 右カラム：プレビュー -->
+  <section class="col-right">
+    <div class="card">
+      <h2>プレビュー・書き出し</h2>
+      <div class="canvas-wrap">
+        <canvas id="preview-canvas" width="1080" height="1920"></canvas>
+      </div>
+      <div class="preview-actions">
+        <button type="button" class="btn ghost" id="preview-btn">▶ プレビュー再生</button>
+        <button type="button" class="btn" id="export-btn">動画を書き出す</button>
+      </div>
+      <div class="preview-time" id="preview-time"></div>
+      <div class="note">※ 書き出しには動画と同じ時間がかかります。書き出し中はタブを切り替えないでください。モザイク未確認の写真があると書き出し前に警告します</div>
+    </div>
+  </section>
+</main>
+
+<!-- モザイク編集モーダル -->
+<div id="mosaic-overlay">
+  <div class="mosaic-box">
+    <h3>モザイク編集 — 顔の上を指（マウス）でなぞって範囲を追加</h3>
+    <div class="note">「顔を自動検出」対応ブラウザなら1タップで全員にかかります。かかっていない顔があれば手でなぞって追加してください</div>
+    <div class="mosaic-canvas-wrap"><canvas id="mosaic-canvas"></canvas></div>
+    <div class="mosaic-actions">
+      <button type="button" class="btn ghost small" id="mosaic-auto-btn">顔を自動検出</button>
+      <button type="button" class="btn ghost small" id="mosaic-undo-btn">最後の1つを取り消し</button>
+      <button type="button" class="btn danger small" id="mosaic-clear-btn">すべて削除</button>
+    </div>
+    <div class="note" id="mosaic-count" style="margin-bottom:8px;"></div>
+    <button type="button" class="btn accent" id="mosaic-done-btn">完了（この内容で確定）</button>
+  </div>
+</div>
+
+<!-- 書き出し中オーバーレイ -->
+<div id="export-overlay">
+  <div class="export-box">
+    <h3>動画を書き出し中…</h3>
+    <div class="warn">画面を閉じたり他のタブに切り替えたりすると失敗します</div>
+    <div class="progress-track"><div class="progress-fill" id="export-fill"></div></div>
+    <div class="progress-text" id="export-text">0:00 / 0:00</div>
+    <button type="button" class="btn danger" id="export-cancel-btn">キャンセル</button>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+'use strict';
+
+/* ========== 状態（メモリ内のみで管理。写真・音声は端末外に送信しない） ========== */
+const ASPECTS = {
+  '9:16': { w: 1080, h: 1920 },
+  '1:1':  { w: 1080, h: 1080 },
+  '16:9': { w: 1920, h: 1080 }
+};
+const MAX_PHOTOS = 30;
+const FADE_SEC = 0.6;
+const MAX_IMG_DIM = 2048;  // 読み込み時の縮小上限（メモリ節約）
+const OPENING_SEC = 3;
+const ENDING_SEC = 4;
+const DUCK_LEVEL = 0.25;   // セリフ音声中のBGM倍率
+
+const state = {
+  aspect: '9:16',
+  motion: 'kenburns',
+  bitrate: 5000000,
+  perSec: 5,
+  slides: [],           // { id, canvas, w, h, name, rects:[{x,y,w,h}(0-1)], noFace, telop, speaker, serifu, voiceBuffer, voiceName, processed }
+  bgmBuffer: null,
+  bgmName: '',
+  bgmVol: 0.7,
+  schoolName: '総合学習教室ブリッジ',
+  openingOn: true,
+  openingTitle: '',
+  endingOn: true,
+  endingText: '無料体験 受付中！\nお気軽にお問い合わせください'
+};
+
+let photoSeq = 0;
+let activeIndex = -1;
+
+/* ========== DOM参照 ========== */
+const canvas = document.getElementById('preview-canvas');
+const ctx = canvas.getContext('2d');
+const photoListEl = document.getElementById('photo-list');
+const photoCountEl = document.getElementById('photo-count');
+const durationSummaryEl = document.getElementById('duration-summary');
+const previewBtn = document.getElementById('preview-btn');
+const exportBtn = document.getElementById('export-btn');
+const previewTimeEl = document.getElementById('preview-time');
+const overlayEl = document.getElementById('export-overlay');
+const exportFillEl = document.getElementById('export-fill');
+const exportTextEl = document.getElementById('export-text');
+
+/* ========== トースト ========== */
+let toastTimer = null;
+function toast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('visible');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('visible'), 3000);
+}
+
+/* ========== 対応ブラウザ判定 ========== */
+const recorderSupported =
+  typeof MediaRecorder !== 'undefined' &&
+  typeof HTMLCanvasElement.prototype.captureStream === 'function';
+if (!recorderSupported) {
+  document.getElementById('support-banner').classList.add('visible');
+  exportBtn.disabled = true;
+}
+
+/* ========== タイムライン（オープニング＋写真＋エンドカード） ========== */
+function buildSegments() {
+  const segs = [];
+  let t = 0;
+  if (state.openingOn) { segs.push({ type: 'open', start: t, dur: OPENING_SEC }); t += OPENING_SEC; }
+  state.slides.forEach((s, i) => {
+    segs.push({ type: 'photo', slide: s, photoIndex: i, start: t, dur: state.perSec });
+    t += state.perSec;
+  });
+  if (state.endingOn) { segs.push({ type: 'end', start: t, dur: ENDING_SEC }); t += ENDING_SEC; }
+  return segs;
+}
+
+function totalDuration() {
+  const segs = buildSegments();
+  return segs.length ? segs[segs.length - 1].start + segs[segs.length - 1].dur : 0;
+}
+
+function formatTime(sec) {
+  const m = Math.floor(sec / 60);
+  const s = Math.round(sec % 60);
+  return s === 60 ? `${m + 1}:00` : `${m}:${String(s).padStart(2, '0')}`;
+}
+
+function updateSummary() {
+  const n = state.slides.length;
+  photoCountEl.textContent = n === 0 ? '写真がまだありません' : `${n}枚の写真`;
+  if (n === 0) {
+    durationSummaryEl.textContent = '写真を追加すると長さの目安が表示されます';
+    return;
+  }
+  const total = totalDuration();
+  const mb = state.bitrate * total / 8 / 1024 / 1024;
+  durationSummaryEl.innerHTML =
+    `動画の長さ: <strong>${formatTime(total)}</strong>（写真${n}枚 × ${state.perSec.toFixed(1)}秒` +
+    `${state.openingOn ? ' ＋オープニング' : ''}${state.endingOn ? ' ＋エンド' : ''}）` +
+    `／目安サイズ: 約${Math.round(mb)}MB`;
+}
+
+/* ========== 画像読み込み（縮小して保持） ========== */
+function loadPhotoFile(file) {
+  return new Promise((resolve) => {
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => {
+      const scale = Math.min(1, MAX_IMG_DIM / Math.max(img.naturalWidth, img.naturalHeight));
+      const w = Math.max(1, Math.round(img.naturalWidth * scale));
+      const h = Math.max(1, Math.round(img.naturalHeight * scale));
+      const c = document.createElement('canvas');
+      c.width = w;
+      c.height = h;
+      c.getContext('2d').drawImage(img, 0, 0, w, h);
+      URL.revokeObjectURL(url);
+      resolve({
+        id: ++photoSeq, canvas: c, w, h, name: file.name,
+        rects: [], noFace: false, telop: '', speaker: '', serifu: '',
+        voiceBuffer: null, voiceName: '', processed: c
+      });
+    };
+    img.onerror = () => {
+      URL.revokeObjectURL(url);
+      resolve(null);
+    };
+    img.src = url;
+  });
+}
+
+async function addPhotoFiles(fileList) {
+  const files = Array.from(fileList).filter(f => f.type.indexOf('image/') === 0);
+  if (files.length === 0) { toast('画像ファイルを選択してください'); return; }
+  const room = MAX_PHOTOS - state.slides.length;
+  if (room <= 0) { toast(`写真は最大${MAX_PHOTOS}枚までです`); return; }
+  const target = files.slice(0, room);
+  toast(`${target.length}枚を読み込み中…`);
+  let failed = 0;
+  for (const f of target) {
+    const item = await loadPhotoFile(f);
+    if (item) state.slides.push(item);
+    else failed++;
+  }
+  if (files.length > room) toast(`上限を超えた${files.length - room}枚は追加されませんでした`);
+  else if (failed > 0) toast(`${failed}枚の読み込みに失敗しました`);
+  else toast(`${target.length - failed}枚を追加しました。顔が写っていればモザイクをかけてください`);
+  activeIndex = Math.max(0, state.slides.length - 1);
+  renderPhotoList();
+}
+
+/* ========== モザイク（ピクセル化を元画像に焼き込む） ========== */
+function bakeSlide(slide) {
+  if (slide.rects.length === 0) { slide.processed = slide.canvas; return; }
+  const c = document.createElement('canvas');
+  c.width = slide.w;
+  c.height = slide.h;
+  const cx = c.getContext('2d');
+  cx.drawImage(slide.canvas, 0, 0);
+  const block = Math.max(8, Math.round(Math.max(slide.w, slide.h) / 45));
+  for (const r of slide.rects) {
+    const x = Math.round(r.x * slide.w);
+    const y = Math.round(r.y * slide.h);
+    const w = Math.max(1, Math.round(r.w * slide.w));
+    const h = Math.max(1, Math.round(r.h * slide.h));
+    const sw = Math.max(1, Math.round(w / block));
+    const sh = Math.max(1, Math.round(h / block));
+    const tmp = document.createElement('canvas');
+    tmp.width = sw;
+    tmp.height = sh;
+    tmp.getContext('2d').drawImage(slide.canvas, x, y, w, h, 0, 0, sw, sh);
+    cx.imageSmoothingEnabled = false;
+    cx.drawImage(tmp, 0, 0, sw, sh, x, y, w, h);
+    cx.imageSmoothingEnabled = true;
+  }
+  slide.processed = c;
+}
+
+function slideConfirmed(slide) {
+  return slide.rects.length > 0 || slide.noFace;
+}
+
+/* ========== モザイク編集モーダル ========== */
+const mosaicOverlay = document.getElementById('mosaic-overlay');
+const mosaicCanvas = document.getElementById('mosaic-canvas');
+const mosaicCtx = mosaicCanvas.getContext('2d');
+const mosaicCountEl = document.getElementById('mosaic-count');
+let mosaicSlide = null;
+let dragRect = null;  // {x0,y0,x1,y1} 正規化座標
+
+function openMosaicEditor() {
+  const slide = state.slides[activeIndex];
+  if (!slide) return;
+  mosaicSlide = slide;
+  mosaicCanvas.width = slide.w;
+  mosaicCanvas.height = slide.h;
+  mosaicOverlay.classList.add('visible');
+  redrawMosaicEditor();
+}
+
+function closeMosaicEditor() {
+  mosaicOverlay.classList.remove('visible');
+  mosaicSlide = null;
+  dragRect = null;
+  renderPhotoList();
+}
+
+function redrawMosaicEditor() {
+  if (!mosaicSlide) return;
+  const s = mosaicSlide;
+  mosaicCtx.drawImage(s.processed, 0, 0);
+  const lw = Math.max(2, Math.round(s.w / 400));
+  mosaicCtx.lineWidth = lw;
+  mosaicCtx.strokeStyle = '#F0A500';
+  mosaicCtx.setLineDash([lw * 3, lw * 2]);
+  for (const r of s.rects) {
+    mosaicCtx.strokeRect(r.x * s.w, r.y * s.h, r.w * s.w, r.h * s.h);
+  }
+  if (dragRect) {
+    mosaicCtx.strokeStyle = '#c0392b';
+    const x = Math.min(dragRect.x0, dragRect.x1) * s.w;
+    const y = Math.min(dragRect.y0, dragRect.y1) * s.h;
+    mosaicCtx.strokeRect(x, y, Math.abs(dragRect.x1 - dragRect.x0) * s.w, Math.abs(dragRect.y1 - dragRect.y0) * s.h);
+  }
+  mosaicCtx.setLineDash([]);
+  mosaicCountEl.textContent = s.rects.length === 0
+    ? 'モザイク: まだありません'
+    : `モザイク: ${s.rects.length}か所`;
+}
+
+function mosaicPointerPos(e) {
+  const rect = mosaicCanvas.getBoundingClientRect();
+  return {
+    x: Math.min(1, Math.max(0, (e.clientX - rect.left) / rect.width)),
+    y: Math.min(1, Math.max(0, (e.clientY - rect.top) / rect.height))
+  };
+}
+
+mosaicCanvas.addEventListener('pointerdown', (e) => {
+  if (!mosaicSlide) return;
+  e.preventDefault();
+  mosaicCanvas.setPointerCapture(e.pointerId);
+  const p = mosaicPointerPos(e);
+  dragRect = { x0: p.x, y0: p.y, x1: p.x, y1: p.y };
+  redrawMosaicEditor();
+});
+mosaicCanvas.addEventListener('pointermove', (e) => {
+  if (!dragRect) return;
+  e.preventDefault();
+  const p = mosaicPointerPos(e);
+  dragRect.x1 = p.x;
+  dragRect.y1 = p.y;
+  redrawMosaicEditor();
+});
+mosaicCanvas.addEventListener('pointerup', (e) => {
+  if (!dragRect || !mosaicSlide) return;
+  e.preventDefault();
+  const r = {
+    x: Math.min(dragRect.x0, dragRect.x1),
+    y: Math.min(dragRect.y0, dragRect.y1),
+    w: Math.abs(dragRect.x1 - dragRect.x0),
+    h: Math.abs(dragRect.y1 - dragRect.y0)
+  };
+  dragRect = null;
+  if (r.w > 0.01 && r.h > 0.01) {
+    mosaicSlide.rects.push(r);
+    bakeSlide(mosaicSlide);
+  }
+  redrawMosaicEditor();
+});
+
+document.getElementById('mosaic-auto-btn').addEventListener('click', async () => {
+  if (!mosaicSlide) return;
+  if (!('FaceDetector' in window)) {
+    toast('このブラウザは顔の自動検出に対応していません。顔の上をなぞって手動で追加してください');
+    return;
+  }
+  try {
+    const fd = new window.FaceDetector({ fastMode: false, maxDetectedFaces: 30 });
+    const faces = await fd.detect(mosaicSlide.canvas);
+    if (!faces || faces.length === 0) {
+      toast('顔を検出できませんでした。顔の上をなぞって手動で追加してください');
+      return;
+    }
+    const s = mosaicSlide;
+    for (const f of faces) {
+      const b = f.boundingBox;
+      const mx = b.width * 0.2;
+      const my = b.height * 0.25;
+      const x = Math.max(0, (b.x - mx) / s.w);
+      const y = Math.max(0, (b.y - my) / s.h);
+      s.rects.push({
+        x, y,
+        w: Math.min(1 - x, (b.width + mx * 2) / s.w),
+        h: Math.min(1 - y, (b.height + my * 2) / s.h)
+      });
+    }
+    bakeSlide(s);
+    redrawMosaicEditor();
+    toast(`${faces.length}件の顔にモザイクをかけました。かかっていない顔は手動で追加してください`);
+  } catch (err) {
+    toast('自動検出に失敗しました。顔の上をなぞって手動で追加してください');
+  }
+});
+
+document.getElementById('mosaic-undo-btn').addEventListener('click', () => {
+  if (!mosaicSlide || mosaicSlide.rects.length === 0) return;
+  mosaicSlide.rects.pop();
+  bakeSlide(mosaicSlide);
+  redrawMosaicEditor();
+});
+document.getElementById('mosaic-clear-btn').addEventListener('click', () => {
+  if (!mosaicSlide) return;
+  mosaicSlide.rects = [];
+  bakeSlide(mosaicSlide);
+  redrawMosaicEditor();
+});
+document.getElementById('mosaic-done-btn').addEventListener('click', closeMosaicEditor);
+document.getElementById('mosaic-open-btn').addEventListener('click', openMosaicEditor);
+
+/* ========== テキスト描画（テロップ・吹き出し・カード） ========== */
+function wrapText(c, text, maxW) {
+  const lines = [];
+  for (const para of String(text).split('\n')) {
+    let cur = '';
+    for (const ch of para) {
+      if (cur && c.measureText(cur + ch).width > maxW) { lines.push(cur); cur = ch; }
+      else cur += ch;
+    }
+    lines.push(cur);
+  }
+  return lines;
+}
+
+function roundRectPath(c, x, y, w, h, r) {
+  c.beginPath();
+  c.moveTo(x + r, y);
+  c.arcTo(x + w, y, x + w, y + h, r);
+  c.arcTo(x + w, y + h, x, y + h, r);
+  c.arcTo(x, y + h, x, y, r);
+  c.arcTo(x, y, x + w, y, r);
+  c.closePath();
+}
+
+function drawTelop(c, text, W, H) {
+  if (!text) return;
+  const fs = Math.round(Math.min(W, H) * 0.055);
+  c.font = `700 ${fs}px 'Noto Sans JP',sans-serif`;
+  const lines = wrapText(c, text, W * 0.84);
+  const lh = fs * 1.4;
+  const bandH = lines.length * lh + fs * 0.9;
+  const y0 = H - bandH - H * 0.05;
+  c.fillStyle = 'rgba(13,17,23,0.62)';
+  roundRectPath(c, W * 0.03, y0, W * 0.94, bandH, fs * 0.35);
+  c.fill();
+  c.fillStyle = '#F0A500';
+  c.fillRect(W * 0.03, y0 + fs * 0.35, fs * 0.16, bandH - fs * 0.7);
+  c.fillStyle = '#fff';
+  c.textAlign = 'center';
+  c.textBaseline = 'middle';
+  lines.forEach((ln, i) => c.fillText(ln, W / 2, y0 + fs * 0.45 + lh * (i + 0.5)));
+}
+
+function drawSerifu(c, speaker, text, W, H, photoIndex) {
+  if (!text) return;
+  const fs = Math.round(Math.min(W, H) * 0.048);
+  c.font = `700 ${fs}px 'Noto Sans JP',sans-serif`;
+  const lines = wrapText(c, text, W * 0.66);
+  const lh = fs * 1.4;
+  let textW = 0;
+  for (const ln of lines) textW = Math.max(textW, c.measureText(ln).width);
+  const pad = fs * 0.7;
+  const nameH = speaker ? fs * 1.1 : 0;
+  const bw = textW + pad * 2;
+  const bh = lines.length * lh + nameH + pad * 1.4;
+  const left = photoIndex % 2 === 0;
+  const bx = left ? W * 0.05 : W - bw - W * 0.05;
+  const by = H * 0.06;
+  c.fillStyle = 'rgba(255,255,255,0.94)';
+  c.strokeStyle = '#2C5F8A';
+  c.lineWidth = Math.max(2, fs * 0.08);
+  roundRectPath(c, bx, by, bw, bh, fs * 0.8);
+  c.fill();
+  c.stroke();
+  // しっぽ（下向きの小さな三角）
+  const tx = left ? bx + bw * 0.25 : bx + bw * 0.75;
+  c.beginPath();
+  c.moveTo(tx - fs * 0.5, by + bh - 1);
+  c.lineTo(tx + fs * 0.5, by + bh - 1);
+  c.lineTo(tx, by + bh + fs * 0.9);
+  c.closePath();
+  c.fill();
+  c.stroke();
+  // 三角と枠の境界線を白で消す
+  c.fillStyle = 'rgba(255,255,255,0.94)';
+  c.fillRect(tx - fs * 0.45, by + bh - c.lineWidth, fs * 0.9, c.lineWidth);
+  c.textAlign = 'left';
+  c.textBaseline = 'middle';
+  let ty = by + pad * 0.7;
+  if (speaker) {
+    c.fillStyle = '#c07f00';
+    c.font = `700 ${Math.round(fs * 0.78)}px 'Noto Sans JP',sans-serif`;
+    c.fillText(speaker, bx + pad, ty + fs * 0.45);
+    ty += nameH;
+  }
+  c.fillStyle = '#1a1a1a';
+  c.font = `700 ${fs}px 'Noto Sans JP',sans-serif`;
+  lines.forEach((ln, i) => c.fillText(ln, bx + pad, ty + lh * (i + 0.5)));
+}
+
+function drawCard(c, type, W, H, p) {
+  const g = c.createLinearGradient(0, 0, 0, H);
+  g.addColorStop(0, '#2C5F8A');
+  g.addColorStop(1, '#16324c');
+  c.fillStyle = g;
+  c.fillRect(0, 0, W, H);
+  const base = Math.min(W, H);
+  const scale = 1 + 0.02 * Math.min(1, Math.max(0, p));
+  c.save();
+  c.translate(W / 2, H / 2);
+  c.scale(scale, scale);
+  c.translate(-W / 2, -H / 2);
+  c.textAlign = 'center';
+  c.textBaseline = 'middle';
+  if (type === 'open') {
+    const nameFs = Math.round(base * 0.05);
+    c.font = `700 ${nameFs}px 'Noto Sans JP',sans-serif`;
+    c.fillStyle = '#F0A500';
+    c.fillText(state.schoolName, W / 2, H * 0.38);
+    const title = state.openingTitle || '今週のようす';
+    const fs = Math.round(base * 0.075);
+    c.font = `900 ${fs}px 'Noto Sans JP',sans-serif`;
+    c.fillStyle = '#fff';
+    const lines = wrapText(c, title, W * 0.86);
+    const lh = fs * 1.4;
+    lines.forEach((ln, i) => c.fillText(ln, W / 2, H * 0.48 + lh * i));
+    c.fillStyle = '#F0A500';
+    c.fillRect(W / 2 - base * 0.1, H * 0.48 + lh * lines.length + fs * 0.3, base * 0.2, base * 0.008);
+  } else {
+    const fs = Math.round(base * 0.062);
+    c.font = `900 ${fs}px 'Noto Sans JP',sans-serif`;
+    c.fillStyle = '#fff';
+    const lines = wrapText(c, state.endingText, W * 0.86);
+    const lh = fs * 1.5;
+    const y0 = H * 0.45 - lh * (lines.length - 1) / 2;
+    lines.forEach((ln, i) => c.fillText(ln, W / 2, y0 + lh * i));
+    const nameFs = Math.round(base * 0.045);
+    c.font = `700 ${nameFs}px 'Noto Sans JP',sans-serif`;
+    c.fillStyle = '#F0A500';
+    c.fillText(state.schoolName, W / 2, y0 + lh * lines.length + nameFs * 1.2);
+  }
+  c.restore();
+}
+
+/* ========== 描画ロジック（プレビューと書き出しで完全共通） ========== */
+function easeInOut(p) {
+  return p * p * (3 - 2 * p);
+}
+
+function drawPhoto(c, slide, W, H, index, p) {
+  c.fillStyle = '#000';
+  c.fillRect(0, 0, W, H);
+  const base = Math.max(W / slide.w, H / slide.h);  // カバー表示
+  let zoom = 1;
+  let panX = 0;
+  let panY = 0;
+  if (state.motion === 'kenburns') {
+    const e = easeInOut(Math.min(1, Math.max(0, p)));
+    const zoomIn = index % 2 === 0;
+    zoom = zoomIn ? 1 + 0.1 * e : 1.1 - 0.1 * e;
+    const w = slide.w * base * zoom;
+    const h = slide.h * base * zoom;
+    const dirs = [[1, 0], [-1, 0], [0, 1], [0, -1]];
+    const dir = dirs[index % 4];
+    panX = dir[0] * Math.max(0, (w - W) / 2) * 0.6 * (2 * e - 1);
+    panY = dir[1] * Math.max(0, (h - H) / 2) * 0.6 * (2 * e - 1);
+  }
+  const scale = base * zoom;
+  const w = slide.w * scale;
+  const h = slide.h * scale;
+  c.drawImage(slide.processed, (W - w) / 2 + panX, (H - h) / 2 + panY, w, h);
+}
+
+function drawSegment(c, seg, W, H, p) {
+  if (seg.type === 'open') { drawCard(c, 'open', W, H, p); return; }
+  if (seg.type === 'end') { drawCard(c, 'end', W, H, p); return; }
+  drawPhoto(c, seg.slide, W, H, seg.photoIndex, p);
+  drawSerifu(c, seg.slide.speaker, seg.slide.serifu, W, H, seg.photoIndex);
+  drawTelop(c, seg.slide.telop, W, H);
+}
+
+// 時刻t秒のフレームを描画（プレビュー・書き出しの両方がこの関数を使う）
+function renderAt(c, t, W, H) {
+  const segs = buildSegments();
+  if (segs.length === 0) {
+    c.fillStyle = '#000';
+    c.fillRect(0, 0, W, H);
+    return;
+  }
+  let i = segs.length - 1;
+  for (let k = 0; k < segs.length; k++) {
+    if (t < segs[k].start + segs[k].dur) { i = k; break; }
+  }
+  const seg = segs[i];
+  const dt = Math.max(0, t - seg.start);
+  const p = dt / seg.dur;
+  const fade = Math.min(FADE_SEC, seg.dur / 2);
+  if (i > 0 && dt < fade) {
+    drawSegment(c, segs[i - 1], W, H, 1);
+    c.save();
+    c.globalAlpha = Math.min(1, Math.max(0, dt / fade));
+    drawSegment(c, seg, W, H, p);
+    c.restore();
+  } else {
+    drawSegment(c, seg, W, H, p);
+  }
+}
+
+/* ========== 静止プレビュー ========== */
+function applyCanvasSize() {
+  const { w, h } = ASPECTS[state.aspect];
+  canvas.width = w;
+  canvas.height = h;
+}
+
+function renderStill() {
+  if (timeline.playing) return;
+  const segs = buildSegments();
+  if (segs.length === 0) {
+    renderAt(ctx, 0, canvas.width, canvas.height);
+    return;
+  }
+  const photoSeg = segs.find(s => s.type === 'photo' && s.photoIndex === activeIndex);
+  const seg = photoSeg || segs[0];
+  renderAt(ctx, seg.start + Math.min(FADE_SEC, seg.dur / 2) + 0.001, canvas.width, canvas.height);
+}
+
+/* ========== タイムライン再生（実時間・requestAnimationFrame） ========== */
+const timeline = { playing: false, rafId: null };
+
+function playTimeline(onTick, onDone) {
+  const total = totalDuration();
+  const t0 = performance.now();
+  timeline.playing = true;
+  const frame = (now) => {
+    if (!timeline.playing) return;
+    const t = (now - t0) / 1000;
+    if (t >= total) {
+      renderAt(ctx, Math.max(0, total - 0.001), canvas.width, canvas.height);
+      timeline.playing = false;
+      if (onDone) onDone();
+      return;
+    }
+    renderAt(ctx, t, canvas.width, canvas.height);
+    if (onTick) onTick(t, total);
+    timeline.rafId = requestAnimationFrame(frame);
+  };
+  timeline.rafId = requestAnimationFrame(frame);
+}
+
+function stopTimeline() {
+  timeline.playing = false;
+  if (timeline.rafId) cancelAnimationFrame(timeline.rafId);
+  timeline.rafId = null;
+}
+
+/* ========== 音声（BGM＋セリフ音声。セリフ中はBGMを自動で下げる） ========== */
+const AudioCtx = window.AudioContext || window.webkitAudioContext;
+
+async function decodeAudioFile(file) {
+  const buf = await file.arrayBuffer();
+  const ac = new AudioCtx();
+  const decoded = await ac.decodeAudioData(buf);
+  ac.close();
+  return decoded;
+}
+
+function hasAnyAudio() {
+  return !!state.bgmBuffer || state.slides.some(s => s.voiceBuffer);
+}
+
+// BGMとセリフ音声をスケジュールする。destNode に接続し、停止用の関数を返す
+function startAudioMix(audioCtx, destNode) {
+  const total = totalDuration();
+  const now = audioCtx.currentTime;
+  const segs = buildSegments();
+  const sources = [];
+
+  const voiceSegs = segs.filter(s => s.type === 'photo' && s.slide.voiceBuffer);
+
+  if (state.bgmBuffer) {
+    const src = audioCtx.createBufferSource();
+    src.buffer = state.bgmBuffer;
+    src.loop = true;
+    const gain = audioCtx.createGain();
+    src.connect(gain);
+    gain.connect(destNode);
+    const v = state.bgmVol;
+    gain.gain.setValueAtTime(v, now);
+    // セリフ音声の間はダッキング（時系列順にランプを並べる）
+    for (const seg of voiceSegs) {
+      const t0 = now + seg.start;
+      const t1 = t0 + Math.min(seg.slide.voiceBuffer.duration, total - seg.start);
+      gain.gain.setValueAtTime(v, Math.max(now, t0 - 0.05));
+      gain.gain.linearRampToValueAtTime(v * DUCK_LEVEL, t0 + 0.25);
+      gain.gain.setValueAtTime(v * DUCK_LEVEL, t1);
+      gain.gain.linearRampToValueAtTime(v, t1 + 0.5);
+    }
+    // 末尾2秒でフェードアウト
+    const fadeStart = Math.max(now, now + total - 2);
+    gain.gain.setValueAtTime(v, fadeStart);
+    gain.gain.linearRampToValueAtTime(0.0001, now + total);
+    src.start(now);
+    src.stop(now + total);
+    sources.push(src);
+  }
+
+  for (const seg of voiceSegs) {
+    const src = audioCtx.createBufferSource();
+    src.buffer = seg.slide.voiceBuffer;
+    src.connect(destNode);
+    src.start(now + seg.start);
+    src.stop(now + Math.min(total, seg.start + seg.slide.voiceBuffer.duration));
+    sources.push(src);
+  }
+
+  return () => sources.forEach(s => { try { s.stop(); } catch (e) {} });
+}
+
+/* ========== プレビュー再生 ========== */
+let previewAudio = { ctx: null, stop: null };
+
+function stopPreviewAudio() {
+  if (previewAudio.stop) { try { previewAudio.stop(); } catch (e) {} }
+  if (previewAudio.ctx) { try { previewAudio.ctx.close(); } catch (e) {} }
+  previewAudio = { ctx: null, stop: null };
+}
+
+async function startPreview() {
+  if (state.slides.length === 0) { toast('写真がありません'); return; }
+  previewBtn.textContent = '■ 停止';
+  if (hasAnyAudio() && AudioCtx) {
+    const ac = new AudioCtx();
+    if (ac.state === 'suspended') { try { await ac.resume(); } catch (e) {} }
+    previewAudio.ctx = ac;
+    previewAudio.stop = startAudioMix(ac, ac.destination);
+  }
+  playTimeline(
+    (t, total) => { previewTimeEl.textContent = `再生中: ${formatTime(t)} / ${formatTime(total)}`; },
+    () => {
+      stopPreviewAudio();
+      previewBtn.textContent = '▶ プレビュー再生';
+      previewTimeEl.textContent = '再生が終了しました';
+    }
+  );
+}
+
+function stopPreview() {
+  stopTimeline();
+  stopPreviewAudio();
+  previewBtn.textContent = '▶ プレビュー再生';
+  previewTimeEl.textContent = '';
+  renderStill();
+}
+
+previewBtn.addEventListener('click', () => {
+  if (timeline.playing) stopPreview();
+  else startPreview();
+});
+
+/* ========== 画面スリープ防止（長時間書き出し用） ========== */
+let wakeLock = null;
+async function acquireWakeLock() {
+  try {
+    if (navigator.wakeLock) wakeLock = await navigator.wakeLock.request('screen');
+  } catch (e) { /* 非対応・拒否時はそのまま続行 */ }
+}
+function releaseWakeLock() {
+  if (wakeLock) { try { wakeLock.release(); } catch (e) {} wakeLock = null; }
+}
+
+/* ========== 動画書き出し ========== */
+const MIME_PRIORITY = [
+  'video/mp4;codecs=avc1', // Safari用
+  'video/mp4',
+  'video/webm;codecs=vp9',
+  'video/webm'
+];
+
+function pickMimeType() {
+  for (const m of MIME_PRIORITY) {
+    if (MediaRecorder.isTypeSupported(m)) return m;
+  }
+  return '';
+}
+
+let exportSession = null;
+let exportArmTimer = null;
+
+async function startExport() {
+  if (!recorderSupported) { toast('このブラウザは動画書き出しに対応していません'); return; }
+  if (state.slides.length === 0) { toast('写真がありません'); return; }
+  if (timeline.playing) stopPreview();
+
+  // モザイク未確認の写真がある場合は二度押しで確認（生徒の顔の消し忘れ防止）
+  const unchecked = state.slides
+    .map((s, i) => (slideConfirmed(s) ? -1 : i + 1))
+    .filter(i => i > 0);
+  if (unchecked.length > 0 && !exportArmTimer) {
+    toast(`${unchecked.join('・')}枚目がモザイク未確認です。顔が写っていないか確認してください`);
+    exportBtn.textContent = '未確認あり・もう一度タップで書き出し';
+    exportArmTimer = setTimeout(() => {
+      exportArmTimer = null;
+      exportBtn.textContent = '動画を書き出す';
+    }, 5000);
+    return;
+  }
+  if (exportArmTimer) {
+    clearTimeout(exportArmTimer);
+    exportArmTimer = null;
+    exportBtn.textContent = '動画を書き出す';
+  }
+
+  const total = totalDuration();
+  const stream = canvas.captureStream(30); // 30fpsの映像ストリーム
+
+  let audioCtx = null;
+  let stopAudio = null;
+  if (hasAnyAudio() && AudioCtx) {
+    audioCtx = new AudioCtx();
+    if (audioCtx.state === 'suspended') { try { await audioCtx.resume(); } catch (e) {} }
+    const dest = audioCtx.createMediaStreamDestination();
+    stopAudio = startAudioMix(audioCtx, dest);
+    const track = dest.stream.getAudioTracks()[0];
+    if (track) stream.addTrack(track); // 音声トラックを映像トラックと合成
+  }
+
+  const mime = pickMimeType();
+  let recorder;
+  try {
+    recorder = mime
+      ? new MediaRecorder(stream, { mimeType: mime, videoBitsPerSecond: state.bitrate })
+      : new MediaRecorder(stream, { videoBitsPerSecond: state.bitrate });
+  } catch (e) {
+    stream.getTracks().forEach(t => t.stop());
+    if (audioCtx) { try { audioCtx.close(); } catch (e2) {} }
+    toast('録画を開始できませんでした');
+    return;
+  }
+
+  const chunks = [];
+  const session = { cancelled: false };
+  exportSession = session;
+
+  recorder.ondataavailable = (e) => { if (e.data && e.data.size > 0) chunks.push(e.data); };
+  recorder.onerror = () => {
+    session.cancelled = true;
+    session.errored = true;
+    stopTimeline();
+    try { recorder.stop(); } catch (e) {}
+    toast('録画中にエラーが発生しました。もう一度お試しください');
+  };
+  recorder.onstop = () => {
+    stream.getTracks().forEach(t => t.stop());
+    if (stopAudio) { try { stopAudio(); } catch (e) {} }
+    if (audioCtx) { try { audioCtx.close(); } catch (e) {} }
+    releaseWakeLock();
+    hideExportOverlay();
+    if (session.cancelled) {
+      if (!session.errored) toast('書き出しをキャンセルしました');
+    } else {
+      // 終端チャンクの到着を待ってからBlob化（空ファイル防止）
+      setTimeout(() => {
+        const blob = new Blob(chunks, { type: (recorder.mimeType || mime || 'video/webm').split(';')[0] });
+        if (blob.size === 0) {
+          toast('書き出しデータの生成に失敗しました。もう一度お試しください');
+        } else {
+          const usedMime = recorder.mimeType || mime || 'video/webm';
+          const ext = usedMime.indexOf('mp4') !== -1 ? 'mp4' : 'webm';
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = `pr-video-${Date.now()}.${ext}`;
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+          setTimeout(() => URL.revokeObjectURL(url), 30000);
+          toast('書き出しが完了しました');
+        }
+      }, 200);
+    }
+    exportSession = null;
+    renderStill();
+  };
+
+  session.cancel = () => {
+    session.cancelled = true;
+    stopTimeline();
+    try { recorder.stop(); } catch (e) {}
+  };
+
+  await acquireWakeLock();
+  showExportOverlay(total);
+  renderAt(ctx, 0, canvas.width, canvas.height);
+  recorder.start(1000);
+
+  // requestAnimationFrameでスライドを実時間描画しながら録画
+  playTimeline(
+    (t) => updateExportProgress(t, total),
+    () => {
+      updateExportProgress(total, total);
+      try { recorder.stop(); } catch (e) {}
+    }
+  );
+}
+
+function showExportOverlay(total) {
+  exportFillEl.style.width = '0%';
+  exportTextEl.textContent = `0:00 / ${formatTime(total)}`;
+  overlayEl.classList.add('visible');
+}
+function hideExportOverlay() {
+  overlayEl.classList.remove('visible');
+}
+function updateExportProgress(t, total) {
+  const ratio = total > 0 ? Math.min(1, t / total) : 0;
+  exportFillEl.style.width = (ratio * 100).toFixed(1) + '%';
+  exportTextEl.textContent = `${formatTime(t)} / ${formatTime(total)}（残り約${formatTime(Math.max(0, total - t))}）`;
+}
+
+exportBtn.addEventListener('click', startExport);
+document.getElementById('export-cancel-btn').addEventListener('click', () => {
+  if (exportSession) exportSession.cancel();
+});
+
+/* ========== 写真一覧UI ========== */
+function setActive(i) {
+  activeIndex = Math.max(0, Math.min(i, state.slides.length - 1));
+  for (const el of photoListEl.children) {
+    el.classList.toggle('active', Number(el.dataset.index) === activeIndex);
+  }
+  syncEditPanel();
+  renderStill();
+}
+
+function movePhoto(i, dir) {
+  const j = i + dir;
+  if (j < 0 || j >= state.slides.length) return;
+  const tmp = state.slides[i];
+  state.slides[i] = state.slides[j];
+  state.slides[j] = tmp;
+  activeIndex = j;
+  renderPhotoList();
+}
+
+function deletePhoto(i) {
+  state.slides.splice(i, 1);
+  activeIndex = Math.min(activeIndex, state.slides.length - 1);
+  renderPhotoList();
+}
+
+function buildPhotoItem(slide, index) {
+  const el = document.createElement('div');
+  el.className = 'photo-item' + (index === activeIndex ? ' active' : '');
+  el.dataset.index = index;
+
+  const thumb = document.createElement('canvas');
+  thumb.className = 'thumb';
+  thumb.width = 144;
+  thumb.height = 108;
+  const tc = thumb.getContext('2d');
+  const s = Math.max(thumb.width / slide.w, thumb.height / slide.h);
+  tc.drawImage(slide.processed, (thumb.width - slide.w * s) / 2, (thumb.height - slide.h * s) / 2, slide.w * s, slide.h * s);
+
+  const meta = document.createElement('div');
+  meta.className = 'meta';
+  const order = document.createElement('div');
+  order.className = 'order';
+  order.textContent = `${index + 1}枚目`;
+  const badges = document.createElement('div');
+  badges.className = 'badges';
+  const addBadge = (text, cls) => {
+    const b = document.createElement('span');
+    b.className = 'badge' + (cls ? ' ' + cls : '');
+    b.textContent = text;
+    badges.appendChild(b);
+  };
+  if (slide.rects.length > 0) addBadge(`モザイク${slide.rects.length}`, 'ok');
+  else if (slide.noFace) addBadge('顔なし', 'ok');
+  else addBadge('モザイク未確認', 'ng');
+  if (slide.telop) addBadge('テロップ');
+  if (slide.serifu) addBadge('セリフ');
+  if (slide.voiceBuffer) addBadge('♪音声');
+  meta.appendChild(order);
+  meta.appendChild(badges);
+
+  const ctrl = document.createElement('div');
+  ctrl.className = 'ctrl';
+  ctrl.innerHTML = `
+    <button type="button" class="btn ghost icon up" title="上へ">↑</button>
+    <button type="button" class="btn ghost icon down" title="下へ">↓</button>
+    <button type="button" class="btn danger icon del" title="削除">✕</button>
+  `;
+
+  el.appendChild(thumb);
+  el.appendChild(meta);
+  el.appendChild(ctrl);
+
+  el.addEventListener('click', () => setActive(Number(el.dataset.index)));
+  ctrl.querySelector('.up').addEventListener('click', (e) => { e.stopPropagation(); movePhoto(Number(el.dataset.index), -1); });
+  ctrl.querySelector('.down').addEventListener('click', (e) => { e.stopPropagation(); movePhoto(Number(el.dataset.index), 1); });
+  ctrl.querySelector('.del').addEventListener('click', (e) => { e.stopPropagation(); deletePhoto(Number(el.dataset.index)); });
+  return el;
+}
+
+function renderPhotoList() {
+  photoListEl.textContent = '';
+  state.slides.forEach((slide, i) => photoListEl.appendChild(buildPhotoItem(slide, i)));
+  updateSummary();
+  syncEditPanel();
+  renderStill();
+}
+
+/* ========== 編集パネル（選択中の写真と同期） ========== */
+const editEmptyEl = document.getElementById('edit-empty');
+const editBodyEl = document.getElementById('edit-body');
+const editTargetEl = document.getElementById('edit-target');
+const telopInput = document.getElementById('telop-input');
+const speakerInput = document.getElementById('speaker-input');
+const serifuInput = document.getElementById('serifu-input');
+const nofaceCheck = document.getElementById('noface-check');
+const mosaicStatusEl = document.getElementById('mosaic-status');
+const voiceNameEl = document.getElementById('voice-name');
+const voiceClearBtn = document.getElementById('voice-clear-btn');
+
+function syncEditPanel() {
+  const slide = state.slides[activeIndex];
+  if (!slide) {
+    editEmptyEl.style.display = '';
+    editBodyEl.style.display = 'none';
+    editTargetEl.textContent = '';
+    return;
+  }
+  editEmptyEl.style.display = 'none';
+  editBodyEl.style.display = '';
+  editTargetEl.textContent = `（${activeIndex + 1}枚目）`;
+  telopInput.value = slide.telop;
+  speakerInput.value = slide.speaker;
+  serifuInput.value = slide.serifu;
+  nofaceCheck.checked = slide.noFace;
+  mosaicStatusEl.textContent = slide.rects.length > 0
+    ? `モザイク${slide.rects.length}か所`
+    : (slide.noFace ? '顔なし（確認済み）' : '未確認');
+  voiceNameEl.textContent = slide.voiceBuffer ? slide.voiceName : '未設定';
+  voiceClearBtn.style.display = slide.voiceBuffer ? '' : 'none';
+}
+
+telopInput.addEventListener('input', () => {
+  const slide = state.slides[activeIndex];
+  if (!slide) return;
+  slide.telop = telopInput.value;
+  renderStill();
+});
+speakerInput.addEventListener('input', () => {
+  const slide = state.slides[activeIndex];
+  if (!slide) return;
+  slide.speaker = speakerInput.value;
+  renderStill();
+});
+serifuInput.addEventListener('input', () => {
+  const slide = state.slides[activeIndex];
+  if (!slide) return;
+  slide.serifu = serifuInput.value;
+  renderStill();
+});
+nofaceCheck.addEventListener('change', () => {
+  const slide = state.slides[activeIndex];
+  if (!slide) return;
+  slide.noFace = nofaceCheck.checked;
+  renderPhotoList();
+});
+
+document.getElementById('voice-select-btn').addEventListener('click', () => document.getElementById('voice-file').click());
+document.getElementById('voice-file').addEventListener('change', async (e) => {
+  const file = e.target.files && e.target.files[0];
+  e.target.value = '';
+  const slide = state.slides[activeIndex];
+  if (!file || !slide) return;
+  if (!AudioCtx) { toast('このブラウザは音声処理に対応していません'); return; }
+  try {
+    slide.voiceBuffer = await decodeAudioFile(file);
+    slide.voiceName = file.name;
+    if (slide.voiceBuffer.duration > state.perSec) {
+      toast(`音声（${slide.voiceBuffer.duration.toFixed(1)}秒）が1枚あたりの${state.perSec}秒より長いため途中で切れます`);
+    } else {
+      toast('セリフ音声を設定しました');
+    }
+    renderPhotoList();
+  } catch (err) {
+    toast('音声ファイルの読み込みに失敗しました');
+  }
+});
+voiceClearBtn.addEventListener('click', () => {
+  const slide = state.slides[activeIndex];
+  if (!slide) return;
+  slide.voiceBuffer = null;
+  slide.voiceName = '';
+  renderPhotoList();
+});
+
+/* ========== オープニング・エンド・全体設定UI ========== */
+document.getElementById('school-input').addEventListener('input', (e) => {
+  state.schoolName = e.target.value;
+  renderStill();
+});
+document.getElementById('opening-check').addEventListener('change', (e) => {
+  state.openingOn = e.target.checked;
+  updateSummary();
+  renderStill();
+});
+document.getElementById('opening-input').addEventListener('input', (e) => {
+  state.openingTitle = e.target.value;
+  renderStill();
+});
+document.getElementById('ending-check').addEventListener('change', (e) => {
+  state.endingOn = e.target.checked;
+  updateSummary();
+  renderStill();
+});
+document.getElementById('ending-input').addEventListener('input', (e) => {
+  state.endingText = e.target.value;
+  renderStill();
+});
+
+function segButtons(container, attr, current, onChange) {
+  for (const btn of container.querySelectorAll('button')) {
+    btn.classList.toggle('active', btn.dataset[attr] === current);
+    btn.addEventListener('click', () => {
+      for (const b of container.querySelectorAll('button')) b.classList.remove('active');
+      btn.classList.add('active');
+      onChange(btn.dataset[attr]);
+    });
+  }
+}
+
+segButtons(document.getElementById('aspect-seg'), 'aspect', state.aspect, (v) => {
+  state.aspect = v;
+  if (timeline.playing) stopPreview();
+  applyCanvasSize();
+  renderStill();
+});
+segButtons(document.getElementById('motion-seg'), 'motion', state.motion, (v) => { state.motion = v; renderStill(); });
+segButtons(document.getElementById('quality-seg'), 'quality', String(state.bitrate), (v) => {
+  state.bitrate = Number(v);
+  updateSummary();
+});
+
+document.getElementById('per-range').addEventListener('input', (e) => {
+  state.perSec = Number(e.target.value);
+  document.getElementById('per-label').textContent = state.perSec.toFixed(1);
+  updateSummary();
+  renderStill();
+});
+
+/* 写真追加（クリック・ドラッグ＆ドロップ） */
+const dropZone = document.getElementById('drop-zone');
+const photoFileInput = document.getElementById('photo-file');
+dropZone.addEventListener('click', () => photoFileInput.click());
+dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('dragover'); });
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+dropZone.addEventListener('drop', (e) => {
+  e.preventDefault();
+  dropZone.classList.remove('dragover');
+  if (e.dataTransfer && e.dataTransfer.files) addPhotoFiles(e.dataTransfer.files);
+});
+photoFileInput.addEventListener('change', (e) => {
+  if (e.target.files) addPhotoFiles(e.target.files);
+  e.target.value = '';
+});
+
+/* ========== BGM ========== */
+document.getElementById('bgm-select-btn').addEventListener('click', () => document.getElementById('bgm-file').click());
+document.getElementById('bgm-file').addEventListener('change', async (e) => {
+  const file = e.target.files && e.target.files[0];
+  e.target.value = '';
+  if (!file) return;
+  if (!AudioCtx) { toast('このブラウザは音声処理に対応していません'); return; }
+  try {
+    state.bgmBuffer = await decodeAudioFile(file);
+    state.bgmName = file.name;
+    updateBgmUI();
+    toast('BGMを読み込みました');
+  } catch (err) {
+    toast('音声ファイルの読み込みに失敗しました');
+  }
+});
+document.getElementById('bgm-clear-btn').addEventListener('click', () => {
+  state.bgmBuffer = null;
+  state.bgmName = '';
+  updateBgmUI();
+});
+document.getElementById('bgm-vol-range').addEventListener('input', (e) => {
+  state.bgmVol = Number(e.target.value) / 100;
+  document.getElementById('bgm-vol-label').textContent = e.target.value;
+});
+
+function updateBgmUI() {
+  const nameEl = document.getElementById('bgm-name');
+  const clearBtn = document.getElementById('bgm-clear-btn');
+  if (state.bgmBuffer) {
+    nameEl.textContent = `${state.bgmName}（動画の長さに合わせてループ・末尾フェードアウト）`;
+    clearBtn.style.display = '';
+  } else {
+    nameEl.textContent = '未設定（BGMなしでも書き出せます）';
+    clearBtn.style.display = 'none';
+  }
+}
+
+/* ========== PWA: Service Worker登録 ==========
+   GitHub Pages等の直接配信時のみ登録し、オフラインでも起動できるようにする。
+   GAS配信（script.google.com / googleusercontent.com のiframe内）ではSWを登録できないためスキップ */
+const IS_GAS_HOSTED = /(^|\.)googleusercontent\.com$|(^|\.)script\.google\.com$/.test(location.hostname);
+if ('serviceWorker' in navigator && !IS_GAS_HOSTED &&
+    (location.protocol === 'https:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1')) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js').catch(() => { /* 非対応環境では通常のWebページとして動く */ });
+  });
+}
+
+/* ========== 初期化 ========== */
+applyCanvasSize();
+updateSummary();
+syncEditPanel();
+renderStill();
+</script>
+</body>
+</html>

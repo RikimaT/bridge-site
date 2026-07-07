@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="robots" content="noindex,nofollow">
+<title>Bridge 生徒管理</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700&family=DM+Serif+Display&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header>
+  <div class="logo">BRIDGE</div>
+  <div class="sub">Student Management System</div>
+  <button class="refresh-btn" id="refresh-btn" onclick="refreshAll(this)" title="データを再読み込み">&#x21bb;</button>
+</header>
+<div class="tabs">
+  <button class="tab active" onclick="switchTab('dash')">概況</button>
+  <button class="tab" onclick="switchTab('reg')">登録</button>
+  <button class="tab" onclick="switchTab('mgr');loadPaymentForCurrentMonth()">生徒</button>
+  <button class="tab" onclick="switchTab('trial')">体験生</button>
+  <button class="tab" onclick="switchTab('sales')">売上</button>
+</div>
+<div class="box">
+
+<!-- ====== 概況 ====== -->
+<div id="pane-dash" class="pane active">
+  <div id="dash-content"><div class="loading">読込中...</div></div>
+</div>
+
+<!-- ====== 生徒登録 ====== -->
+<div id="pane-reg" class="pane">
+  <div class="stitle">基本情報</div>
+  <div class="field"><label>氏名 *</label><input type="text" id="r-name" placeholder="田中 花子"></div>
+  <div class="field"><label>よみ（五十音順の並び順に使用）</label><input type="text" id="r-yomi" placeholder="たなか はなこ"></div>
+  <div class="row2">
+    <div class="field"><label>学年</label>
+      <select id="r-grade">
+        <option value="">未選択</option>
+        <option>幼児</option><option>小1</option><option>小2</option><option>小3</option>
+        <option>小4</option><option>小5</option><option>小6</option>
+        <option>中1</option><option>中2</option><option>中3</option>
+        <option>高1</option><option>高2</option><option>高3</option>
+      </select>
+    </div>
+    <div class="field"><label>学校名</label><select id="r-school"><option value="">読込中...</option></select></div>
+  </div>
+  <div class="row2">
+    <div class="field"><label>LINE ID</label><input type="text" id="r-line" placeholder="@example"></div>
+    <div class="field"><label>電話番号</label><input type="tel" id="r-phone" placeholder="090-0000-0000"></div>
+  </div>
+  <div class="row2">
+    <div class="field"><label>入会日</label><input type="date" id="r-join"></div>
+    <div class="field"><label>メモ</label><input type="text" id="r-memo"></div>
+  </div>
+  <div class="stitle" style="margin-top:20px;">コース選択</div>
+  <div class="ctabs" id="reg-ctabs"><span style="color:var(--muted);font-size:13px;">読込中...</span></div>
+  <div class="cgrid" id="reg-cgrid"></div>
+  <div class="stags" id="reg-stags"></div>
+  <div class="total-box">
+    <span style="font-size:13px;color:var(--muted);">月額合計</span>
+    <span class="total-val">&#165;<span id="reg-total">0</span></span>
+  </div>
+  <button class="btn btn-primary" id="reg-btn" onclick="submitReg()">登録する</button>
+</div>
+
+<!-- ====== 生徒管理 ====== -->
+<div id="pane-mgr" class="pane">
+  <div style="margin-bottom:14px;">
+    <input type="search" id="mgr-search" placeholder="氏名・学年・学校で検索..." oninput="renderMgr()">
+  </div>
+  <div id="pay-month-nav" class="month-nav"><button class="navbtn" onclick="changePayMonth(-1)">◀</button><span id="pay-month-label" class="month-nav-label"></span><button class="navbtn" onclick="changePayMonth(1)">▶</button></div>
+  <div id="mgr-list"><div class="loading">読込中...</div></div>
+</div>
+
+<!-- ====== 体験生 ====== -->
+<div id="pane-trial" class="pane">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+    <div class="stitle" style="margin:0;flex:1;">体験生一覧</div>
+    <button class="btn btn-primary btn-sm" onclick="openAddTrialModal()">+ 体験生追加</button>
+  </div>
+  <div class="ctabs" id="trial-filter-tabs">
+    <button class="ctab active" data-status="all" onclick="filterTrials(this)">すべて</button>
+    <button class="ctab" data-status="予定" onclick="filterTrials(this)">体験予定</button>
+    <button class="ctab" data-status="済" onclick="filterTrials(this)">体験済</button>
+    <button class="ctab" data-status="入会" onclick="filterTrials(this)">入会済</button>
+    <button class="ctab" data-status="見送り" onclick="filterTrials(this)">見送り</button>
+  </div>
+  <div id="trial-list"><div class="loading">読込中...</div></div>
+</div>
+
+<!-- ====== 売上照会 ====== -->
+<div id="pane-sales" class="pane">
+  <div class="year-row" id="s-years"></div>
+  <div class="month-grid" id="s-months"></div>
+  <div class="mode-row">
+    <button class="mmode active" data-mode="single" onclick="setSalesMode(this)">単年</button>
+    <button class="mmode" data-mode="yoy" onclick="setSalesMode(this)">前年比較</button>
+    <button class="mmode" data-mode="avg" onclick="setSalesMode(this)">過去平均</button>
+  </div>
+  <canvas id="sales-chart"></canvas>
+  <div class="target-row">
+    <span class="target-lbl" id="target-month-lbl">目標:</span>
+    <input type="text" id="target-input" inputmode="numeric" placeholder="¥ 目標金額">
+    <button class="btn btn-ghost btn-sm" onclick="saveTarget()">保存</button>
+    <button class="btn btn-ghost btn-sm" onclick="setupTargetsSync()" title="目標を全端末で共有">☁ 共有</button>
+  </div>
+  <div id="s-content"><div class="loading">読込中...</div></div>
+  <div class="dash-chart-wrap" style="margin-top:18px;">
+    <div class="dash-chart-title">料金改定シミュレーター</div>
+    <div class="row2">
+      <div class="field"><label>値上げ率（%）</label><input type="text" id="sim-rate" inputmode="numeric" value="5" oninput="renderPriceSim()"></div>
+      <div class="field"><label>想定退会（人）</label><input type="text" id="sim-churn" inputmode="numeric" value="0" oninput="renderPriceSim()"></div>
+    </div>
+    <div id="sim-result"><div style="font-size:13px;color:var(--muted);">生徒データの読み込み後に表示されます</div></div>
+  </div>
+</div>
+
+</div><!-- /box -->
+
+<!-- コース追加モーダル -->
+<div class="overlay hide" id="add-modal">
+  <div class="modal">
+    <div class="modal-title"><span id="add-modal-title">コース追加</span><button class="mclose" onclick="closeModal('add-modal')">&#x2715;</button></div>
+    <div class="ctabs" id="add-ctabs"></div>
+    <div class="cgrid" id="add-cgrid"></div>
+    <div class="stags" id="add-stags" style="margin:10px 0;min-height:30px;"></div>
+    <div style="display:flex;gap:8px;margin-top:14px;">
+      <button class="btn btn-ghost" style="flex:1;" onclick="closeModal('add-modal')">キャンセル</button>
+      <button class="btn btn-primary" style="flex:1;" id="add-btn">追加する</button>
+    </div>
+  </div>
+</div>
+
+<!-- 月額変更モーダル -->
+<div class="overlay hide" id="price-modal">
+  <div class="modal">
+    <div class="modal-title"><span id="price-modal-title">月額変更</span><button class="mclose" onclick="closeModal('price-modal')">&#x2715;</button></div>
+    <p id="price-modal-label" class="modal-note"></p>
+    <div class="field"><label>新しい金額（空欄でデフォルト戻し）</label><input type="text" id="price-input" inputmode="numeric" placeholder="例：8000"></div>
+    <div style="display:flex;gap:8px;margin-top:14px;">
+      <button class="btn btn-ghost" style="flex:1;" onclick="closeModal('price-modal')">キャンセル</button>
+      <button class="btn btn-primary" style="flex:1;" id="price-confirm-btn">変更する</button>
+    </div>
+  </div>
+</div>
+
+<!-- コース終了モーダル -->
+<div class="overlay hide" id="end-modal">
+  <div class="modal">
+    <div class="modal-title"><span>コース終了</span><button class="mclose" onclick="closeModal('end-modal')">&#x2715;</button></div>
+    <p id="end-modal-msg" class="modal-note"></p>
+    <div style="display:flex;gap:8px;margin-top:14px;">
+      <button class="btn btn-ghost" style="flex:1;" onclick="closeModal('end-modal')">キャンセル</button>
+      <button class="btn btn-danger" style="flex:1;" id="end-confirm-btn">終了する</button>
+    </div>
+  </div>
+</div>
+
+<!-- 退会モーダル -->
+<div class="overlay hide" id="withdraw-modal">
+  <div class="modal">
+    <div class="modal-title"><span>退会処理</span><button class="mclose" onclick="closeModal('withdraw-modal')">&#x2715;</button></div>
+    <p id="withdraw-modal-msg" class="modal-note"></p>
+    <div class="row2">
+      <div class="field"><label>退会日</label><input type="date" id="withdraw-date"></div>
+      <div class="field"><label>退会理由</label>
+        <select id="withdraw-reason">
+          <option value="">選択してください</option>
+          <option>受験終了・卒業</option><option>転校・引越し</option>
+          <option>費用の都合</option><option>他習い事の都合</option><option>その他</option>
+        </select>
+      </div>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:14px;">
+      <button class="btn btn-ghost" style="flex:1;" onclick="closeModal('withdraw-modal')">キャンセル</button>
+      <button class="btn btn-danger" style="flex:1;" id="withdraw-confirm-btn">退会処理する</button>
+    </div>
+  </div>
+</div>
+
+<!-- 体験生追加モーダル -->
+<div class="overlay hide" id="trial-modal">
+  <div class="modal">
+    <div class="modal-title"><span>体験生追加</span><button class="mclose" onclick="closeModal('trial-modal')">&#x2715;</button></div>
+    <div class="field"><label>氏名 *</label><input type="text" id="tr-name" placeholder="山田 太郎"></div>
+    <div class="row2">
+      <div class="field"><label>学年</label>
+        <select id="tr-grade">
+          <option value="">未選択</option>
+          <option>幼児</option><option>小1</option><option>小2</option><option>小3</option>
+          <option>小4</option><option>小5</option><option>小6</option>
+          <option>中1</option><option>中2</option><option>中3</option>
+          <option>高1</option><option>高2</option><option>高3</option>
+        </select>
+      </div>
+      <div class="field"><label>学校名</label><input type="text" id="tr-school" placeholder="〇〇小学校"></div>
+    </div>
+    <div class="row2">
+      <div class="field"><label>LINE / 電話</label><input type="text" id="tr-contact" placeholder="090-0000-0000"></div>
+      <div class="field"><label>体験予定日</label><input type="date" id="tr-date"></div>
+    </div>
+    <div class="field"><label>興味のあるコース・メモ</label><input type="text" id="tr-memo" placeholder="算数・英語など"></div>
+    <div style="display:flex;gap:8px;margin-top:14px;">
+      <button class="btn btn-ghost" style="flex:1;" onclick="closeModal('trial-modal')">キャンセル</button>
+      <button class="btn btn-primary" style="flex:1;" id="trial-submit-btn" onclick="submitTrial()">追加する</button>
+    </div>
+  </div>
+</div>
+
+<!-- 体験生→入会変換モーダル -->
+<div class="overlay hide" id="convert-modal">
+  <div class="modal">
+    <div class="modal-title"><span id="convert-modal-title">入会処理</span><button class="mclose" onclick="closeModal('convert-modal')">&#x2715;</button></div>
+    <p id="convert-modal-msg" class="modal-note"></p>
+    <div class="field"><label>入会日</label><input type="date" id="convert-join-date"></div>
+    <div style="display:flex;gap:8px;margin-top:14px;">
+      <button class="btn btn-ghost" style="flex:1;" onclick="closeModal('convert-modal')">キャンセル</button>
+      <button class="btn btn-primary" style="flex:1;" id="convert-confirm-btn">入会処理する</button>
+    </div>
+  </div>
+</div>
+
+
+<div class="toast" id="toast"></div>
+
+<script src="app.js"></script>
+</body>
+</html>

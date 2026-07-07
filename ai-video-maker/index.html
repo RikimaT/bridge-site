@@ -1,0 +1,2410 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>プロンプトビデオメーカー</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#FAFAFA;
+    --text:#1a1a1a;
+    --main:#2C5F8A;
+    --accent:#F0A500;
+    --card-bg:#ffffff;
+    --border:#e0e0e0;
+    --ng:#c0392b;
+    --ok:#2e8b57;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+  html,body{background:var(--bg);color:var(--text);}
+  body{
+    font-family:'Noto Sans JP','Hiragino Sans',sans-serif;
+    font-size:16px;
+    line-height:1.8;
+  }
+  header.app-header{
+    padding:16px 24px;
+    background:var(--main);
+    color:#fff;
+  }
+  header.app-header h1{
+    font-size:18px;
+    font-weight:700;
+    letter-spacing:0.04em;
+  }
+  header.app-header .sub{
+    font-size:12px;
+    opacity:0.85;
+  }
+  #support-banner{
+    display:none;
+    background:var(--ng);
+    color:#fff;
+    padding:16px 24px;
+    font-weight:600;
+  }
+  #support-banner.visible{display:block;}
+
+  main.layout{
+    display:grid;
+    grid-template-columns:1fr;
+    gap:16px;
+    padding:16px;
+    max-width:1440px;
+    margin:0 auto;
+  }
+  @media(min-width:900px){
+    main.layout{
+      grid-template-columns:minmax(360px,520px) 1fr;
+      gap:24px;
+      padding:24px;
+      align-items:start;
+    }
+    .col-right{
+      position:sticky;
+      top:16px;
+    }
+  }
+
+  .card{
+    background:var(--card-bg);
+    border-radius:8px;
+    box-shadow:0 2px 8px rgba(0,0,0,0.08);
+    padding:16px;
+    margin-bottom:16px;
+  }
+  .card h2{
+    font-size:16px;
+    font-weight:700;
+    color:var(--main);
+    margin-bottom:16px;
+    border-left:4px solid var(--accent);
+    padding-left:8px;
+    line-height:1.4;
+  }
+  .card h2 .step-hint{
+    display:block;
+    font-size:12px;
+    font-weight:400;
+    color:#888;
+    margin-top:2px;
+  }
+
+  .btn{
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    border:none;
+    border-radius:6px;
+    padding:12px 28px;
+    font-weight:600;
+    font-size:15px;
+    font-family:inherit;
+    cursor:pointer;
+    min-height:44px;
+    min-width:44px;
+    background:var(--main);
+    color:#fff;
+    line-height:1.2;
+  }
+  .btn:active{opacity:0.85;}
+  .btn:disabled{opacity:0.4;cursor:not-allowed;}
+  .btn.accent{background:var(--accent);color:#1a1a1a;}
+  .btn.ghost{
+    background:#fff;
+    color:var(--main);
+    border:1px solid var(--main);
+  }
+  .btn.danger{background:var(--ng);}
+  .btn.sm{padding:8px 14px;font-size:13px;min-height:38px;}
+  .btn.block{width:100%;}
+  .btn.recording{background:var(--ng);animation:pulse-rec 1s infinite;}
+  @keyframes pulse-rec{0%,100%{opacity:1;}50%{opacity:0.55;}}
+
+  .field{margin-bottom:16px;}
+  .field:last-child{margin-bottom:0;}
+  .field > .label{
+    display:block;
+    font-size:13px;
+    font-weight:600;
+    color:#555;
+    margin-bottom:8px;
+  }
+  .seg{
+    display:flex;
+    flex-wrap:wrap;
+    gap:8px;
+  }
+  .seg button{
+    flex:1 1 auto;
+    min-height:44px;
+    border:1px solid var(--border);
+    border-radius:6px;
+    background:#fff;
+    color:var(--text);
+    font-family:inherit;
+    font-size:14px;
+    font-weight:600;
+    padding:8px 16px;
+    cursor:pointer;
+  }
+  .seg button.active{
+    background:var(--main);
+    border-color:var(--main);
+    color:#fff;
+  }
+  input[type="range"]{
+    width:100%;
+    height:44px;
+    accent-color:var(--main);
+  }
+  textarea{
+    width:100%;
+    min-height:80px;
+    border:1px solid var(--border);
+    border-radius:6px;
+    padding:12px;
+    font-family:inherit;
+    font-size:16px;
+    line-height:1.6;
+    resize:vertical;
+    background:#fff;
+    color:var(--text);
+  }
+  select,input[type="text"],input[type="color"]{
+    font-family:inherit;
+    font-size:15px;
+    border:1px solid var(--border);
+    border-radius:6px;
+    background:#fff;
+    color:var(--text);
+    min-height:44px;
+    padding:8px 10px;
+  }
+  input[type="color"]{padding:4px;width:56px;}
+  select{width:100%;}
+  .row{display:flex;gap:12px;flex-wrap:wrap;align-items:center;}
+  .row > *{flex:0 0 auto;}
+  .row .grow{flex:1 1 auto;min-width:120px;}
+  .note{
+    font-size:13px;
+    color:#555;
+  }
+  .chips{
+    display:flex;
+    flex-wrap:wrap;
+    gap:6px;
+    margin-top:8px;
+  }
+  .chips button{
+    border:1px solid var(--border);
+    border-radius:16px;
+    background:#fff;
+    color:#555;
+    font-family:inherit;
+    font-size:12px;
+    padding:5px 10px;
+    cursor:pointer;
+  }
+  .fx-tags{
+    display:flex;
+    flex-wrap:wrap;
+    gap:6px;
+    margin-top:8px;
+    min-height:26px;
+  }
+  .fx-tags span{
+    background:#eef4f9;
+    color:var(--main);
+    border-radius:16px;
+    font-size:12px;
+    font-weight:600;
+    padding:3px 10px;
+  }
+  .toggle-line{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:12px;
+    min-height:44px;
+  }
+  .switch{position:relative;width:52px;height:30px;flex:0 0 auto;}
+  .switch input{opacity:0;width:0;height:0;}
+  .switch .track{
+    position:absolute;inset:0;border-radius:30px;background:#ccc;transition:0.2s;
+  }
+  .switch .track::before{
+    content:"";position:absolute;width:24px;height:24px;left:3px;top:3px;
+    border-radius:50%;background:#fff;transition:0.2s;
+  }
+  .switch input:checked + .track{background:var(--ok);}
+  .switch input:checked + .track::before{transform:translateX(22px);}
+
+  /* テンプレート */
+  .tpl-grid{display:flex;flex-wrap:wrap;gap:8px;}
+  .tpl-grid button{
+    flex:1 1 44%;min-height:46px;border:1px solid var(--border);border-radius:8px;
+    background:#fff;color:var(--text);font-family:inherit;font-size:13px;font-weight:600;
+    padding:8px;cursor:pointer;text-align:left;line-height:1.3;
+  }
+  .tpl-grid button:active{background:#eef4f9;}
+
+  /* シーン */
+  .scene{
+    border:1px solid var(--border);
+    border-radius:10px;
+    padding:12px;
+    margin-bottom:14px;
+    background:#fafafa;
+  }
+  .scene-head{
+    display:flex;align-items:center;gap:10px;margin-bottom:10px;
+  }
+  .scene-no{
+    font-weight:700;color:var(--main);font-size:14px;flex:0 0 auto;
+  }
+  .scene-thumb{
+    width:64px;height:44px;border-radius:6px;object-fit:cover;background:#e5e5e5;
+    border:1px solid var(--border);cursor:pointer;flex:0 0 auto;
+    display:flex;align-items:center;justify-content:center;font-size:11px;color:#888;text-align:center;
+  }
+  .scene-thumb img{width:100%;height:100%;object-fit:cover;border-radius:5px;}
+  .scene-head .spacer{flex:1 1 auto;}
+  .scene textarea{min-height:60px;font-size:15px;margin-bottom:8px;}
+  .scene .dur-line{font-size:12px;color:#666;font-weight:600;margin-bottom:4px;}
+  #drop-hint{
+    border:2px dashed var(--border);border-radius:8px;padding:16px;text-align:center;
+    color:#555;font-size:13px;
+  }
+
+  /* キャラクター */
+  .emoji-grid{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px;}
+  .emoji-grid button{
+    width:52px;height:52px;font-size:26px;line-height:1;
+    border:1px solid var(--border);border-radius:8px;background:#fff;cursor:pointer;
+  }
+  .emoji-grid button.active{border-color:var(--main);background:#eef4f9;}
+  #char-thumb{
+    display:none;width:64px;height:64px;object-fit:contain;
+    border:1px solid var(--border);border-radius:8px;background:#f4f4f4;
+  }
+
+  /* 音声トラック一覧 */
+  #audio-list{list-style:none;margin-top:12px;display:flex;flex-direction:column;gap:10px;}
+  #audio-list li{
+    border:1px solid var(--border);border-radius:8px;padding:10px 12px;background:#fafafa;
+  }
+  #audio-list .a-top{display:flex;align-items:center;gap:8px;justify-content:space-between;}
+  #audio-list .a-name{font-size:14px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  #audio-list .a-kind{font-size:12px;color:#888;font-weight:400;}
+  #rec-timer{font-variant-numeric:tabular-nums;font-weight:700;color:var(--ng);min-width:52px;text-align:center;}
+
+  /* 最近の作品 */
+  #recent-list{list-style:none;margin-top:8px;display:flex;flex-direction:column;gap:10px;}
+  #recent-list li{border:1px solid var(--border);border-radius:8px;padding:10px 12px;background:#fafafa;}
+  #recent-list .a-top{display:flex;align-items:center;gap:8px;justify-content:space-between;}
+  #recent-list .a-name{font-size:14px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  #recent-list .a-kind{font-size:12px;color:#888;font-weight:400;}
+
+  /* シーン並べ替え */
+  .scene-head .mv{padding:6px 10px;min-height:34px;min-width:34px;font-size:12px;}
+  .drag-handle{cursor:grab;font-size:18px;color:#bbb;user-select:none;flex:0 0 auto;padding:0 2px;line-height:1;}
+  .drag-handle:active{cursor:grabbing;}
+  .scene.drop-hint{outline:2px dashed var(--accent);outline-offset:2px;}
+
+  /* 字幕の表示時間 */
+  .telop-timing{margin:2px 0 8px;}
+  .tl-head{font-size:12px;color:#666;font-weight:600;margin:6px 0 4px;}
+  .tl-row{display:flex;align-items:center;gap:8px;margin-bottom:6px;}
+  .tl-idx{width:22px;height:22px;flex:0 0 auto;border-radius:50%;background:var(--main);color:#fff;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;}
+  .tl-text{flex:1 1 auto;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#333;}
+  .tl-row input{width:76px;min-height:38px;flex:0 0 auto;}
+  .tl-unit{font-size:12px;color:#666;flex:0 0 auto;}
+  .tl-warn{font-size:12px;color:var(--ng);margin-top:4px;line-height:1.4;}
+
+  /* プレビュー */
+  .canvas-wrap{
+    display:flex;justify-content:center;background:#222;border-radius:8px;padding:16px;margin-bottom:16px;
+  }
+  #preview-canvas{max-width:100%;max-height:62vh;border-radius:4px;background:#000;}
+  .preview-actions{display:flex;gap:16px;flex-wrap:wrap;}
+  .preview-time{font-size:13px;color:#555;margin-top:8px;min-height:24px;}
+
+  /* 書き出しオーバーレイ */
+  #export-overlay{
+    display:none;position:fixed;inset:0;background:rgba(26,26,26,0.7);z-index:100;
+    align-items:center;justify-content:center;padding:16px;
+  }
+  #export-overlay.visible{display:flex;}
+  .export-box{
+    background:#fff;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,0.3);
+    padding:24px;width:100%;max-width:420px;text-align:center;
+  }
+  .export-box h3{font-size:16px;font-weight:700;color:var(--main);margin-bottom:16px;}
+  .progress-track{width:100%;height:16px;border-radius:8px;background:#eee;overflow:hidden;margin-bottom:8px;}
+  .progress-fill{height:100%;width:0%;background:var(--accent);transition:width 0.1s linear;}
+  .progress-text{font-size:14px;color:#555;margin-bottom:16px;}
+
+  /* トースト */
+  #toast{
+    position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(120%);
+    background:#1a1a1a;color:#fff;padding:12px 28px;border-radius:6px;font-size:14px;font-weight:600;
+    box-shadow:0 2px 8px rgba(0,0,0,0.3);transition:transform 0.25s ease;z-index:200;max-width:90vw;text-align:center;
+  }
+  #toast.visible{transform:translateX(-50%) translateY(0);}
+
+  @media(max-width:680px){
+    body{font-size:15px;}
+    main.layout{padding:16px 8px;}
+    .btn{padding:12px 16px;}
+    .tpl-grid button{flex:1 1 100%;}
+  }
+</style>
+</head>
+<body>
+
+<header class="app-header">
+  <h1>プロンプトビデオメーカー</h1>
+  <div class="sub">写真・テロップ・キャラ・音楽から、本格的な動画をブラウザだけで作成（あなたの写真や音声は端末外に送信されません）</div>
+</header>
+
+<div id="support-banner">このブラウザは動画書き出しに対応していません。iPhoneはSafari、PCはChromeをお使いください</div>
+
+<main class="layout">
+  <!-- 左カラム：入力 -->
+  <section class="col-left">
+    <div class="card">
+      <h2>0. テンプレートから始める<span class="step-hint">用途を選ぶと文字・動き・比率がまとめて入ります（後から自由に編集OK）</span></h2>
+      <div class="tpl-grid" id="tpl-grid"></div>
+    </div>
+
+    <div class="card">
+      <h2>1. シーン（写真・動画）<span class="step-hint">写真や動画を足すほど作品がつながります。上から順に再生されます</span></h2>
+      <div id="scene-list"></div>
+      <button type="button" class="btn ghost block" id="add-scene-btn">＋ 写真・動画を追加してシーンを増やす</button>
+      <button type="button" class="btn ghost block" id="paste-scene-btn" style="display:none;margin-top:8px;">📋 コピーしたシーンを貼り付け</button>
+      <input type="file" id="photo-file" accept="image/*,video/mp4,video/quicktime,video/webm,video/*" style="display:none;">
+      <div class="note" style="margin-top:10px;">スマホで撮った動画もそのまま使えます（動画を選ぶとシーンの長さが動画に合わせて自動設定。動画の音もそのまま入ります）。各シーンの「動き」は言葉で指定。使える言葉: ズームイン／アウト・右左上下にパン・回転・揺れる・シェイク・波・鼓動・桜・雪・雨・キラキラ・紙吹雪・夕焼け・夜・モノクロ・フレア・フェード・往復ループ</div>
+    </div>
+
+    <div class="card">
+      <h2>2. テロップの見た目<span class="step-hint">全シーン共通の字幕スタイル。文字は各シーンで入力します</span></h2>
+      <div class="field">
+        <span class="label">表示位置</span>
+        <div class="seg" id="telop-pos-seg">
+          <button type="button" data-pos="bottom" class="active">下</button>
+          <button type="button" data-pos="center">中央</button>
+          <button type="button" data-pos="top">上</button>
+        </div>
+      </div>
+      <div class="field">
+        <div class="row">
+          <div class="grow">
+            <span class="label">文字サイズ: <span id="telop-size-label">標準</span></span>
+            <input type="range" id="telop-size" min="0.6" max="1.8" step="0.1" value="1">
+          </div>
+          <div>
+            <span class="label">文字色</span>
+            <input type="color" id="telop-color" value="#ffffff">
+          </div>
+        </div>
+      </div>
+      <div class="field">
+        <span class="label">フォント</span>
+        <select id="telop-font"></select>
+      </div>
+      <div class="toggle-line">
+        <span class="label" style="margin:0;">黒い帯を敷いて読みやすくする</span>
+        <label class="switch"><input type="checkbox" id="telop-band" checked><span class="track"></span></label>
+      </div>
+      <div class="toggle-line">
+        <span class="label" style="margin:0;">ふわっと登場アニメ</span>
+        <label class="switch"><input type="checkbox" id="telop-anim" checked><span class="track"></span></label>
+      </div>
+      <hr style="border:none;border-top:1px solid var(--border);margin:16px 0;">
+      <div class="toggle-line">
+        <span class="label" style="margin:0;">🔊 テロップを自動で読み上げる（プレビュー）</span>
+        <label class="switch"><input type="checkbox" id="tts-on" checked><span class="track"></span></label>
+      </div>
+      <div class="field" style="margin-top:12px;">
+        <span class="label">読み上げの声</span>
+        <select id="tts-voice"><option value="">（端末の標準の声）</option></select>
+      </div>
+      <div class="field">
+        <span class="label">読み上げの速さ: <span id="tts-rate-label">1.0</span>倍</span>
+        <input type="range" id="tts-rate" min="0.6" max="1.6" step="0.1" value="1">
+      </div>
+      <div class="row" style="margin-top:4px;">
+        <button type="button" class="btn ghost sm" id="tts-test-btn">▶ 声を試聴</button>
+      </div>
+      <div class="note" id="tts-note" style="margin-top:8px;">
+        読み上げはプレビューで確認できます。書き出し動画に音声として入れたい場合は、下の「マイクで録音」でナレーションを録るか、音楽を追加してください。
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>3. キャラクター<span class="step-hint">画面のすみに表示。テロップ表示中は口パク風に動きます</span></h2>
+      <div class="field">
+        <span class="label">キャラを選ぶ</span>
+        <div class="emoji-grid" id="emoji-grid">
+          <button type="button" data-emoji="" class="active" title="なし">✕</button>
+          <button type="button" data-emoji="🧑‍🏫">🧑‍🏫</button>
+          <button type="button" data-emoji="😀">😀</button>
+          <button type="button" data-emoji="🐱">🐱</button>
+          <button type="button" data-emoji="🐶">🐶</button>
+          <button type="button" data-emoji="🐰">🐰</button>
+          <button type="button" data-emoji="🧸">🧸</button>
+          <button type="button" data-emoji="⭐">⭐</button>
+        </div>
+      </div>
+      <div class="field">
+        <div class="row">
+          <button type="button" class="btn ghost sm" id="char-upload-btn">🖼 自分のキャラ画像を使う</button>
+          <img id="char-thumb" alt="キャラ画像">
+          <input type="file" id="char-file" accept="image/png,image/*" style="display:none;">
+        </div>
+        <div class="note" style="margin-top:6px;">背景が透明なPNGがおすすめです（人物・イラスト・ロゴ何でもOK）。</div>
+      </div>
+      <div class="field">
+        <span class="label">表示位置</span>
+        <div class="seg" id="char-pos-seg">
+          <button type="button" data-cpos="br" class="active">右下</button>
+          <button type="button" data-cpos="bl">左下</button>
+          <button type="button" data-cpos="tr">右上</button>
+          <button type="button" data-cpos="tl">左上</button>
+        </div>
+      </div>
+      <div class="field">
+        <span class="label">大きさ: <span id="char-size-label">標準</span></span>
+        <input type="range" id="char-size" min="0.5" max="1.8" step="0.1" value="1">
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>4. 音楽・録音<span class="step-hint">ここで足した音は書き出し動画にそのまま入ります</span></h2>
+      <div class="field">
+        <div class="row">
+          <button type="button" class="btn ghost sm" id="music-btn">🎵 音楽ファイルを追加</button>
+          <button type="button" class="btn ghost sm" id="rec-btn">🎙 マイクで録音</button>
+          <span id="rec-timer" style="display:none;">0:00</span>
+        </div>
+        <input type="file" id="music-file" accept="audio/*" multiple style="display:none;">
+        <div class="note" style="margin-top:6px;">
+          購入した音楽やスマホで録った声・音を追加できます。ご自分で権利を持つ音源だけをお使いください。録音（ナレーション）中は音楽が自動で少し下がります。
+        </div>
+      </div>
+      <div class="field">
+        <span class="label">内蔵BGM（著作権フリー・アプリが自動生成）</span>
+        <div class="chips" id="bgm-grid">
+          <button type="button" data-bgm="gentle">やさしい</button>
+          <button type="button" data-bgm="bright">明るい</button>
+          <button type="button" data-bgm="calm">しっとり</button>
+          <button type="button" data-bgm="happy">わくわく</button>
+        </div>
+        <div class="note" style="margin-top:6px;">アプリ内で音を合成した完全オリジナルBGMなので、権利を気にせず使えます。動画の長さに合わせて自動でくり返します。</div>
+      </div>
+      <ul id="audio-list"></ul>
+    </div>
+
+    <div class="card">
+      <h2>5. 動画の設定</h2>
+      <div class="field">
+        <span class="label">アスペクト比</span>
+        <div class="seg" id="aspect-seg">
+          <button type="button" data-aspect="16:9" class="active">16:9（横）</button>
+          <button type="button" data-aspect="9:16">9:16（縦）</button>
+          <button type="button" data-aspect="1:1">1:1</button>
+        </div>
+      </div>
+      <div class="note" id="total-dur-note">動画全体の長さ: 8秒</div>
+    </div>
+
+    <div class="card">
+      <h2>6. 保存・呼び出し<span class="step-hint">この端末に保存すれば「最近の作品」からすぐ開けます</span></h2>
+      <div class="field">
+        <span class="label">作品の名前</span>
+        <input type="text" id="proj-name" placeholder="例: 体験授業の告知" style="width:100%;">
+      </div>
+      <div class="row">
+        <button type="button" class="btn ghost sm" id="device-save-btn">📱 この端末に保存</button>
+        <button type="button" class="btn ghost sm" id="save-btn">💾 ファイルに保存</button>
+        <button type="button" class="btn ghost sm" id="load-btn">📂 ファイルを開く</button>
+        <input type="file" id="load-file" accept="application/json,.json" style="display:none;">
+      </div>
+      <div class="note" style="margin-top:8px;">
+        写真・音楽・録音も含めて保存します。すべて端末内で完結し、送信はされません。別の端末へ移すときは「ファイルに保存」で書き出したファイルを相手の端末で「ファイルを開く」してください。
+      </div>
+      <div class="tl-head" style="margin-top:14px;">最近の作品（この端末に保存）</div>
+      <ul id="recent-list"></ul>
+    </div>
+  </section>
+
+  <!-- 右カラム：プレビュー -->
+  <section class="col-right">
+    <div class="card">
+      <h2>プレビュー・書き出し</h2>
+      <div class="canvas-wrap">
+        <canvas id="preview-canvas" width="1920" height="1080"></canvas>
+      </div>
+      <div class="preview-actions">
+        <button type="button" class="btn ghost" id="preview-btn">▶ プレビュー再生</button>
+        <button type="button" class="btn accent" id="export-btn">🎬 動画を書き出す</button>
+      </div>
+      <div class="preview-time" id="preview-time"></div>
+      <div class="note">※ 書き出しには動画と同じ秒数がかかります。写真・音声はこの端末内で処理され、どこにも送信されません</div>
+    </div>
+  </section>
+</main>
+
+<!-- 書き出し中オーバーレイ -->
+<div id="export-overlay">
+  <div class="export-box">
+    <h3>動画を書き出し中…</h3>
+    <div class="progress-track"><div class="progress-fill" id="export-fill"></div></div>
+    <div class="progress-text" id="export-text">0.0秒 / 0.0秒</div>
+    <button type="button" class="btn danger" id="export-cancel-btn">キャンセル</button>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+'use strict';
+
+/* ========== 定数 ========== */
+const ASPECTS = {
+  '16:9': { w: 1920, h: 1080 },
+  '9:16': { w: 1080, h: 1920 },
+  '1:1':  { w: 1080, h: 1080 }
+};
+const MAX_IMG_DIM = 2048;
+const DISSOLVE = 0.45;   // シーン切り替えのクロスディゾルブ秒
+const DUCK_LEVEL = 0.28; // 録音ナレーション中に下げるBGM音量比
+
+/* ========== 状態（写真・音声はメモリ内のみ。サーバー送信は一切しない） ========== */
+const state = {
+  aspect: '16:9',
+  scenes: [],        // { id, image:{canvas,w,h}|null, prompt, fx, particles, telop:[{text,dur}], dur }
+  telopStyle: { pos: 'bottom', size: 1.0, color: '#ffffff', band: true, anim: true, font: "'Noto Sans JP','Hiragino Sans',sans-serif" },
+  tts: { on: true, voice: '', rate: 1.0 },
+  character: { emoji: '', image: null, pos: 'br', size: 1.0 },
+  audioTracks: []    // { id, name, kind:'music'|'rec', buffer, volume }
+};
+
+let sceneSeq = 0;
+function newScene(prompt, telop, dur) {
+  // image: 写真 / video: 動画（{el,w,h,duration}）。どちらか一方を使う
+  const s = { id: ++sceneSeq, image: null, video: null, videoBytes: null, videoMime: '', videoAudio: null, videoThumb: '', prompt: prompt || '', fx: {}, particles: [], telop: [], dur: dur || 8 };
+  s.fx = parsePrompt(s.prompt);
+  s.particles = buildParticles(s.fx);
+  if (telop) s.telop = telopFromText(telop, s.dur);
+  return s;
+}
+
+// テキスト（1行＝1字幕）から {text,dur} 配列を作る。既存の表示時間は同じ位置なら引き継ぐ
+function telopFromText(text, sceneDur, existing) {
+  const lines = text.split('\n').map(x => x.trim()).filter(Boolean);
+  const even = +(sceneDur / Math.max(1, lines.length)).toFixed(1);
+  return lines.map((t, i) => ({
+    text: t,
+    dur: (existing && existing[i] && Number(existing[i].dur) > 0) ? existing[i].dur : even
+  }));
+}
+
+/* ========== DOM参照 ========== */
+const canvas = document.getElementById('preview-canvas');
+const ctx = canvas.getContext('2d');
+const photoFileInput = document.getElementById('photo-file');
+const sceneListEl = document.getElementById('scene-list');
+const previewBtn = document.getElementById('preview-btn');
+const exportBtn = document.getElementById('export-btn');
+const previewTimeEl = document.getElementById('preview-time');
+const overlayEl = document.getElementById('export-overlay');
+const exportFillEl = document.getElementById('export-fill');
+const exportTextEl = document.getElementById('export-text');
+
+/* ========== トースト ========== */
+let toastTimer = null;
+function toast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('visible');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('visible'), 3000);
+}
+
+/* ========== 対応ブラウザ判定 ========== */
+const recorderSupported =
+  typeof MediaRecorder !== 'undefined' &&
+  typeof HTMLCanvasElement.prototype.captureStream === 'function';
+if (!recorderSupported) {
+  document.getElementById('support-banner').classList.add('visible');
+  exportBtn.disabled = true;
+}
+
+/* ========== プロンプト解析（キーワード → エフェクト） ========== */
+const FX_RULES = [
+  { key: 'zoomIn',    label: 'ズームイン',     re: /ズームイン|ズーム ?イン|寄(り|る|っ)|アップ|近づ|zoom ?in/i },
+  { key: 'zoomOut',   label: 'ズームアウト',   re: /ズームアウト|引き|遠ざ|zoom ?out/i },
+  { key: 'panRight',  label: '右へパン',       re: /右(へ|に|方向)/ },
+  { key: 'panLeft',   label: '左へパン',       re: /左(へ|に|方向)/ },
+  { key: 'panUp',     label: '上へパン',       re: /上(へ|に|方向)|空へ/ },
+  { key: 'panDown',   label: '下へパン',       re: /下(へ|に|方向)/ },
+  { key: 'rotate',    label: '回転',           re: /回転|回る|まわる|ぐるぐる/ },
+  { key: 'sway',      label: '風で揺れる',     re: /風|揺れ|揺ら|なびく|そよ/ },
+  { key: 'shake',     label: 'シェイク',       re: /シェイク|振動|地震|ガタガタ/ },
+  { key: 'wave',      label: '波打つ',         re: /波|水面|ゆらめ/ },
+  { key: 'pulse',     label: '鼓動ズーム',     re: /鼓動|ドキドキ|ハート|心臓|脈/ },
+  { key: 'petal',     label: '花びら',         re: /桜|花びら|花吹雪/ },
+  { key: 'snow',      label: '雪',             re: /雪/ },
+  { key: 'rain',      label: '雨',             re: /雨/ },
+  { key: 'sparkle',   label: 'キラキラ',       re: /キラキラ|きらきら|星|輝|光る/ },
+  { key: 'confetti',  label: '紙吹雪',         re: /紙吹雪|パーティ|お祝い|クラッカー/ },
+  { key: 'warm',      label: '暖かい色',       re: /夕焼け|夕日|暖か|あたたか|セピア|オレンジ/ },
+  { key: 'cool',      label: '冷たい色',       re: /夜|冷た|つめた|青く|クール|ブルー/ },
+  { key: 'mono',      label: 'モノクロ',       re: /モノクロ|白黒|レトロ/ },
+  { key: 'flare',     label: 'レンズフレア',   re: /フレア|まぶし|眩し|木漏れ日|光が差/ },
+  { key: 'fade',      label: 'フェード',       re: /フェード/ },
+  { key: 'boomerang', label: '往復ループ',     re: /往復|ループ|ブーメラン|繰り返/ },
+  { key: 'still',     label: 'そのまま',       re: /そのまま|エフェクトなし|動きなし/ }
+];
+
+function parsePrompt(text) {
+  const fx = {};
+  for (const r of FX_RULES) {
+    if (r.re.test(text)) fx[r.key] = true;
+  }
+  if (fx.zoomIn && fx.zoomOut) delete fx.zoomOut;
+  const hasMotion = fx.zoomIn || fx.zoomOut || fx.panRight || fx.panLeft || fx.panUp ||
+    fx.panDown || fx.rotate || fx.sway || fx.shake || fx.wave || fx.pulse;
+  if (fx.still) {
+    // 「そのまま」指定時はモーションを付けない（動画の等倍再生などに使う）
+    delete fx.zoomIn; delete fx.zoomOut;
+  } else if (!hasMotion) {
+    fx.zoomIn = true;
+  }
+  return fx;
+}
+
+function fxLabels(fx) {
+  const out = [];
+  for (const r of FX_RULES) if (fx[r.key]) out.push(r.label);
+  return out;
+}
+
+/* ========== シーンUI ========== */
+const QUICK_CHIPS = [
+  ['そのまま（動画向け）', 'そのまま再生'],
+  ['ズームイン＋キラキラ', 'ゆっくりズームインして、キラキラ光る'],
+  ['桜＋夕焼け', '桜の花びらが舞いながら、ゆっくりズームイン。夕焼けの暖かい光'],
+  ['雪＋引き', '雪が降るなか、ゆっくりズームアウト。少し青く冷たい雰囲気'],
+  ['パン＋風', '右にパンしながら、風で揺れる。レンズフレアの光'],
+  ['波＋回転', '水面のように波打ち、ゆっくり回転する'],
+  ['お祝い＋ループ', '紙吹雪が舞って、ドキドキ鼓動するようにズームして、往復ループ']
+];
+
+let photoTargetSceneId = null; // 写真選択の対象シーン（nullなら新規追加）
+
+function renderSceneList() {
+  sceneListEl.innerHTML = '';
+  state.scenes.forEach((s, i) => {
+    const el = document.createElement('div');
+    el.className = 'scene';
+    const thumb = s.image
+      ? `<span class="scene-thumb" data-thumb="${s.id}"><img src="${s.image.canvas.toDataURL('image/jpeg',0.7)}" alt=""></span>`
+      : s.video
+        ? (s.videoThumb
+          ? `<span class="scene-thumb" data-thumb="${s.id}"><img src="${s.videoThumb}" alt="動画"></span>`
+          : `<span class="scene-thumb" data-thumb="${s.id}">🎬 動画</span>`)
+        : `<span class="scene-thumb" data-thumb="${s.id}">写真/動画<br>を選ぶ</span>`;
+    const chips = QUICK_CHIPS.map(([label, p]) =>
+      `<button type="button" data-chip="${s.id}" data-p="${escapeHtml(p)}">${label}</button>`).join('');
+    const tags = fxLabels(s.fx).map(l => `<span>${l}</span>`).join('');
+    el.dataset.sceneId = s.id;
+    el.innerHTML = `
+      <div class="scene-head">
+        <span class="drag-handle" draggable="true" data-drag="${s.id}" title="ドラッグで並べ替え">⠿</span>
+        <span class="scene-no">シーン${i + 1}</span>
+        ${thumb}
+        <span class="spacer"></span>
+        <button type="button" class="btn ghost sm mv" data-move-up="${s.id}" ${i === 0 ? 'disabled' : ''} title="上へ">▲</button>
+        <button type="button" class="btn ghost sm mv" data-move-down="${s.id}" ${i === state.scenes.length - 1 ? 'disabled' : ''} title="下へ">▼</button>
+        <button type="button" class="btn ghost sm mv" data-dup-scene="${s.id}" title="このシーンを複製">📑</button>
+        <button type="button" class="btn danger sm" data-del-scene="${s.id}" ${state.scenes.length <= 1 ? 'disabled' : ''}>削除</button>
+      </div>
+      <textarea data-prompt="${s.id}" placeholder="このシーンの動き（例: ゆっくりズームイン、キラキラ）">${escapeHtml(s.prompt)}</textarea>
+      <div class="chips">${chips}</div>
+      <div class="fx-tags" data-tags="${s.id}">${tags}</div>
+      <textarea data-telop="${s.id}" placeholder="このシーンの字幕（1行＝1つ。空でもOK）">${escapeHtml(s.telop.map(c => c.text).join('\n'))}</textarea>
+      <div class="telop-timing" data-timing="${s.id}">${renderTimingRows(s)}</div>
+      <button type="button" class="btn ghost sm" data-ocr="${s.id}" ${s.image ? '' : 'disabled'}>🔎 写真の文字を字幕にする${s.video ? '（写真のみ）' : ''}</button>
+      <div class="dur-line" style="margin-top:10px;">このシーンの長さ: <span data-durlabel="${s.id}">${s.dur}</span>秒</div>
+      <input type="range" min="2" max="20" step="1" value="${s.dur}" data-dur="${s.id}">
+      <div class="row" style="margin-top:10px;">
+        <button type="button" class="btn ghost sm" data-play-scene="${s.id}" ${(s.image || s.video) ? '' : 'disabled'}>▶ このシーンだけ再生</button>
+        <button type="button" class="btn ghost sm" data-copy-scene="${s.id}">📋 コピー</button>
+      </div>`;
+    sceneListEl.appendChild(el);
+  });
+  bindSceneEvents();
+  updateTotalDurNote();
+}
+
+// 字幕の表示時間（1つずつ調整）UIのHTML
+function renderTimingRows(s) {
+  if (!s.telop.length) return '';
+  const rows = s.telop.map((cap, i) => `
+    <div class="tl-row">
+      <span class="tl-idx">${i + 1}</span>
+      <span class="tl-text">${escapeHtml(cap.text)}</span>
+      <input type="number" min="0.5" max="${s.dur}" step="0.5" value="${cap.dur}" data-capdur="${s.id}" data-idx="${i}">
+      <span class="tl-unit">秒</span>
+    </div>`).join('');
+  const sum = s.telop.reduce((a, c) => a + (Number(c.dur) || 0), 0);
+  const warn = sum > s.dur + 0.05
+    ? `<div class="tl-warn">字幕の合計 ${sum.toFixed(1)}秒 がシーンの長さ ${s.dur}秒 を超えています。最後の字幕までに収まるよう調整してください</div>`
+    : '';
+  return `<div class="tl-head">字幕の表示時間（1つずつ調整できます）</div>${rows}${warn}`;
+}
+
+function bindTimingInputs(scope) {
+  scope.querySelectorAll('[data-capdur]').forEach(inp => inp.addEventListener('input', () => {
+    const s = getScene(Number(inp.dataset.capdur));
+    if (!s) return;
+    const idx = Number(inp.dataset.idx);
+    let v = Number(inp.value);
+    if (!(v > 0)) v = 0.5;
+    if (s.telop[idx]) s.telop[idx].dur = v;
+    renderStill();
+  }));
+}
+
+function refreshTiming(s) {
+  const cont = sceneListEl.querySelector(`[data-timing="${s.id}"]`);
+  if (cont) { cont.innerHTML = renderTimingRows(s); bindTimingInputs(cont); }
+}
+
+function moveScene(id, dir) {
+  const i = state.scenes.findIndex(s => s.id === id);
+  const j = i + dir;
+  if (i < 0 || j < 0 || j >= state.scenes.length) return;
+  const tmp = state.scenes[i]; state.scenes[i] = state.scenes[j]; state.scenes[j] = tmp;
+  renderSceneList();
+  renderStill();
+}
+
+function duplicateScene(id) {
+  const i = state.scenes.findIndex(s => s.id === id);
+  if (i < 0) return;
+  const src = state.scenes[i];
+  const s = newScene(src.prompt, '', src.dur);
+  s.telop = src.telop.map(c => ({ text: c.text, dur: c.dur }));
+  s.image = src.image; // 画像は描画のみで書き換えないので参照を共有
+  // 動画も参照共有（描画・音声とも読み取り専用）
+  s.video = src.video; s.videoBytes = src.videoBytes; s.videoMime = src.videoMime;
+  s.videoAudio = src.videoAudio; s.videoThumb = src.videoThumb;
+  state.scenes.splice(i + 1, 0, s);
+  renderSceneList();
+  renderStill();
+  toast('シーンを複製しました');
+}
+
+/* ===== シーンのコピー＆ペースト（localStorage経由で別プロジェクト間も可） ===== */
+const CLIP_KEY = 'bpv_scene_clip_v1';
+function copyScene(id) {
+  const s = getScene(id);
+  if (!s) return;
+  try {
+    localStorage.setItem(CLIP_KEY, JSON.stringify({
+      prompt: s.prompt, dur: s.dur,
+      telop: s.telop.map(c => ({ text: c.text, dur: c.dur })),
+      imageData: imageToDataURL(s.image, false)
+    }));
+    if (s.video) toast('シーンをコピーしました（動画本体はサイズの都合でコピーに含まれません）');
+    else toast('シーンをコピーしました（別の作品にも貼り付けできます）');
+    updatePasteBtn();
+  } catch (e) { toast('コピーに失敗しました（写真が大きすぎる可能性があります）'); }
+}
+async function pasteScene() {
+  let clip = null;
+  try { clip = JSON.parse(localStorage.getItem(CLIP_KEY) || 'null'); } catch (e) {}
+  if (!clip) { toast('コピーされたシーンがありません'); return; }
+  const s = newScene(clip.prompt || '', '', Number(clip.dur) || 8);
+  s.telop = Array.isArray(clip.telop)
+    ? clip.telop.map(c => ({ text: String(c.text || ''), dur: Number(c.dur) > 0 ? Number(c.dur) : 1 }))
+    : [];
+  s.image = await loadImageFromDataURL(clip.imageData);
+  state.scenes.push(s);
+  renderSceneList();
+  renderStill();
+  toast('コピーしたシーンを貼り付けました');
+}
+function updatePasteBtn() {
+  const b = document.getElementById('paste-scene-btn');
+  let has = false;
+  try { has = !!localStorage.getItem(CLIP_KEY); } catch (e) {}
+  b.style.display = has ? 'block' : 'none';
+}
+
+function reorderScene(dragId, targetId) {
+  const from = state.scenes.findIndex(s => s.id === dragId);
+  const to = state.scenes.findIndex(s => s.id === targetId);
+  if (from < 0 || to < 0 || from === to) return;
+  const [m] = state.scenes.splice(from, 1);
+  state.scenes.splice(to, 0, m);
+  renderSceneList();
+  renderStill();
+}
+
+let dragSceneId = null;
+
+function bindSceneEvents() {
+  sceneListEl.querySelectorAll('[data-thumb]').forEach(b => b.addEventListener('click', () => {
+    photoTargetSceneId = Number(b.dataset.thumb);
+    photoFileInput.click();
+  }));
+  sceneListEl.querySelectorAll('[data-move-up]').forEach(b => b.addEventListener('click', () => moveScene(Number(b.dataset.moveUp), -1)));
+  sceneListEl.querySelectorAll('[data-move-down]').forEach(b => b.addEventListener('click', () => moveScene(Number(b.dataset.moveDown), 1)));
+  sceneListEl.querySelectorAll('[data-dup-scene]').forEach(b => b.addEventListener('click', () => duplicateScene(Number(b.dataset.dupScene))));
+  // ドラッグ＆ドロップで並べ替え（PC向け。スマホは▲▼ボタンで操作）
+  sceneListEl.querySelectorAll('[data-drag]').forEach(h => {
+    h.addEventListener('dragstart', (e) => {
+      dragSceneId = Number(h.dataset.drag);
+      if (e.dataTransfer) { e.dataTransfer.effectAllowed = 'move'; try { e.dataTransfer.setData('text/plain', String(dragSceneId)); } catch (_) {} }
+    });
+    h.addEventListener('dragend', () => {
+      dragSceneId = null;
+      sceneListEl.querySelectorAll('.scene').forEach(el => el.classList.remove('drop-hint'));
+    });
+  });
+  sceneListEl.querySelectorAll('.scene').forEach(el => {
+    el.addEventListener('dragover', (e) => {
+      if (dragSceneId == null) return;
+      e.preventDefault();
+      if (e.dataTransfer) e.dataTransfer.dropEffect = 'move';
+      el.classList.add('drop-hint');
+    });
+    el.addEventListener('dragleave', () => el.classList.remove('drop-hint'));
+    el.addEventListener('drop', (e) => {
+      e.preventDefault();
+      el.classList.remove('drop-hint');
+      const targetId = Number(el.dataset.sceneId);
+      if (dragSceneId != null && targetId) reorderScene(dragSceneId, targetId);
+      dragSceneId = null;
+    });
+  });
+  sceneListEl.querySelectorAll('[data-del-scene]').forEach(b => b.addEventListener('click', () => {
+    const id = Number(b.dataset.delScene);
+    state.scenes = state.scenes.filter(s => s.id !== id);
+    renderSceneList();
+    renderStill();
+  }));
+  sceneListEl.querySelectorAll('[data-prompt]').forEach(t => t.addEventListener('input', () => {
+    const s = getScene(Number(t.dataset.prompt));
+    if (!s) return;
+    s.prompt = t.value;
+    s.fx = parsePrompt(s.prompt);
+    s.particles = buildParticles(s.fx);
+    const tags = sceneListEl.querySelector(`[data-tags="${s.id}"]`);
+    if (tags) tags.innerHTML = fxLabels(s.fx).map(l => `<span>${l}</span>`).join('');
+    renderStill();
+  }));
+  sceneListEl.querySelectorAll('[data-chip]').forEach(b => b.addEventListener('click', () => {
+    const s = getScene(Number(b.dataset.chip));
+    if (!s) return;
+    s.prompt = b.dataset.p;
+    const ta = sceneListEl.querySelector(`[data-prompt="${s.id}"]`);
+    if (ta) ta.value = s.prompt;
+    s.fx = parsePrompt(s.prompt);
+    s.particles = buildParticles(s.fx);
+    const tags = sceneListEl.querySelector(`[data-tags="${s.id}"]`);
+    if (tags) tags.innerHTML = fxLabels(s.fx).map(l => `<span>${l}</span>`).join('');
+    renderStill();
+  }));
+  sceneListEl.querySelectorAll('[data-telop]').forEach(t => t.addEventListener('input', () => {
+    const s = getScene(Number(t.dataset.telop));
+    if (!s) return;
+    // 表示時間は同じ位置の字幕なら引き継ぐ。タイミング行だけ差し替えてテキスト入力のフォーカスは保つ
+    s.telop = telopFromText(t.value, s.dur, s.telop);
+    refreshTiming(s);
+    renderStill();
+  }));
+  sceneListEl.querySelectorAll('[data-dur]').forEach(r => r.addEventListener('input', () => {
+    const s = getScene(Number(r.dataset.dur));
+    if (!s) return;
+    s.dur = Number(r.value);
+    const lab = sceneListEl.querySelector(`[data-durlabel="${s.id}"]`);
+    if (lab) lab.textContent = s.dur;
+    refreshTiming(s); // 長さ超過の警告を更新
+    updateTotalDurNote();
+    renderStill();
+  }));
+  sceneListEl.querySelectorAll('[data-ocr]').forEach(b => b.addEventListener('click', () => runOcr(Number(b.dataset.ocr), b)));
+  sceneListEl.querySelectorAll('[data-play-scene]').forEach(b => b.addEventListener('click', () => startScenePreview(getScene(Number(b.dataset.playScene)))));
+  sceneListEl.querySelectorAll('[data-copy-scene]').forEach(b => b.addEventListener('click', () => copyScene(Number(b.dataset.copyScene))));
+  bindTimingInputs(sceneListEl);
+}
+
+function getScene(id) { return state.scenes.find(s => s.id === id); }
+function totalDuration() { return state.scenes.reduce((a, s) => a + s.dur, 0); }
+function updateTotalDurNote() {
+  document.getElementById('total-dur-note').textContent = '動画全体の長さ: ' + totalDuration() + '秒';
+}
+
+document.getElementById('add-scene-btn').addEventListener('click', () => {
+  photoTargetSceneId = null;
+  photoFileInput.click();
+});
+document.getElementById('paste-scene-btn').addEventListener('click', pasteScene);
+
+/* ========== 画像読み込み ========== */
+function loadImageToCanvas(file, maxDim, cb) {
+  const url = URL.createObjectURL(file);
+  const img = new Image();
+  img.onload = () => {
+    const scale = Math.min(1, maxDim / Math.max(img.naturalWidth, img.naturalHeight));
+    const w = Math.max(1, Math.round(img.naturalWidth * scale));
+    const h = Math.max(1, Math.round(img.naturalHeight * scale));
+    const c = document.createElement('canvas');
+    c.width = w; c.height = h;
+    c.getContext('2d').drawImage(img, 0, 0, w, h);
+    URL.revokeObjectURL(url);
+    cb({ canvas: c, w, h });
+  };
+  img.onerror = () => { URL.revokeObjectURL(url); cb(null); };
+  img.src = url;
+}
+
+/* ========== 動画読み込み（映像は<video>で描画、音声はWeb Audioで抽出して合成） ========== */
+const SCENE_DUR_MAX = 20;
+
+function loadVideoForScene(file, scene, done) {
+  const url = URL.createObjectURL(file);
+  const v = document.createElement('video');
+  v.muted = true;            // 音は videoAudio（デコード済みバッファ）側で鳴らす
+  v.playsInline = true;
+  v.setAttribute('playsinline', '');
+  v.preload = 'auto';
+  v.loop = true;             // シーンより短い動画はループ
+  v.onloadedmetadata = () => {
+    scene.image = null;
+    scene.video = { el: v, w: v.videoWidth || 1280, h: v.videoHeight || 720, duration: v.duration || 0 };
+    scene.videoMime = file.type || 'video/mp4';
+    // シーンの長さを動画に合わせる（2〜20秒に丸め）
+    if (v.duration && isFinite(v.duration)) {
+      scene.dur = Math.min(SCENE_DUR_MAX, Math.max(2, Math.round(v.duration)));
+    }
+    // サムネイル用に最初のフレームを1枚だけ取る
+    const onSeeked = () => {
+      v.removeEventListener('seeked', onSeeked);
+      try {
+        const c = document.createElement('canvas');
+        const sc = Math.min(1, 320 / Math.max(1, v.videoWidth));
+        c.width = Math.max(1, Math.round(v.videoWidth * sc));
+        c.height = Math.max(1, Math.round(v.videoHeight * sc));
+        c.getContext('2d').drawImage(v, 0, 0, c.width, c.height);
+        scene.videoThumb = c.toDataURL('image/jpeg', 0.7);
+      } catch (err) { scene.videoThumb = ''; }
+      renderSceneList();
+      renderStill();
+    };
+    v.addEventListener('seeked', onSeeked);
+    try { v.currentTime = Math.min(0.1, (v.duration || 1) / 10); } catch (err) { onSeeked(); }
+    done(true);
+  };
+  v.onerror = () => { URL.revokeObjectURL(url); done(false); };
+  v.src = url;
+  // 保存用に元のバイト列を保持し、音声トラックをデコード（音の無い動画・非対応形式は無視）
+  file.arrayBuffer().then(ab => {
+    scene.videoBytes = new Uint8Array(ab);
+    return decodeArrayBuffer(ab).then(buf => { scene.videoAudio = buf; }).catch(() => {});
+  }).catch(() => {});
+}
+
+photoFileInput.addEventListener('change', (e) => {
+  const file = e.target.files && e.target.files[0];
+  e.target.value = '';
+  if (!file) return;
+  const isVideo = file.type.indexOf('video/') === 0;
+  const isImage = file.type.indexOf('image/') === 0;
+  if (!isVideo && !isImage) { toast('写真または動画ファイルを選択してください'); return; }
+
+  let scene;
+  if (photoTargetSceneId === null) {
+    scene = newScene(isVideo ? 'そのまま再生' : 'ゆっくりズームイン', '', 8);
+    state.scenes.push(scene);
+  } else {
+    scene = getScene(photoTargetSceneId);
+  }
+  photoTargetSceneId = null;
+  if (!scene) return;
+
+  if (isVideo) {
+    loadVideoForScene(file, scene, (ok) => {
+      if (!ok) { toast('動画の読み込みに失敗しました（iPhoneの動画は「互換性優先」形式だと確実です）'); return; }
+      renderSceneList();
+      renderStill();
+      toast('動画をシーンに追加しました（音もそのまま入ります）');
+    });
+  } else {
+    loadImageToCanvas(file, MAX_IMG_DIM, (res) => {
+      if (!res) { toast('画像の読み込みに失敗しました'); return; }
+      scene.image = res;
+      scene.video = null; scene.videoBytes = null; scene.videoAudio = null; scene.videoThumb = '';
+      renderSceneList();
+      renderStill();
+    });
+  }
+});
+
+/* ========== 画像内文字OCR（使う時だけTesseract.jsを遅延読み込み） ========== */
+let tesseractLoading = null;
+function loadTesseract() {
+  if (window.Tesseract) return Promise.resolve(window.Tesseract);
+  if (tesseractLoading) return tesseractLoading;
+  tesseractLoading = new Promise((resolve, reject) => {
+    const sc = document.createElement('script');
+    sc.src = 'https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js';
+    sc.onload = () => resolve(window.Tesseract);
+    sc.onerror = () => { tesseractLoading = null; reject(new Error('load failed')); };
+    document.head.appendChild(sc);
+  });
+  return tesseractLoading;
+}
+
+async function runOcr(sceneId, btn) {
+  const s = getScene(sceneId);
+  if (!s || !s.image) { toast('先に写真を選んでください'); return; }
+  const orig = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = '読み込み中…';
+  try {
+    const Tesseract = await loadTesseract();
+    btn.textContent = '文字を認識中…';
+    const dataUrl = s.image.canvas.toDataURL('image/png');
+    const { data } = await Tesseract.recognize(dataUrl, 'jpn+eng', {
+      logger: (m) => { if (m.status === 'recognizing text') btn.textContent = '認識中 ' + Math.round((m.progress || 0) * 100) + '%'; }
+    });
+    const found = (data.text || '').split('\n').map(x => x.replace(/\s+/g, ' ').trim()).filter(x => x.length >= 2);
+    if (!found.length) {
+      toast('文字を見つけられませんでした。字幕は手入力もできます');
+    } else {
+      const even = +(s.dur / Math.max(1, s.telop.length + found.length)).toFixed(1);
+      found.forEach(txt => s.telop.push({ text: txt, dur: even }));
+      const ta = sceneListEl.querySelector(`[data-telop="${s.id}"]`);
+      if (ta) ta.value = s.telop.map(c => c.text).join('\n');
+      refreshTiming(s);
+      toast('写真の文字を字幕に追加しました（' + found.length + '行）');
+      renderStill();
+    }
+  } catch (e) {
+    toast('文字認識ライブラリを読み込めませんでした（ネット接続をご確認ください）');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = orig;
+  }
+}
+
+/* ========== テロップ ========== */
+function telopAt(scene, localT) {
+  const caps = scene.telop;
+  if (!caps.length) return null;
+  let start = 0;
+  for (let i = 0; i < caps.length; i++) {
+    const isLast = i === caps.length - 1;
+    // 各字幕は自分の表示時間だけ出す。最後の字幕はシーン終端まで伸ばす
+    const end = isLast ? scene.dur : Math.min(scene.dur, start + (Number(caps[i].dur) || 0));
+    if (localT < end || isLast) return { text: caps[i].text, index: i, start, end };
+    start = end;
+  }
+  return null;
+}
+
+function wrapText(c, text, maxWidth) {
+  const lines = [];
+  let cur = '';
+  for (const ch of text) {
+    if (ch === '\n') { lines.push(cur); cur = ''; continue; }
+    const test = cur + ch;
+    if (c.measureText(test).width > maxWidth && cur) { lines.push(cur); cur = ch; }
+    else cur = test;
+  }
+  if (cur) lines.push(cur);
+  return lines;
+}
+
+function drawTelop(c, scene, localT, W, H) {
+  const cap = telopAt(scene, localT);
+  if (!cap) return;
+  const tp = state.telopStyle;
+  const fontPx = Math.round(H * 0.055 * tp.size);
+  // 登場アニメ（開始0.28秒でふわっと）
+  let appear = 1, rise = 0;
+  if (tp.anim) {
+    const dt = localT - cap.start;
+    const A = Math.min(0.28, (cap.end - cap.start) * 0.5);
+    if (dt < A) { appear = dt / A; rise = (1 - appear) * fontPx * 0.4; }
+  }
+  c.save();
+  c.globalAlpha = Math.max(0, Math.min(1, appear));
+  c.font = `700 ${fontPx}px ${tp.font || "'Noto Sans JP',sans-serif"}`;
+  c.textAlign = 'center';
+  c.textBaseline = 'middle';
+  const maxW = W * 0.9;
+  const lines = wrapText(c, cap.text, maxW);
+  const lineH = fontPx * 1.35;
+  const blockH = lineH * lines.length;
+
+  let cy;
+  if (tp.pos === 'top') cy = H * 0.14 + blockH / 2;
+  else if (tp.pos === 'center') cy = H / 2;
+  else cy = H * 0.86 - blockH / 2;
+  cy += rise;
+
+  if (tp.band) {
+    let maxLineW = 0;
+    for (const ln of lines) maxLineW = Math.max(maxLineW, c.measureText(ln).width);
+    const padX = fontPx * 0.6, padY = fontPx * 0.35;
+    const bw = Math.min(W, maxLineW + padX * 2);
+    const bh = blockH + padY * 2;
+    c.fillStyle = 'rgba(0,0,0,0.5)';
+    if (c.roundRect) { c.beginPath(); c.roundRect(W / 2 - bw / 2, cy - bh / 2, bw, bh, fontPx * 0.25); c.fill(); }
+    else c.fillRect(W / 2 - bw / 2, cy - bh / 2, bw, bh);
+  }
+
+  const topY = cy - blockH / 2 + lineH / 2;
+  c.lineJoin = 'round';
+  c.lineWidth = Math.max(2, fontPx * 0.12);
+  c.strokeStyle = 'rgba(0,0,0,0.75)';
+  c.fillStyle = tp.color;
+  for (let i = 0; i < lines.length; i++) {
+    const y = topY + i * lineH;
+    if (!tp.band) c.strokeText(lines[i], W / 2, y);
+    c.fillText(lines[i], W / 2, y);
+  }
+  c.restore();
+}
+
+/* ========== キャラクター ========== */
+function hasCharacter() { return !!state.character.image || !!state.character.emoji; }
+
+function drawCharacter(c, scene, localT, W, H) {
+  const ch = state.character;
+  if (!hasCharacter()) return;
+  const box = Math.min(W, H) * 0.3 * ch.size;
+  const margin = Math.min(W, H) * 0.04;
+  const speaking = !!telopAt(scene, localT);
+  const bob = speaking ? Math.abs(Math.sin(localT * 9)) * box * 0.05 : Math.sin(localT * 2) * box * 0.012;
+  const squash = speaking ? 1 + Math.sin(localT * 18) * 0.03 : 1;
+
+  let cx, cyBottom;
+  if (ch.pos === 'br') { cx = W - margin - box / 2; cyBottom = H - margin; }
+  else if (ch.pos === 'bl') { cx = margin + box / 2; cyBottom = H - margin; }
+  else if (ch.pos === 'tr') { cx = W - margin - box / 2; cyBottom = margin + box; }
+  else { cx = margin + box / 2; cyBottom = margin + box; }
+
+  c.save();
+  c.translate(cx, cyBottom - box / 2 - bob);
+  c.scale(1, squash);
+  if (ch.image) {
+    const im = ch.image;
+    const scale = Math.min(box / im.w, box / im.h);
+    const w = im.w * scale, h = im.h * scale;
+    c.shadowColor = 'rgba(0,0,0,0.35)'; c.shadowBlur = box * 0.06; c.shadowOffsetY = box * 0.03;
+    c.drawImage(im.canvas, -w / 2, -h / 2, w, h);
+  } else {
+    c.font = `${Math.round(box)}px 'Noto Sans JP',sans-serif`;
+    c.textAlign = 'center'; c.textBaseline = 'middle';
+    c.shadowColor = 'rgba(0,0,0,0.3)'; c.shadowBlur = box * 0.05;
+    c.fillText(ch.emoji, 0, box * 0.04);
+  }
+  c.restore();
+}
+
+/* ========== パーティクル（時刻から決定的に位置を計算＝シーク可能） ========== */
+function mulberry(seed) {
+  let a = seed >>> 0;
+  return function () {
+    a |= 0; a = a + 0x6D2B79F5 | 0;
+    let t = Math.imul(a ^ a >>> 15, 1 | a);
+    t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+    return ((t ^ t >>> 14) >>> 0) / 4294967296;
+  };
+}
+
+function buildParticles(fx) {
+  const arr = [];
+  const rnd = mulberry(12345);
+  const add = (type, count) => {
+    for (let i = 0; i < count; i++) {
+      arr.push({
+        type, x0: rnd(), y0: rnd(),
+        speed: 0.04 + rnd() * 0.1, drift: (rnd() - 0.5) * 0.08,
+        size: 0.4 + rnd() * 0.9, phase: rnd() * Math.PI * 2,
+        spin: (rnd() - 0.5) * 4, hue: rnd()
+      });
+    }
+  };
+  if (fx.petal) add('petal', 36);
+  if (fx.snow) add('snow', 70);
+  if (fx.rain) add('rain', 90);
+  if (fx.sparkle) add('sparkle', 40);
+  if (fx.confetti) add('confetti', 60);
+  return arr;
+}
+
+function drawParticles(c, particles, t, W, H) {
+  const base = Math.min(W, H) / 1080;
+  for (const p of particles) {
+    let x, y;
+    if (p.type === 'sparkle') {
+      x = p.x0 * W; y = p.y0 * H;
+      const tw = 0.5 + 0.5 * Math.sin(t * (2 + p.speed * 20) + p.phase);
+      c.save(); c.globalAlpha = tw * 0.9; c.fillStyle = '#fff8d8';
+      const r = (3 + p.size * 5) * base * (0.6 + tw * 0.6);
+      c.translate(x, y); c.rotate(p.phase); c.beginPath();
+      for (let k = 0; k < 4; k++) c.ellipse(0, 0, r * 2.2, r * 0.45, k * Math.PI / 4, 0, Math.PI * 2);
+      c.fill(); c.restore(); continue;
+    }
+    const fallSpeed = p.type === 'rain' ? p.speed * 8 : p.type === 'confetti' ? p.speed * 2 : p.speed;
+    y = ((p.y0 + t * fallSpeed) % 1.2 - 0.1) * H;
+    x = ((p.x0 + t * p.drift + Math.sin(t * 1.5 + p.phase) * (p.type === 'rain' ? 0.002 : 0.02)) % 1 + 1) % 1 * W;
+    c.save(); c.translate(x, y);
+    if (p.type === 'petal') {
+      c.rotate(p.phase + t * p.spin); c.globalAlpha = 0.85; c.fillStyle = 'rgba(255,190,205,0.95)';
+      const s = (7 + p.size * 9) * base; c.beginPath(); c.ellipse(0, 0, s, s * 0.6, 0, 0, Math.PI * 2); c.fill();
+    } else if (p.type === 'snow') {
+      c.globalAlpha = 0.9; c.fillStyle = '#fff'; c.beginPath(); c.arc(0, 0, (2.5 + p.size * 4) * base, 0, Math.PI * 2); c.fill();
+    } else if (p.type === 'rain') {
+      c.globalAlpha = 0.5; c.strokeStyle = '#cfe4ff'; c.lineWidth = 1.6 * base;
+      c.beginPath(); c.moveTo(0, 0); c.lineTo(2 * base, (14 + p.size * 14) * base); c.stroke();
+    } else if (p.type === 'confetti') {
+      c.rotate(p.phase + t * p.spin * 2); c.globalAlpha = 0.9; c.fillStyle = `hsl(${Math.round(p.hue * 360)},85%,60%)`;
+      const s = (5 + p.size * 7) * base; c.fillRect(-s / 2, -s / 4, s, s / 2);
+    }
+    c.restore();
+  }
+}
+
+/* ========== シーン描画（1シーンをローカル時刻localTで描く） ========== */
+const waveBuf = document.createElement('canvas');
+function easeInOut(p) { return p * p * (3 - 2 * p); }
+
+function renderScene(c, scene, localT, W, H) {
+  const fx = scene.fx;
+  const total = scene.dur;
+  c.clearRect(0, 0, W, H);
+  c.fillStyle = '#000';
+  c.fillRect(0, 0, W, H);
+  if (!scene.image && !scene.video) {
+    c.fillStyle = '#666';
+    c.font = `600 ${Math.round(W / 30)}px 'Noto Sans JP',sans-serif`;
+    c.textAlign = 'center'; c.textBaseline = 'middle';
+    c.fillText('このシーンの写真か動画を選んでください', W / 2, H / 2);
+    return;
+  }
+
+  let p = total > 0 ? Math.min(1, localT / total) : 0;
+  if (fx.boomerang) p = p < 0.5 ? p * 2 : (1 - p) * 2;
+  const e = easeInOut(p);
+
+  // 描画ソース: 写真canvas または <video>（現在のフレーム）
+  const img = scene.image || scene.video;
+  const srcEl = scene.image ? scene.image.canvas : scene.video.el;
+  const cover = Math.max(W / img.w, H / img.h);
+  let zoom = fx.still ? 1.0 : 1.06;
+  if (fx.zoomIn) zoom *= 1 + 0.16 * e;
+  if (fx.zoomOut) zoom *= 1.16 - 0.16 * e;
+  if (fx.pulse) zoom *= 1 + 0.03 * Math.sin(localT * Math.PI * 2 * 1.2);
+  if (fx.rotate || fx.sway || fx.shake) zoom *= 1.1;
+  if (fx.panRight || fx.panLeft || fx.panUp || fx.panDown) zoom = Math.max(zoom, 1.18);
+
+  const scale = cover * zoom;
+  const w = img.w * scale, h = img.h * scale;
+  let panX = 0, panY = 0;
+  const roomX = Math.max(0, (w - W) / 2);
+  const roomY = Math.max(0, (h - H) / 2);
+  const move = 2 * e - 1;
+  if (fx.panRight) panX = -roomX * 0.8 * move;
+  if (fx.panLeft)  panX =  roomX * 0.8 * move;
+  if (fx.panDown)  panY = -roomY * 0.8 * move;
+  if (fx.panUp)    panY =  roomY * 0.8 * move;
+  if (fx.shake) {
+    const a = Math.min(W, H) * 0.008;
+    panX += a * Math.sin(localT * 37) + a * 0.6 * Math.sin(localT * 61 + 1.3);
+    panY += a * Math.sin(localT * 43 + 0.7) + a * 0.6 * Math.sin(localT * 53 + 2.1);
+  }
+  let angle = 0;
+  if (fx.rotate) angle += (p - 0.5) * (8 * Math.PI / 180);
+  if (fx.sway) angle += Math.sin(localT * Math.PI * 2 * 0.22) * (1.6 * Math.PI / 180);
+
+  const target = fx.wave ? (() => { waveBuf.width = W; waveBuf.height = H; return waveBuf.getContext('2d'); })() : c;
+  if (fx.wave) { target.fillStyle = '#000'; target.fillRect(0, 0, W, H); }
+  target.save();
+  target.translate(W / 2 + panX, H / 2 + panY);
+  target.rotate(angle);
+  if (fx.mono) { try { target.filter = 'grayscale(1)'; } catch (err) {} }
+  try { target.drawImage(srcEl, -w / 2, -h / 2, w, h); } catch (err) { /* 動画フレーム未準備時はスキップ */ }
+  if (fx.mono) { try { target.filter = 'none'; } catch (err) {} }
+  target.restore();
+
+  if (fx.wave) {
+    const step = Math.max(4, Math.round(H / 200));
+    const amp = W * 0.006;
+    for (let y = 0; y < H; y += step) {
+      const dx = Math.sin(y / (H * 0.06) + localT * 2.2) * amp * (0.5 + 0.5 * Math.sin(localT * 0.9));
+      c.drawImage(waveBuf, 0, y, W, step, dx, y, W, step);
+    }
+  }
+
+  if (fx.mono) {
+    c.save(); c.globalCompositeOperation = 'saturation'; c.fillStyle = 'hsl(0,0%,50%)'; c.fillRect(0, 0, W, H); c.restore();
+  }
+  if (fx.warm) {
+    c.save(); c.globalCompositeOperation = 'overlay'; c.fillStyle = 'rgba(255,150,60,0.28)'; c.fillRect(0, 0, W, H); c.restore();
+  }
+  if (fx.cool) {
+    c.save(); c.globalCompositeOperation = 'overlay'; c.fillStyle = 'rgba(60,120,255,0.26)'; c.fillRect(0, 0, W, H); c.restore();
+  }
+  if (fx.flare) {
+    const fxp = ((localT * 0.08) % 1);
+    const cx = W * (0.15 + fxp * 0.7), cy = H * 0.18, r = Math.min(W, H) * 0.5;
+    const g = c.createRadialGradient(cx, cy, 0, cx, cy, r);
+    g.addColorStop(0, 'rgba(255,240,200,0.55)'); g.addColorStop(0.3, 'rgba(255,220,160,0.18)'); g.addColorStop(1, 'rgba(255,220,160,0)');
+    c.save(); c.globalCompositeOperation = 'screen'; c.fillStyle = g; c.fillRect(0, 0, W, H); c.restore();
+  }
+
+  drawParticles(c, scene.particles, localT, W, H);
+
+  const vg = c.createRadialGradient(W / 2, H / 2, Math.min(W, H) * 0.45, W / 2, H / 2, Math.max(W, H) * 0.75);
+  vg.addColorStop(0, 'rgba(0,0,0,0)'); vg.addColorStop(1, 'rgba(0,0,0,0.28)');
+  c.fillStyle = vg; c.fillRect(0, 0, W, H);
+
+  drawCharacter(c, scene, localT, W, H);
+  drawTelop(c, scene, localT, W, H);
+
+  if (fx.fade) {
+    const fadeSec = Math.min(0.8, total / 4);
+    let a = 0;
+    if (localT < fadeSec) a = 1 - localT / fadeSec;
+    if (localT > total - fadeSec) a = (localT - (total - fadeSec)) / fadeSec;
+    if (a > 0) { c.fillStyle = `rgba(0,0,0,${Math.min(1, a)})`; c.fillRect(0, 0, W, H); }
+  }
+}
+
+/* ========== 全体描画（グローバル時刻gt → シーン割当＋クロスディゾルブ） ========== */
+const dissolveBuf = document.createElement('canvas');
+
+function sceneAt(gt) {
+  let acc = 0;
+  for (let i = 0; i < state.scenes.length; i++) {
+    const s = state.scenes[i];
+    if (gt < acc + s.dur || i === state.scenes.length - 1) {
+      return { scene: s, index: i, localT: Math.max(0, gt - acc), start: acc };
+    }
+    acc += s.dur;
+  }
+  return null;
+}
+
+function renderMasterAt(c, gt, W, H) {
+  if (!state.scenes.length) {
+    c.fillStyle = '#000'; c.fillRect(0, 0, W, H);
+    c.fillStyle = '#666';
+    c.font = `600 ${Math.round(W / 30)}px 'Noto Sans JP',sans-serif`;
+    c.textAlign = 'center'; c.textBaseline = 'middle';
+    c.fillText('「＋写真を追加」から始めましょう', W / 2, H / 2);
+    return;
+  }
+  const cur = sceneAt(gt);
+  const diss = Math.min(DISSOLVE, cur.scene.dur / 2, cur.index > 0 ? state.scenes[cur.index - 1].dur / 2 : DISSOLVE);
+  if (cur.index > 0 && cur.localT < diss) {
+    // 直前シーンの終端フレーム → 現シーンへディゾルブ
+    const prev = state.scenes[cur.index - 1];
+    renderScene(c, prev, prev.dur, W, H);
+    dissolveBuf.width = W; dissolveBuf.height = H;
+    const bc = dissolveBuf.getContext('2d');
+    renderScene(bc, cur.scene, cur.localT, W, H);
+    c.save();
+    c.globalAlpha = Math.max(0, Math.min(1, cur.localT / diss));
+    c.drawImage(dissolveBuf, 0, 0);
+    c.restore();
+  } else {
+    renderScene(c, cur.scene, cur.localT, W, H);
+  }
+}
+
+/* ========== 静止プレビュー ========== */
+function applyCanvasSize() {
+  const { w, h } = ASPECTS[state.aspect];
+  canvas.width = w; canvas.height = h;
+}
+function renderStill() {
+  if (timeline.playing) return;
+  const first = state.scenes[0];
+  renderMasterAt(ctx, first ? first.dur * 0.35 : 0, canvas.width, canvas.height);
+}
+
+/* ========== 読み上げ（SpeechSynthesis。プレビュー時のみ） ========== */
+const ttsSupported = 'speechSynthesis' in window;
+const voiceSelect = document.getElementById('tts-voice');
+let availableVoices = [];
+
+function populateVoices() {
+  if (!ttsSupported) return;
+  availableVoices = speechSynthesis.getVoices();
+  const jaFirst = availableVoices.slice().sort((a, b) => {
+    const aj = a.lang && a.lang.indexOf('ja') === 0 ? 0 : 1;
+    const bj = b.lang && b.lang.indexOf('ja') === 0 ? 0 : 1;
+    return aj - bj;
+  });
+  voiceSelect.innerHTML = '<option value="">（端末の標準の声）</option>';
+  for (const v of jaFirst) {
+    const opt = document.createElement('option');
+    opt.value = v.voiceURI; opt.textContent = `${v.name}（${v.lang}）`;
+    voiceSelect.appendChild(opt);
+  }
+}
+if (ttsSupported) {
+  populateVoices();
+  speechSynthesis.onvoiceschanged = populateVoices;
+} else {
+  document.getElementById('tts-note').textContent = 'このブラウザは自動読み上げに対応していません。ナレーションはマイク録音をご利用ください。';
+  document.getElementById('tts-on').checked = false;
+  state.tts.on = false;
+}
+
+function speak(text) {
+  if (!ttsSupported || !text) return;
+  const u = new SpeechSynthesisUtterance(text);
+  u.rate = state.tts.rate; u.lang = 'ja-JP';
+  if (state.tts.voice) {
+    const v = availableVoices.find(v => v.voiceURI === state.tts.voice);
+    if (v) u.voice = v;
+  }
+  speechSynthesis.speak(u);
+}
+function cancelSpeak() { if (ttsSupported) { try { speechSynthesis.cancel(); } catch (e) {} } }
+
+/* ========== 音声トラック（音楽・録音）。書き出しに合成する ========== */
+const AudioCtx = window.AudioContext || window.webkitAudioContext;
+let sharedAudioCtx = null;
+function getAudioCtx() {
+  if (!AudioCtx) return null;
+  if (!sharedAudioCtx || sharedAudioCtx.state === 'closed') sharedAudioCtx = new AudioCtx();
+  return sharedAudioCtx;
+}
+
+let trackSeq = 0;
+async function decodeArrayBuffer(arrbuf) {
+  const ac = getAudioCtx();
+  if (!ac) throw new Error('no audio');
+  return await ac.decodeAudioData(arrbuf.slice(0));
+}
+function addAudioTrack(name, kind, buffer, bytes, mime) {
+  // bytes/mime は保存（プロジェクト書き出し）用に元の圧縮データを保持
+  state.audioTracks.push({ id: ++trackSeq, name, kind, buffer, volume: kind === 'music' ? 0.7 : 1.0, bytes: bytes || null, mime: mime || 'audio/*' });
+  renderAudioList();
+  return state.audioTracks[state.audioTracks.length - 1];
+}
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+function renderAudioList() {
+  const ul = document.getElementById('audio-list');
+  ul.innerHTML = '';
+  for (const tr of state.audioTracks) {
+    const li = document.createElement('li');
+    const secs = Math.round(tr.buffer.duration);
+    li.innerHTML = `
+      <div class="a-top">
+        <div class="a-name">${tr.kind === 'music' ? '🎵' : '🎙'} ${escapeHtml(tr.name)}
+          <span class="a-kind">（${tr.kind === 'music' ? '音楽' : '録音'}・${secs}秒）</span></div>
+        <button type="button" class="btn danger sm" data-del="${tr.id}">削除</button>
+      </div>
+      <div class="row" style="margin-top:8px;">
+        <span class="note" style="min-width:52px;">音量</span>
+        <input class="grow" type="range" min="0" max="1" step="0.05" value="${tr.volume}" data-vol="${tr.id}">
+      </div>`;
+    ul.appendChild(li);
+  }
+  ul.querySelectorAll('[data-del]').forEach(b => b.addEventListener('click', () => {
+    const id = Number(b.dataset.del);
+    state.audioTracks = state.audioTracks.filter(t => t.id !== id);
+    renderAudioList();
+  }));
+  ul.querySelectorAll('[data-vol]').forEach(s => s.addEventListener('input', () => {
+    const tr = state.audioTracks.find(t => t.id === Number(s.dataset.vol));
+    if (tr) tr.volume = Number(s.value);
+  }));
+}
+
+const musicInput = document.getElementById('music-file');
+document.getElementById('music-btn').addEventListener('click', () => {
+  if (!AudioCtx) { toast('このブラウザは音声追加に対応していません'); return; }
+  musicInput.click();
+});
+musicInput.addEventListener('change', async (e) => {
+  const files = Array.from(e.target.files || []);
+  e.target.value = '';
+  for (const f of files) {
+    try {
+      const ab = await f.arrayBuffer();
+      const buf = await decodeArrayBuffer(ab);
+      addAudioTrack(f.name.replace(/\.[^.]+$/, ''), 'music', buf, new Uint8Array(ab), f.type || 'audio/*');
+    }
+    catch (err) { toast(`「${f.name}」を読み込めませんでした`); }
+  }
+  if (files.length) toast('音楽を追加しました');
+});
+
+const recBtn = document.getElementById('rec-btn');
+const recTimer = document.getElementById('rec-timer');
+let micRecorder = null, micChunks = [], micStream = null, recStart = 0, recTick = null;
+recBtn.addEventListener('click', async () => {
+  if (micRecorder) { stopMicRecording(); return; }
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia || typeof MediaRecorder === 'undefined') {
+    toast('このブラウザはマイク録音に対応していません'); return;
+  }
+  try { micStream = await navigator.mediaDevices.getUserMedia({ audio: true }); }
+  catch (e) { toast('マイクを使う許可が必要です'); return; }
+  micChunks = [];
+  try { micRecorder = new MediaRecorder(micStream); }
+  catch (e) { toast('録音を開始できませんでした'); micStream.getTracks().forEach(t => t.stop()); micStream = null; return; }
+  micRecorder.ondataavailable = (ev) => { if (ev.data && ev.data.size) micChunks.push(ev.data); };
+  micRecorder.onstop = async () => {
+    const blob = new Blob(micChunks, { type: micRecorder.mimeType || 'audio/webm' });
+    if (micStream) { micStream.getTracks().forEach(t => t.stop()); micStream = null; }
+    try {
+      const ab = await blob.arrayBuffer();
+      const buf = await decodeArrayBuffer(ab);
+      const name = 'ナレーション ' + new Date().toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' });
+      addAudioTrack(name, 'rec', buf, new Uint8Array(ab), blob.type || 'audio/webm');
+      toast('録音を追加しました');
+    } catch (e) { toast('録音の変換に失敗しました'); }
+    micRecorder = null;
+  };
+  micRecorder.start();
+  recStart = Date.now();
+  recBtn.textContent = '■ 録音を止める';
+  recBtn.classList.add('recording');
+  recTimer.style.display = '';
+  recTick = setInterval(() => {
+    const s = Math.floor((Date.now() - recStart) / 1000);
+    recTimer.textContent = Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0');
+  }, 250);
+});
+function stopMicRecording() {
+  if (recTick) { clearInterval(recTick); recTick = null; }
+  recBtn.textContent = '🎙 マイクで録音';
+  recBtn.classList.remove('recording');
+  recTimer.style.display = 'none';
+  recTimer.textContent = '0:00';
+  if (micRecorder && micRecorder.state !== 'inactive') { try { micRecorder.stop(); } catch (e) {} }
+}
+
+function hasAnyAudio() { return state.audioTracks.length > 0 || state.scenes.some(s => s.videoAudio); }
+
+/* ===== 内蔵BGM（著作権フリー・OfflineAudioContextで自動生成） ===== */
+const OfflineCtx = window.OfflineAudioContext || window.webkitOfflineAudioContext;
+const BGM_PRESETS = {
+  gentle: { label: 'やさしい', bpm: 72,  wave: 'sine',     arp: 'triangle', minor: false, prog: [57, 60, 62, 55] },
+  bright: { label: '明るい',   bpm: 104, wave: 'triangle', arp: 'triangle', minor: false, prog: [60, 67, 69, 65] },
+  calm:   { label: 'しっとり', bpm: 64,  wave: 'sine',     arp: 'sine',     minor: true,  prog: [57, 53, 55, 52] },
+  happy:  { label: 'わくわく', bpm: 120, wave: 'triangle', arp: 'square',   minor: false, prog: [60, 64, 65, 67] }
+};
+
+async function generateBgm(id) {
+  const p = BGM_PRESETS[id];
+  if (!p || !OfflineCtx) throw new Error('no offline audio');
+  const sr = (getAudioCtx() && getAudioCtx().sampleRate) || 44100;
+  const chordDur = 2, total = chordDur * p.prog.length; // 8秒ループ
+  const oac = new OfflineCtx(2, Math.ceil(sr * total), sr);
+  const master = oac.createGain();
+  master.gain.value = 0.5;
+  master.connect(oac.destination);
+  const freq = (m) => 440 * Math.pow(2, (m - 69) / 12);
+  const triad = (r) => p.minor ? [r, r + 3, r + 7] : [r, r + 4, r + 7];
+  const note = (f, start, dur, type, vol) => {
+    const o = oac.createOscillator(); o.type = type; o.frequency.value = f;
+    const g = oac.createGain();
+    const atk = 0.02, rel = Math.min(0.4, dur * 0.5);
+    g.gain.setValueAtTime(0.0001, start);
+    g.gain.linearRampToValueAtTime(vol, start + atk);
+    g.gain.setValueAtTime(vol, Math.max(start + atk, start + dur - rel));
+    g.gain.linearRampToValueAtTime(0.0001, start + dur);
+    o.connect(g); g.connect(master);
+    o.start(start); o.stop(start + dur + 0.02);
+  };
+  p.prog.forEach((root, ci) => {
+    const t0 = ci * chordDur;
+    triad(root + 12).forEach(n => note(freq(n), t0, chordDur, p.wave, 0.09)); // パッド
+    note(freq(root - 12), t0, chordDur, 'sine', 0.16); // ベース
+    const arp = triad(root + 12).concat([root + 24]);  // アルペジオ
+    const step = chordDur / 8;
+    for (let i = 0; i < 8; i++) note(freq(arp[i % arp.length]), t0 + i * step, step * 0.9, p.arp, 0.055);
+  });
+  return await oac.startRendering();
+}
+
+const bgmGrid = document.getElementById('bgm-grid');
+if (!OfflineCtx) {
+  bgmGrid.querySelectorAll('button').forEach(b => b.disabled = true);
+} else {
+  bgmGrid.querySelectorAll('[data-bgm]').forEach(b => b.addEventListener('click', async () => {
+    const id = b.dataset.bgm;
+    const orig = b.textContent;
+    b.disabled = true; b.textContent = '生成中…';
+    try {
+      const buf = await generateBgm(id);
+      const tr = addAudioTrack(BGM_PRESETS[id].label + ' BGM', 'music', buf, null, 'audio/generated');
+      tr.generated = id;
+      toast('内蔵BGM「' + BGM_PRESETS[id].label + '」を追加しました');
+    } catch (e) {
+      toast('BGMの生成に失敗しました');
+    } finally {
+      b.disabled = false; b.textContent = orig;
+    }
+  }));
+}
+
+// 音声トラックをdestNodeへスケジュール。録音（ナレーション）中は音楽を自動ダッキング。停止関数を返す
+function startAudioMix(audioCtx, destNode) {
+  const total = totalDuration();
+  const now = audioCtx.currentTime + 0.06;
+  const sources = [];
+  const recTracks = state.audioTracks.filter(t => t.kind === 'rec');
+  const musicTracks = state.audioTracks.filter(t => t.kind === 'music');
+
+  for (const tr of musicTracks) {
+    const src = audioCtx.createBufferSource();
+    src.buffer = tr.buffer; src.loop = true;
+    const gain = audioCtx.createGain();
+    gain.gain.setValueAtTime(tr.volume, now);
+    // 録音区間 [0, recDur] でダッキング（時系列順にランプ）
+    for (const r of recTracks) {
+      const t0 = now, t1 = now + Math.min(r.buffer.duration, total);
+      gain.gain.setValueAtTime(tr.volume, t0);
+      gain.gain.linearRampToValueAtTime(tr.volume * DUCK_LEVEL, t0 + 0.2);
+      gain.gain.setValueAtTime(tr.volume * DUCK_LEVEL, Math.max(t0 + 0.2, t1 - 0.3));
+      gain.gain.linearRampToValueAtTime(tr.volume, t1 + 0.4);
+    }
+    const end = now + total;
+    gain.gain.setValueAtTime(gain.gain.value, Math.max(now, end - 0.4));
+    gain.gain.linearRampToValueAtTime(0.0001, end);
+    src.connect(gain); gain.connect(destNode);
+    src.start(now); src.stop(end);
+    sources.push(src);
+  }
+  for (const tr of recTracks) {
+    const src = audioCtx.createBufferSource();
+    src.buffer = tr.buffer;
+    const gain = audioCtx.createGain();
+    gain.gain.value = tr.volume;
+    src.connect(gain); gain.connect(destNode);
+    src.start(now); src.stop(now + Math.min(tr.buffer.duration, total));
+    sources.push(src);
+  }
+  // 動画シーン自身の音声（各シーンの開始位置に合わせて再生。短い動画はシーン内でループ）
+  let acc = 0;
+  for (const s of state.scenes) {
+    if (s.videoAudio) {
+      const src = audioCtx.createBufferSource();
+      src.buffer = s.videoAudio;
+      src.loop = true;
+      const gain = audioCtx.createGain();
+      const t0 = now + acc;
+      const t1 = now + Math.min(total, acc + s.dur);
+      gain.gain.setValueAtTime(1, t0);
+      gain.gain.setValueAtTime(1, Math.max(t0, t1 - 0.25));
+      gain.gain.linearRampToValueAtTime(0.0001, t1); // シーン末尾でフェードしてブツ切り防止
+      src.connect(gain); gain.connect(destNode);
+      src.start(t0); src.stop(t1);
+      sources.push(src);
+    }
+    acc += s.dur;
+  }
+  return () => sources.forEach(s => { try { s.stop(); } catch (e) {} });
+}
+
+/* ========== 動画シーンの映像同期 ========== */
+// 再生中: いま映っているシーンの<video>だけ再生し、位置ズレが大きければ合わせる
+function syncSceneVideos(gt) {
+  let acc = 0;
+  for (const s of state.scenes) {
+    if (s.video && s.video.el) {
+      const el = s.video.el;
+      const active = gt >= acc && gt < acc + s.dur;
+      if (active) {
+        const want = s.video.duration > 0 ? (gt - acc) % s.video.duration : 0;
+        if (Math.abs((el.currentTime || 0) - want) > 0.35) {
+          try { el.currentTime = want; } catch (e) {}
+        }
+        if (el.paused) { el.play().catch(() => {}); }
+      } else if (!el.paused) {
+        el.pause();
+      }
+    }
+    acc += s.dur;
+  }
+}
+function pauseAllVideos() {
+  for (const s of state.scenes) {
+    if (s.video && s.video.el && !s.video.el.paused) { try { s.video.el.pause(); } catch (e) {} }
+  }
+}
+
+/* ========== タイムライン再生 ========== */
+const timeline = { playing: false, rafId: null, spokenKey: -1 };
+
+function playTimeline(onTick, onDone, opts) {
+  opts = opts || {};
+  const total = totalDuration();
+  const t0 = performance.now();
+  timeline.playing = true;
+  timeline.spokenKey = -1;
+  const frame = (now) => {
+    if (!timeline.playing) return;
+    const gt = (now - t0) / 1000;
+    if (gt >= total) {
+      renderMasterAt(ctx, Math.max(0, total - 0.001), canvas.width, canvas.height);
+      timeline.playing = false;
+      if (onDone) onDone();
+      return;
+    }
+    syncSceneVideos(gt);
+    renderMasterAt(ctx, gt, canvas.width, canvas.height);
+    if (opts.tts && state.tts.on && ttsSupported) {
+      const cur = sceneAt(gt);
+      const cap = cur && telopAt(cur.scene, cur.localT);
+      if (cap) {
+        const key = cur.index * 1000 + cap.index;
+        if (key !== timeline.spokenKey) { timeline.spokenKey = key; speak(cap.text); }
+      }
+    }
+    if (onTick) onTick(gt, total);
+    timeline.rafId = requestAnimationFrame(frame);
+  };
+  timeline.rafId = requestAnimationFrame(frame);
+}
+function stopTimeline() {
+  timeline.playing = false;
+  if (timeline.rafId) cancelAnimationFrame(timeline.rafId);
+  timeline.rafId = null;
+  pauseAllVideos();
+}
+
+/* ========== プレビュー再生 ========== */
+let previewAudioStop = null;
+function hasAnyMedia() { return state.scenes.some(s => s.image || s.video); }
+
+function startPreview() {
+  if (!hasAnyMedia()) { toast('写真か動画を追加してください'); return; }
+  previewBtn.textContent = '■ 停止';
+  cancelSpeak();
+  const ac = getAudioCtx();
+  if (ac && hasAnyAudio()) {
+    if (ac.state === 'suspended') ac.resume().catch(() => {});
+    previewAudioStop = startAudioMix(ac, ac.destination);
+  }
+  playTimeline(
+    (t, total) => { previewTimeEl.textContent = `再生中: ${t.toFixed(1)}秒 / ${total.toFixed(1)}秒`; },
+    () => {
+      previewBtn.textContent = '▶ プレビュー再生';
+      previewTimeEl.textContent = '再生が終了しました';
+      if (previewAudioStop) { previewAudioStop(); previewAudioStop = null; }
+    },
+    { tts: true }
+  );
+}
+function stopPreview() {
+  stopTimeline();
+  cancelSpeak();
+  if (previewAudioStop) { previewAudioStop(); previewAudioStop = null; }
+  previewBtn.textContent = '▶ プレビュー再生';
+  previewTimeEl.textContent = '';
+  renderStill();
+}
+
+// シーン単位のプレビュー（そのシーンだけを最初から再生。読み上げも鳴る／BGMは全体再生時のみ）
+function startScenePreview(scene) {
+  if (!scene) return;
+  if (!scene.image && !scene.video) { toast('このシーンの写真か動画を選んでください'); return; }
+  stopPreview();
+  previewBtn.textContent = '■ 停止';
+  cancelSpeak();
+  const total = scene.dur;
+  const t0 = performance.now();
+  timeline.playing = true;
+  timeline.spokenKey = -1;
+  // 動画シーンなら映像と音を頭出しして再生
+  let sceneAudioStop = null;
+  if (scene.video && scene.video.el) {
+    try { scene.video.el.currentTime = 0; } catch (e) {}
+    scene.video.el.play().catch(() => {});
+  }
+  const ac2 = getAudioCtx();
+  if (ac2 && scene.videoAudio) {
+    if (ac2.state === 'suspended') ac2.resume().catch(() => {});
+    const src = ac2.createBufferSource();
+    src.buffer = scene.videoAudio;
+    src.loop = true;
+    src.connect(ac2.destination);
+    src.start();
+    src.stop(ac2.currentTime + total);
+    sceneAudioStop = () => { try { src.stop(); } catch (e) {} };
+  }
+  const frame = (now) => {
+    if (!timeline.playing) return;
+    const t = (now - t0) / 1000;
+    if (t >= total) {
+      renderScene(ctx, scene, Math.max(0, total - 0.001), canvas.width, canvas.height);
+      timeline.playing = false;
+      pauseAllVideos();
+      if (sceneAudioStop) sceneAudioStop();
+      previewBtn.textContent = '▶ プレビュー再生';
+      previewTimeEl.textContent = 'このシーンの再生が終わりました';
+      cancelSpeak();
+      return;
+    }
+    renderScene(ctx, scene, t, canvas.width, canvas.height);
+    if (state.tts.on && ttsSupported) {
+      const cap = telopAt(scene, t);
+      if (cap && cap.index !== timeline.spokenKey) { timeline.spokenKey = cap.index; speak(cap.text); }
+    }
+    previewTimeEl.textContent = `シーン再生中: ${t.toFixed(1)}秒 / ${total.toFixed(1)}秒`;
+    timeline.rafId = requestAnimationFrame(frame);
+  };
+  timeline.rafId = requestAnimationFrame(frame);
+}
+previewBtn.addEventListener('click', () => { if (timeline.playing) stopPreview(); else startPreview(); });
+
+/* ========== 画面スリープ防止 ========== */
+let wakeLock = null;
+async function acquireWakeLock() {
+  try { if (navigator.wakeLock) wakeLock = await navigator.wakeLock.request('screen'); } catch (e) {}
+}
+function releaseWakeLock() { if (wakeLock) { try { wakeLock.release(); } catch (e) {} wakeLock = null; } }
+
+/* ========== 動画書き出し ========== */
+const MIME_PRIORITY = ['video/mp4;codecs=avc1', 'video/mp4', 'video/webm;codecs=vp9', 'video/webm'];
+function pickMimeType() { for (const m of MIME_PRIORITY) if (MediaRecorder.isTypeSupported(m)) return m; return ''; }
+
+let exportSession = null;
+async function startExport() {
+  if (!recorderSupported) { toast('このブラウザは動画書き出しに対応していません'); return; }
+  if (!hasAnyMedia()) { toast('写真か動画を追加してください'); return; }
+  if (timeline.playing) stopPreview();
+  cancelSpeak();
+
+  const total = totalDuration();
+  const stream = canvas.captureStream(30);
+
+  let audioCtx = null, stopAudio = null;
+  if (hasAnyAudio() && AudioCtx) {
+    audioCtx = getAudioCtx();
+    if (audioCtx.state === 'suspended') { try { await audioCtx.resume(); } catch (e) {} }
+    const dest = audioCtx.createMediaStreamDestination();
+    stopAudio = startAudioMix(audioCtx, dest);
+    const track = dest.stream.getAudioTracks()[0];
+    if (track) stream.addTrack(track);
+  }
+
+  const mime = pickMimeType();
+  let recorder;
+  try {
+    recorder = mime
+      ? new MediaRecorder(stream, { mimeType: mime, videoBitsPerSecond: 8000000 })
+      : new MediaRecorder(stream, { videoBitsPerSecond: 8000000 });
+  } catch (e) {
+    stream.getTracks().forEach(t => t.stop());
+    if (stopAudio) stopAudio();
+    toast('録画を開始できませんでした');
+    return;
+  }
+
+  const chunks = [];
+  const session = { cancelled: false };
+  exportSession = session;
+
+  recorder.ondataavailable = (e) => { if (e.data && e.data.size > 0) chunks.push(e.data); };
+  recorder.onerror = () => {
+    session.cancelled = true; session.errored = true;
+    stopTimeline(); if (stopAudio) stopAudio();
+    try { recorder.stop(); } catch (e) {}
+    toast('録画中にエラーが発生しました。もう一度お試しください');
+  };
+  recorder.onstop = () => {
+    stream.getTracks().forEach(t => t.stop());
+    if (stopAudio) stopAudio();
+    releaseWakeLock();
+    hideExportOverlay();
+    if (session.cancelled) {
+      if (!session.errored) toast('書き出しをキャンセルしました');
+    } else {
+      setTimeout(() => {
+        const blob = new Blob(chunks, { type: (recorder.mimeType || mime || 'video/webm').split(';')[0] });
+        if (blob.size === 0) {
+          toast('書き出しデータの生成に失敗しました。もう一度お試しください');
+        } else {
+          const usedMime = recorder.mimeType || mime || 'video/webm';
+          const ext = usedMime.indexOf('mp4') !== -1 ? 'mp4' : 'webm';
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url; a.download = `prompt-video-${Date.now()}.${ext}`;
+          document.body.appendChild(a); a.click(); a.remove();
+          setTimeout(() => URL.revokeObjectURL(url), 30000);
+          toast('書き出しが完了しました');
+        }
+      }, 200);
+    }
+    exportSession = null;
+    renderStill();
+  };
+
+  session.cancel = () => {
+    session.cancelled = true; stopTimeline();
+    if (stopAudio) stopAudio();
+    try { recorder.stop(); } catch (e) {}
+  };
+
+  await acquireWakeLock();
+  showExportOverlay(total);
+  renderMasterAt(ctx, 0, canvas.width, canvas.height);
+  recorder.start(1000);
+
+  playTimeline(
+    (t) => updateExportProgress(t, total),
+    () => { updateExportProgress(total, total); try { recorder.stop(); } catch (e) {} }
+  );
+}
+
+function showExportOverlay(total) {
+  exportFillEl.style.width = '0%';
+  exportTextEl.textContent = `0.0秒 / ${total.toFixed(1)}秒`;
+  overlayEl.classList.add('visible');
+}
+function hideExportOverlay() { overlayEl.classList.remove('visible'); }
+function updateExportProgress(t, total) {
+  const ratio = total > 0 ? Math.min(1, t / total) : 0;
+  exportFillEl.style.width = (ratio * 100).toFixed(1) + '%';
+  exportTextEl.textContent = `${t.toFixed(1)}秒 / ${total.toFixed(1)}秒`;
+}
+
+exportBtn.addEventListener('click', startExport);
+document.getElementById('export-cancel-btn').addEventListener('click', () => { if (exportSession) exportSession.cancel(); });
+
+/* ========== テンプレート ========== */
+const TEMPLATES = [
+  {
+    label: '体験授業の告知', aspect: '9:16', pos: 'center', size: 1.1, emoji: '🧑‍🏫',
+    scenes: [
+      ['ゆっくりズームインして、キラキラ光る', '総合学習教室ブリッジ\n体験授業 受付中', 4],
+      ['明るく、夕焼けの暖かい光', 'まずは気軽に\nお問い合わせください', 4]
+    ]
+  },
+  {
+    label: 'イベント・発表会', aspect: '16:9', pos: 'bottom', size: 1.0, emoji: '',
+    scenes: [
+      ['紙吹雪が舞って、お祝いムード', 'イベントのお知らせ', 4],
+      ['ゆっくりズームイン、暖かい光', '日時・場所はこちら', 4]
+    ]
+  },
+  {
+    label: 'お知らせ・休講', aspect: '16:9', pos: 'top', size: 1.0, emoji: '',
+    scenes: [
+      ['ゆっくりズームイン、少し青く落ち着いた雰囲気', '大切なお知らせ', 5]
+    ]
+  },
+  {
+    label: 'お祝い・合格報告', aspect: '9:16', pos: 'center', size: 1.2, emoji: '⭐',
+    scenes: [
+      ['紙吹雪が舞って、ドキドキ鼓動するようにズーム、キラキラ', 'おめでとう！', 4],
+      ['ゆっくりズームイン、暖かい光', 'よくがんばりました', 4]
+    ]
+  },
+  {
+    label: 'SNS縦型ショート', aspect: '9:16', pos: 'bottom', size: 1.3, emoji: '',
+    scenes: [
+      ['右にパンしながらキラキラ光る', 'ここにひとこと', 3],
+      ['ゆっくりズームイン', '続きが気になる方は\nプロフィールへ', 3]
+    ]
+  }
+];
+
+function renderTemplates() {
+  const grid = document.getElementById('tpl-grid');
+  TEMPLATES.forEach((tpl, i) => {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.textContent = tpl.label;
+    b.addEventListener('click', () => applyTemplate(i));
+    grid.appendChild(b);
+  });
+}
+
+function applyTemplate(i) {
+  const tpl = TEMPLATES[i];
+  // アスペクト比
+  state.aspect = tpl.aspect;
+  document.querySelectorAll('#aspect-seg button').forEach(b => b.classList.toggle('active', b.dataset.aspect === tpl.aspect));
+  applyCanvasSize();
+  // テロップ見た目
+  state.telopStyle.pos = tpl.pos;
+  document.querySelectorAll('#telop-pos-seg button').forEach(b => b.classList.toggle('active', b.dataset.pos === tpl.pos));
+  state.telopStyle.size = tpl.size;
+  document.getElementById('telop-size').value = tpl.size;
+  updateTelopSizeLabel();
+  // キャラ
+  state.character.emoji = tpl.emoji;
+  state.character.image = null;
+  document.getElementById('char-thumb').style.display = 'none';
+  document.querySelectorAll('#emoji-grid button').forEach(b => b.classList.toggle('active', b.dataset.emoji === tpl.emoji));
+  // シーン（既存の写真があれば引き継ぐ）
+  const keptImages = state.scenes.map(s => s.image).filter(Boolean);
+  state.scenes = tpl.scenes.map(([p, t, d], idx) => {
+    const s = newScene(p, t, d);
+    if (keptImages[idx]) s.image = keptImages[idx];
+    return s;
+  });
+  renderSceneList();
+  renderStill();
+  toast('テンプレート「' + tpl.label + '」を読み込みました。写真を選んでください');
+}
+
+/* ========== 設定UI（グローバル） ========== */
+function updateTelopSizeLabel() {
+  document.getElementById('telop-size-label').textContent =
+    state.telopStyle.size < 0.9 ? '小さめ' : state.telopStyle.size > 1.3 ? '大きめ' : '標準';
+}
+for (const btn of document.querySelectorAll('#telop-pos-seg button')) {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('#telop-pos-seg button').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    state.telopStyle.pos = btn.dataset.pos;
+    renderStill();
+  });
+}
+document.getElementById('telop-size').addEventListener('input', (e) => {
+  state.telopStyle.size = Number(e.target.value);
+  updateTelopSizeLabel();
+  renderStill();
+});
+document.getElementById('telop-color').addEventListener('input', (e) => { state.telopStyle.color = e.target.value; renderStill(); });
+document.getElementById('telop-band').addEventListener('change', (e) => { state.telopStyle.band = e.target.checked; renderStill(); });
+document.getElementById('telop-anim').addEventListener('change', (e) => { state.telopStyle.anim = e.target.checked; renderStill(); });
+
+document.getElementById('tts-on').addEventListener('change', (e) => { state.tts.on = e.target.checked; });
+voiceSelect.addEventListener('change', (e) => { state.tts.voice = e.target.value; });
+document.getElementById('tts-rate').addEventListener('input', (e) => {
+  state.tts.rate = Number(e.target.value);
+  document.getElementById('tts-rate-label').textContent = state.tts.rate.toFixed(1);
+});
+document.getElementById('tts-test-btn').addEventListener('click', () => {
+  cancelSpeak();
+  const first = state.scenes.find(s => s.telop.length);
+  speak(first ? first.telop[0].text : 'テロップの読み上げはこんな声です');
+});
+
+for (const btn of document.querySelectorAll('#emoji-grid button')) {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('#emoji-grid button').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    state.character.emoji = btn.dataset.emoji;
+    state.character.image = null;
+    document.getElementById('char-thumb').style.display = 'none';
+    renderStill();
+  });
+}
+const charFile = document.getElementById('char-file');
+document.getElementById('char-upload-btn').addEventListener('click', () => charFile.click());
+charFile.addEventListener('change', (e) => {
+  const f = e.target.files && e.target.files[0];
+  e.target.value = '';
+  if (!f) return;
+  loadImageToCanvas(f, 1024, (res) => {
+    if (!res) { toast('キャラ画像の読み込みに失敗しました'); return; }
+    state.character.image = res;
+    state.character.emoji = '';
+    document.querySelectorAll('#emoji-grid button').forEach(b => b.classList.remove('active'));
+    const thumb = document.getElementById('char-thumb');
+    thumb.src = res.canvas.toDataURL('image/png');
+    thumb.style.display = 'inline-block';
+    renderStill();
+  });
+});
+for (const btn of document.querySelectorAll('#char-pos-seg button')) {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('#char-pos-seg button').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    state.character.pos = btn.dataset.cpos;
+    renderStill();
+  });
+}
+document.getElementById('char-size').addEventListener('input', (e) => {
+  state.character.size = Number(e.target.value);
+  document.getElementById('char-size-label').textContent =
+    state.character.size < 0.8 ? '小さめ' : state.character.size > 1.3 ? '大きめ' : '標準';
+  renderStill();
+});
+
+for (const btn of document.querySelectorAll('#aspect-seg button')) {
+  btn.addEventListener('click', () => {
+    for (const b of document.querySelectorAll('#aspect-seg button')) b.classList.remove('active');
+    btn.classList.add('active');
+    state.aspect = btn.dataset.aspect;
+    if (timeline.playing) stopPreview();
+    applyCanvasSize();
+    renderStill();
+  });
+}
+
+/* ========== プロジェクトの保存・呼び出し（すべて端末内で完結） ========== */
+// UIを現在のstateに同期（読み込み後に使う）
+function syncTelopStyleUI() {
+  document.querySelectorAll('#telop-pos-seg button').forEach(b => b.classList.toggle('active', b.dataset.pos === state.telopStyle.pos));
+  document.getElementById('telop-size').value = state.telopStyle.size;
+  updateTelopSizeLabel();
+  document.getElementById('telop-color').value = state.telopStyle.color;
+  document.getElementById('telop-band').checked = !!state.telopStyle.band;
+  document.getElementById('telop-anim').checked = !!state.telopStyle.anim;
+  const fontSel = document.getElementById('telop-font');
+  if (fontSel && state.telopStyle.font) fontSel.value = state.telopStyle.font;
+}
+function syncCharacterUI() {
+  document.querySelectorAll('#emoji-grid button').forEach(b =>
+    b.classList.toggle('active', !state.character.image && b.dataset.emoji === state.character.emoji));
+  const thumb = document.getElementById('char-thumb');
+  if (state.character.image) { thumb.src = state.character.image.canvas.toDataURL('image/png'); thumb.style.display = 'inline-block'; }
+  else thumb.style.display = 'none';
+  document.querySelectorAll('#char-pos-seg button').forEach(b => b.classList.toggle('active', b.dataset.cpos === state.character.pos));
+  document.getElementById('char-size').value = state.character.size;
+  document.getElementById('char-size-label').textContent =
+    state.character.size < 0.8 ? '小さめ' : state.character.size > 1.3 ? '大きめ' : '標準';
+}
+
+function bytesToB64(u8) {
+  let s = '';
+  const chunk = 0x8000;
+  for (let i = 0; i < u8.length; i += chunk) s += String.fromCharCode.apply(null, u8.subarray(i, i + chunk));
+  return btoa(s);
+}
+function b64ToBytes(b64) {
+  const bin = atob(b64);
+  const u8 = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) u8[i] = bin.charCodeAt(i);
+  return u8;
+}
+function imageToDataURL(o, png) {
+  return o ? o.canvas.toDataURL(png ? 'image/png' : 'image/jpeg', png ? undefined : 0.85) : null;
+}
+function loadImageFromDataURL(d) {
+  return new Promise((resolve) => {
+    if (!d) { resolve(null); return; }
+    const img = new Image();
+    img.onload = () => {
+      const c = document.createElement('canvas');
+      c.width = img.naturalWidth; c.height = img.naturalHeight;
+      c.getContext('2d').drawImage(img, 0, 0);
+      resolve({ canvas: c, w: c.width, h: c.height });
+    };
+    img.onerror = () => resolve(null);
+    img.src = d;
+  });
+}
+
+// stateを保存用オブジェクトへ（ファイル保存・端末保存で共通利用）
+function serializeProject() {
+  return {
+    app: 'bridge-prompt-video', version: 1,
+    aspect: state.aspect,
+    telopStyle: { ...state.telopStyle },
+    tts: { on: state.tts.on, voice: state.tts.voice, rate: state.tts.rate },
+    character: {
+      emoji: state.character.emoji, pos: state.character.pos, size: state.character.size,
+      imageData: imageToDataURL(state.character.image, true)
+    },
+    scenes: state.scenes.map(s => ({
+      prompt: s.prompt, dur: s.dur,
+      telop: s.telop.map(c => ({ text: c.text, dur: c.dur })),
+      imageData: imageToDataURL(s.image, false),
+      // 動画は元ファイルのバイト列ごと保存（大きい場合はファイル保存推奨）
+      videoData: s.videoBytes ? { mime: s.videoMime || 'video/mp4', bytes: bytesToB64(s.videoBytes) } : null
+    })),
+    audioTracks: state.audioTracks.filter(t => t.bytes || t.generated).map(t => t.generated
+      ? { name: t.name, kind: 'music', volume: t.volume, generated: t.generated } // 内蔵BGMは種類だけ保存して読込時に再生成（軽量）
+      : { name: t.name, kind: t.kind, volume: t.volume, mime: t.mime, bytes: bytesToB64(t.bytes) })
+  };
+}
+
+function saveProject() {
+  try {
+    const blob = new Blob([JSON.stringify(serializeProject())], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    const nm = (document.getElementById('proj-name').value || '').trim().replace(/[\\/:*?"<>|]/g, '') || 'project';
+    a.href = url; a.download = `prompt-video-${nm}-${Date.now()}.json`;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 30000);
+    toast('ファイルに保存しました');
+  } catch (e) {
+    toast('保存に失敗しました（写真が多い・大きい場合は枚数を減らしてください）');
+  }
+}
+
+/* ===== この端末に保存（localStorage）＝「最近の作品」 ===== */
+const LS_KEY = 'bpv_projects_v1';
+function lsGetProjects() { try { return JSON.parse(localStorage.getItem(LS_KEY) || '[]'); } catch (e) { return []; } }
+function lsSetProjects(list) { localStorage.setItem(LS_KEY, JSON.stringify(list)); }
+
+function deviceSaveProject() {
+  const name = (document.getElementById('proj-name').value || '').trim() || ('作品 ' + new Date().toLocaleString('ja-JP'));
+  let entry;
+  try { entry = { id: Date.now(), name, savedAt: new Date().toISOString(), data: serializeProject() }; }
+  catch (e) { toast('保存の準備に失敗しました'); return; }
+  let list = lsGetProjects();
+  list.unshift(entry);
+  list = list.slice(0, 8); // 端末保存は最新8件まで
+  // 容量オーバー時は古いものから削って再試行
+  while (list.length) {
+    try { lsSetProjects(list); toast('この端末に保存しました'); renderRecentList(); return; }
+    catch (e) { list.pop(); }
+  }
+  toast('端末の保存容量が足りません。写真を減らすか「ファイルに保存」をご利用ください');
+}
+
+function renderRecentList() {
+  const ul = document.getElementById('recent-list');
+  const list = lsGetProjects();
+  if (!list.length) { ul.innerHTML = '<li style="border:none;background:none;padding:0;"><div class="note">まだこの端末に保存した作品はありません。</div></li>'; return; }
+  ul.innerHTML = list.map(e => `
+    <li>
+      <div class="a-top">
+        <div class="a-name">📄 ${escapeHtml(e.name)}
+          <span class="a-kind">（${escapeHtml(new Date(e.savedAt).toLocaleString('ja-JP'))}）</span></div>
+      </div>
+      <div class="row" style="margin-top:8px;">
+        <button type="button" class="btn ghost sm" data-open="${e.id}">開く</button>
+        <button type="button" class="btn danger sm" data-remove="${e.id}">削除</button>
+      </div>
+    </li>`).join('');
+  ul.querySelectorAll('[data-open]').forEach(b => b.addEventListener('click', () => {
+    const e = lsGetProjects().find(x => x.id === Number(b.dataset.open));
+    if (e) { applyProjectData(e.data); document.getElementById('proj-name').value = e.name; }
+  }));
+  ul.querySelectorAll('[data-remove]').forEach(b => b.addEventListener('click', () => {
+    lsSetProjects(lsGetProjects().filter(x => x.id !== Number(b.dataset.remove)));
+    renderRecentList();
+  }));
+}
+
+async function loadProject(file) {
+  let data;
+  try { data = JSON.parse(await file.text()); }
+  catch (e) { toast('ファイルを読み込めませんでした'); return; }
+  await applyProjectData(data);
+}
+
+async function applyProjectData(data) {
+  if (!data || data.app !== 'bridge-prompt-video') { toast('このアプリの保存ファイルではありません'); return; }
+  if (timeline.playing) stopPreview();
+
+  state.aspect = ASPECTS[data.aspect] ? data.aspect : '16:9';
+  document.querySelectorAll('#aspect-seg button').forEach(b => b.classList.toggle('active', b.dataset.aspect === state.aspect));
+  applyCanvasSize();
+
+  if (data.telopStyle) Object.assign(state.telopStyle, data.telopStyle);
+  syncTelopStyleUI();
+
+  if (data.tts) Object.assign(state.tts, data.tts);
+  document.getElementById('tts-on').checked = !!state.tts.on;
+  document.getElementById('tts-rate').value = state.tts.rate;
+  document.getElementById('tts-rate-label').textContent = Number(state.tts.rate).toFixed(1);
+  voiceSelect.value = state.tts.voice || '';
+
+  const ch = data.character || {};
+  state.character.emoji = ch.emoji || '';
+  state.character.pos = ch.pos || 'br';
+  state.character.size = Number(ch.size) || 1;
+  state.character.image = await loadImageFromDataURL(ch.imageData);
+  syncCharacterUI();
+
+  const scenes = [];
+  for (const sd of (data.scenes || [])) {
+    const s = newScene(sd.prompt || '', '', Number(sd.dur) || 8);
+    s.telop = Array.isArray(sd.telop)
+      ? sd.telop.map(c => ({ text: String(c.text || ''), dur: Number(c.dur) > 0 ? Number(c.dur) : 1 }))
+      : [];
+    s.image = await loadImageFromDataURL(sd.imageData);
+    if (sd.videoData && sd.videoData.bytes) {
+      try {
+        const bytes = b64ToBytes(sd.videoData.bytes);
+        const blob = new Blob([bytes], { type: sd.videoData.mime || 'video/mp4' });
+        await new Promise((resolve) => loadVideoForScene(blob, s, () => resolve()));
+        s.dur = Number(sd.dur) > 0 ? Number(sd.dur) : s.dur; // 保存時のシーン長を優先
+      } catch (e) { /* 動画の復元に失敗したシーンは写真なし扱い */ }
+    }
+    scenes.push(s);
+  }
+  state.scenes = scenes.length ? scenes : [newScene('ゆっくりズームイン', '', 8)];
+
+  state.audioTracks = [];
+  for (const t of (data.audioTracks || [])) {
+    try {
+      let tr;
+      if (t.generated && BGM_PRESETS[t.generated]) {
+        const buf = await generateBgm(t.generated);
+        tr = addAudioTrack(t.name || (BGM_PRESETS[t.generated].label + ' BGM'), 'music', buf, null, 'audio/generated');
+        tr.generated = t.generated;
+      } else {
+        const bytes = b64ToBytes(t.bytes);
+        const buf = await decodeArrayBuffer(bytes.buffer);
+        tr = addAudioTrack(t.name || '音声', t.kind === 'rec' ? 'rec' : 'music', buf, bytes, t.mime || 'audio/*');
+      }
+      if (tr && typeof t.volume === 'number') tr.volume = t.volume;
+    } catch (e) { /* 壊れた音声トラックはスキップ */ }
+  }
+  renderAudioList();
+  renderSceneList();
+  renderStill();
+  toast('プロジェクトを読み込みました');
+}
+
+document.getElementById('save-btn').addEventListener('click', saveProject);
+document.getElementById('device-save-btn').addEventListener('click', deviceSaveProject);
+const loadFileInput = document.getElementById('load-file');
+document.getElementById('load-btn').addEventListener('click', () => loadFileInput.click());
+loadFileInput.addEventListener('change', (e) => {
+  const f = e.target.files && e.target.files[0];
+  e.target.value = '';
+  if (f) loadProject(f);
+});
+
+/* ========== テロップのフォント選択 ========== */
+const TELOP_FONTS = [
+  { label: 'ゴシック（標準）', css: "'Noto Sans JP','Hiragino Sans',sans-serif" },
+  { label: '明朝体（上品）', css: "'Hiragino Mincho ProN','Yu Mincho','YuMincho',serif" },
+  { label: '丸ゴシック（やわらか）', css: "'Hiragino Maru Gothic ProN','Rounded Mplus 1c','Noto Sans JP',sans-serif" },
+  { label: '楷書・毛筆風', css: "'Kaishu','Yu Mincho',serif" }
+];
+(function populateFonts() {
+  const sel = document.getElementById('telop-font');
+  sel.innerHTML = TELOP_FONTS.map(f => `<option value="${escapeHtml(f.css)}">${f.label}</option>`).join('');
+  sel.value = state.telopStyle.font;
+  sel.addEventListener('change', (e) => { state.telopStyle.font = e.target.value; renderStill(); });
+})();
+
+/* ========== 初期化 ========== */
+renderTemplates();
+renderRecentList();
+updatePasteBtn();
+state.scenes.push(newScene('ゆっくりズームイン', '', 8));
+renderSceneList();
+applyCanvasSize();
+renderStill();
+</script>
+</body>
+</html>

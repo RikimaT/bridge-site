@@ -1,0 +1,73 @@
+name: Deploy site to GitHub Pages
+
+# bridge-app（非公開化予定の本体）から分離した公開サイト配信専用リポジトリ。
+# 中身は bridge-app の公開ファイルの複製。ソースの正は bridge-app 側にあり、
+# 変更時は bridge-app→bridge-site へ同期する（ルールは README.md 参照）。
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  # デプロイ・カーフュー（bridge-app と同じルール。2026-07-06 ブレーン会議決定）
+  # 23時〜翌7時(JST)は本番反映を止める。翌朝7時15分に curfew-catchup.yml が自動再デプロイ。
+  curfew:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 時間帯チェック（JST 23時〜7時は停止）
+        run: |
+          HOUR=$(TZ=Asia/Tokyo date +%-H)
+          if [ "$HOUR" -ge 23 ] || [ "$HOUR" -lt 7 ]; then
+            echo "::error::🌙 デプロイ・カーフュー発動中（現在 JST ${HOUR}時）。明朝7時15分に自動で再デプロイされます。"
+            exit 1
+          fi
+          echo "☀️ JST ${HOUR}時 — 通常時間帯なのでデプロイを続行します"
+
+  deploy:
+    needs: curfew
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: 公開サイトを組み立てる
+        run: |
+          mkdir -p _site
+          # rikima81.com の公開ページ
+          cp -r public-site/. _site/
+          # ⚠フェーズ1（検証中）: CNAME は入れない。bridge-app 側が rikima81.com を配信している間に
+          # 同じドメインを二重に主張するとデプロイが失敗するため。
+          # フェーズ2（切替時）: bridge-app 側のCNAME送出を止めた後、次の行を削除して本番切替する。
+          rm -f _site/CNAME
+          # プロンプトビデオメーカー /douga/
+          mkdir -p _site/douga
+          cp ai-video-maker/index.html _site/douga/index.html
+          # 生徒管理アプリ /kanri/（noindex付き・bridge-app と同一挙動）
+          mkdir -p _site/kanri/data
+          cp index.html app.js style.css _site/kanri/
+          cp data/sales-history.json _site/kanri/data/
+          # 金曜PR動画メーカー（PWA）
+          mkdir -p _site/pr-video-maker
+          cp -r pr-video-maker/. _site/pr-video-maker/
+          # Pixi AI PC版（PWA）
+          mkdir -p _site/pixi-ai
+          cp -r pixi-ai/. _site/pixi-ai/
+      - uses: actions/configure-pages@v5
+        with:
+          enablement: true
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+      - id: deployment
+        uses: actions/deploy-pages@v4

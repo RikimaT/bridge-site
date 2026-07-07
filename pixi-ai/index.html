@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pixi AI（PC版）</title>
+<meta name="description" content="AI画像・動画の生成とフォトマジック。総合学習教室ブリッジの内部ツール">
+<meta name="robots" content="noindex">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="theme-color" content="#0d1117">
+<style>
+:root{
+  --accent:#e8a84c;
+  --bg:#0d1117;
+  --surface:#161b22;
+  --surface2:#21262d;
+  --border:#30363d;
+  --text:#e6edf3;
+  --muted:#8b949e;
+  --ok:#3fb950;
+  --ng:#f85149;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{
+  background:var(--bg);color:var(--text);
+  font-family:-apple-system,BlinkMacSystemFont,"Hiragino Sans","Noto Sans JP",sans-serif;
+  min-height:100vh;
+}
+header{
+  padding:16px 20px;border-bottom:1px solid var(--border);
+  display:flex;align-items:center;gap:10px;
+}
+header h1{font-size:18px}
+header h1 span{color:var(--accent)}
+header .sub{color:var(--muted);font-size:12px}
+.wrap{
+  max-width:1100px;margin:0 auto;padding:20px;
+  display:grid;grid-template-columns:380px 1fr;gap:20px;
+}
+@media(max-width:820px){.wrap{grid-template-columns:1fr}}
+.panel{
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:12px;padding:16px;
+}
+.panel h2{font-size:14px;color:var(--accent);margin-bottom:12px}
+.tabs{display:flex;gap:8px;margin-bottom:14px}
+.tabs button{
+  flex:1;padding:8px;border-radius:8px;border:1px solid var(--border);
+  background:var(--surface2);color:var(--muted);cursor:pointer;font-size:13px;
+}
+.tabs button.on{background:var(--accent);color:#0d1117;border-color:var(--accent);font-weight:bold}
+label{display:block;font-size:12px;color:var(--muted);margin:12px 0 4px}
+textarea,select{
+  width:100%;background:var(--surface2);border:1px solid var(--border);
+  border-radius:8px;color:var(--text);padding:10px;font-size:14px;font-family:inherit;
+}
+textarea{min-height:90px;resize:vertical}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}
+.chips button{
+  padding:6px 12px;border-radius:20px;border:1px solid var(--border);
+  background:var(--surface2);color:var(--text);cursor:pointer;font-size:12px;
+}
+.chips button.on{background:var(--accent);color:#0d1117;border-color:var(--accent);font-weight:bold}
+.go{
+  width:100%;margin-top:16px;padding:13px;border:none;border-radius:10px;
+  background:var(--accent);color:#0d1117;font-size:15px;font-weight:bold;cursor:pointer;
+}
+.go:disabled{opacity:.5;cursor:wait}
+#drop,#vdrop{
+  margin-top:4px;border:2px dashed var(--border);border-radius:10px;
+  padding:20px;text-align:center;color:var(--muted);font-size:13px;cursor:pointer;
+}
+#drop.has,#vdrop.has{border-color:var(--accent);padding:8px}
+#drop img,#vdrop img{max-width:100%;max-height:180px;border-radius:8px}
+#msg{margin-top:10px;font-size:13px;min-height:18px}
+#msg.err{color:var(--ng)}
+#msg.ok{color:var(--ok)}
+.gallery{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px}
+.card{
+  background:var(--surface2);border:1px solid var(--border);
+  border-radius:10px;overflow:hidden;
+}
+.card img,.card video{width:100%;display:block}
+.card .meta{padding:8px 10px;font-size:11px;color:var(--muted);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.card .acts{display:flex;border-top:1px solid var(--border)}
+.card .acts button{
+  flex:1;padding:8px;background:none;border:none;color:var(--accent);
+  cursor:pointer;font-size:12px;
+}
+.card .acts button+button{border-left:1px solid var(--border)}
+.empty{color:var(--muted);font-size:13px;text-align:center;padding:40px 0}
+.spinner{
+  display:none;width:18px;height:18px;border:3px solid rgba(13,17,23,.3);
+  border-top-color:#0d1117;border-radius:50%;vertical-align:-4px;margin-right:8px;
+  animation:spin .8s linear infinite;
+}
+@keyframes spin{to{transform:rotate(360deg)}}
+.go.busy .spinner{display:inline-block}
+</style>
+</head>
+<body>
+<header>
+  <h1>🎨 Pixi <span>AI</span></h1>
+  <div class="sub">AI画像・動画の生成／フォトマジック（PC版）</div>
+</header>
+
+<div class="wrap">
+  <div class="panel">
+    <div class="tabs">
+      <button id="tab-gen" class="on" onclick="setMode('gen')">✨ 画像</button>
+      <button id="tab-edit" onclick="setMode('edit')">🖌 編集</button>
+      <button id="tab-video" onclick="setMode('video')">🎬 動画</button>
+    </div>
+
+    <div id="pane-gen">
+      <label>作りたい画像の説明</label>
+      <textarea id="gen-prompt" placeholder="例）夕焼けの琵琶湖畔で本を読む子ども、あたたかい雰囲気"></textarea>
+      <label>スタイル</label>
+      <div class="chips" id="styles"></div>
+      <label>アスペクト比</label>
+      <div class="chips" id="aspects"></div>
+    </div>
+
+    <div id="pane-edit" style="display:none">
+      <label>元の画像</label>
+      <div id="drop" onclick="document.getElementById('file').click()">
+        クリックして画像を選択<br>（またはドラッグ＆ドロップ）
+      </div>
+      <input type="file" id="file" accept="image/*" style="display:none">
+      <label>編集の指示</label>
+      <textarea id="edit-prompt" placeholder="例）背景を桜並木に変えて、全体を明るく"></textarea>
+    </div>
+
+    <div id="pane-video" style="display:none">
+      <label>元の写真（任意。指定すると「写真→動画」になります）</label>
+      <div id="vdrop" onclick="document.getElementById('vfile').click()">
+        クリックして写真を選択<br>（またはドラッグ＆ドロップ／写真なしでもOK）
+      </div>
+      <input type="file" id="vfile" accept="image/*" style="display:none">
+      <label>動画の指示</label>
+      <textarea id="video-prompt" placeholder="例）子どもが笑顔で振り向き、髪が風になびく。カメラはゆっくりズームイン"></textarea>
+      <label>アスペクト比</label>
+      <div class="chips" id="vaspects"></div>
+      <div style="margin-top:10px;font-size:11px;color:var(--muted)">
+        ※ 動画生成（Veo）は従量課金のAPI料金がかかります。生成には1〜3分かかります。
+      </div>
+    </div>
+
+    <button class="go" id="go" onclick="run()"><span class="spinner"></span>画像を作成</button>
+    <div id="msg"></div>
+  </div>
+
+  <div class="panel">
+    <h2>作成した画像</h2>
+    <div class="gallery" id="gallery"></div>
+    <div class="empty" id="empty">まだ画像がありません。<br>左のパネルから作成してください。</div>
+  </div>
+</div>
+
+<script>
+var HAS_SERVER = (typeof google !== 'undefined' && google.script && google.script.run);
+// GitHub Pages配信（PWA）のときは fetch でGASのAPI（doPost ?app=pixi）を呼ぶ。
+// URLは自動化スイート（WebApp.gs/PixiBackend.gsのあるプロジェクト）のWebアプリデプロイ。
+// ※管理アプリの GAS_URL（生徒データ用の別プロジェクト）とは異なるので注意
+var GAS_URL = 'https://script.google.com/macros/s/AKfycbzeKwDS0BohvVL03aSQbEDhPNh5E4aD-uP5k5ZdngJIkf6nCHwDnDhacDFLoFI386OD/exec';
+
+// バックエンド呼び出し（GAS配信= google.script.run / Pages配信= fetch）
+var API_FN = {
+  generate:   'pixiGenerateImage',
+  edit:       'pixiEditImage',
+  videoStart: 'pixiStartVideo',
+  videoPoll:  'pixiPollVideo'
+};
+function api(action, args){
+  if (HAS_SERVER){
+    return new Promise(function(resolve, reject){
+      google.script.run
+        .withSuccessHandler(resolve)
+        .withFailureHandler(function(err){ reject(new Error(err && err.message ? err.message : '失敗しました')); })
+        [API_FN[action]].apply(null, args);
+    });
+  }
+  var payload = { action: action };
+  if (action === 'generate')   { payload.prompt = args[0]; payload.style = args[1]; payload.aspect = args[2]; }
+  if (action === 'edit')       { payload.data = args[0]; payload.mime = args[1]; payload.instruction = args[2]; }
+  if (action === 'videoStart') { payload.prompt = args[0]; payload.data = args[1]; payload.mime = args[2]; payload.aspect = args[3]; }
+  if (action === 'videoPoll')  { payload.op = args[0]; }
+  return fetch(GAS_URL + '?app=pixi', {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+    body: JSON.stringify(payload)
+  }).then(function(r){
+    if (!r.ok) throw new Error('通信エラー（HTTP ' + r.status + '）');
+    return r.json();
+  }).then(function(j){
+    if (!j.ok) throw new Error(j.error || '失敗しました');
+    return j.result;
+  });
+}
+
+// PWA: GitHub Pages配信時のみService Workerを登録（GAS配信時は相対パスが無いため登録しない）
+if (!HAS_SERVER && 'serviceWorker' in navigator && location.protocol === 'https:'){
+  navigator.serviceWorker.register('sw.js').catch(function(){});
+}
+var MODE = 'gen';
+var STYLE = '';
+var ASPECT = '1:1';
+var VASPECT = '16:9';
+var SRC_IMG = null;  // 編集用の元画像 {data, mime}
+var VSRC_IMG = null; // 動画用の元写真 {data, mime}
+
+var STYLES = ['アニメ','写実','水彩','イラスト','3D','ドット絵'];
+var ASPECTS = ['1:1','16:9','9:16','4:3','3:4'];
+var VASPECTS = ['16:9','9:16'];
+
+function chips(id, list, cur, onPick){
+  var box = document.getElementById(id);
+  box.innerHTML = '';
+  list.forEach(function(v){
+    var b = document.createElement('button');
+    b.textContent = v;
+    if (v === cur) b.className = 'on';
+    b.onclick = function(){ onPick(v); };
+    box.appendChild(b);
+  });
+}
+function drawChips(){
+  chips('styles', STYLES, STYLE, function(v){ STYLE = (STYLE === v) ? '' : v; drawChips(); });
+  chips('aspects', ASPECTS, ASPECT, function(v){ ASPECT = v; drawChips(); });
+  chips('vaspects', VASPECTS, VASPECT, function(v){ VASPECT = v; drawChips(); });
+}
+drawChips();
+
+function setMode(m){
+  MODE = m;
+  ['gen','edit','video'].forEach(function(k){
+    document.getElementById('tab-' + k).className = m === k ? 'on' : '';
+    document.getElementById('pane-' + k).style.display = m === k ? '' : 'none';
+  });
+  var labels = { gen: '画像を作成', edit: '画像を編集', video: '動画を作成' };
+  document.getElementById('go').lastChild.textContent = labels[m];
+}
+
+function msg(text, cls){
+  var el = document.getElementById('msg');
+  el.textContent = text || '';
+  el.className = cls || '';
+}
+
+// 画像の読み込み（選択・D&D共通）。dropId のプレビューを更新し onSet に渡す
+function loadFile(file, dropId, onSet){
+  if (!file || file.type.indexOf('image/') !== 0) return;
+  var r = new FileReader();
+  r.onload = function(){
+    var m = String(r.result).match(/^data:(.+?);base64,(.*)$/);
+    if (!m) return;
+    onSet({ mime: m[1], data: m[2] });
+    var drop = document.getElementById(dropId);
+    drop.className = 'has';
+    drop.innerHTML = '<img src="' + r.result + '">';
+  };
+  r.readAsDataURL(file);
+}
+function wireDrop(dropId, fileId, onSet){
+  document.getElementById(fileId).addEventListener('change', function(e){
+    loadFile(e.target.files[0], dropId, onSet);
+  });
+  var drop = document.getElementById(dropId);
+  drop.addEventListener('dragover', function(e){ e.preventDefault(); });
+  drop.addEventListener('drop', function(e){
+    e.preventDefault();
+    loadFile(e.dataTransfer.files[0], dropId, onSet);
+  });
+}
+wireDrop('drop', 'file', function(img){ SRC_IMG = img; });
+wireDrop('vdrop', 'vfile', function(img){ VSRC_IMG = img; });
+
+function busy(on){
+  var btn = document.getElementById('go');
+  btn.disabled = on;
+  btn.className = on ? 'go busy' : 'go';
+}
+function fail(err){
+  busy(false);
+  msg(err && err.message ? err.message : '失敗しました', 'err');
+}
+
+function run(){
+  if (MODE === 'video'){
+    var vp = document.getElementById('video-prompt').value.trim();
+    if (!vp){ msg('動画の指示を入力してください', 'err'); return; }
+    var vcaption = '[動画] ' + vp;
+    busy(true);
+    msg('動画の生成を開始しています…');
+    api('videoStart', [vp, VSRC_IMG ? VSRC_IMG.data : '', VSRC_IMG ? VSRC_IMG.mime : '', VASPECT])
+      .then(function(opName){ pollVideo(opName, vcaption, 0); })
+      .catch(fail);
+    return;
+  }
+
+  var caption, req;
+  if (MODE === 'gen'){
+    var p = document.getElementById('gen-prompt').value.trim();
+    if (!p){ msg('作りたい画像の説明を入力してください', 'err'); return; }
+    caption = (STYLE ? '[' + STYLE + '] ' : '') + p;
+    msg('生成中…（10〜30秒ほどかかります）');
+    req = api('generate', [p, STYLE, ASPECT]);
+  } else {
+    var ins = document.getElementById('edit-prompt').value.trim();
+    if (!SRC_IMG){ msg('元の画像を選択してください', 'err'); return; }
+    if (!ins){ msg('編集の指示を入力してください', 'err'); return; }
+    caption = '[編集] ' + ins;
+    msg('編集中…（10〜30秒ほどかかります）');
+    req = api('edit', [SRC_IMG.data, SRC_IMG.mime, ins]);
+  }
+  busy(true);
+  req.then(function(img){
+    busy(false);
+    msg('完成しました', 'ok');
+    addCard(img, caption);
+  }).catch(fail);
+}
+
+// 動画生成の完了を10秒ごとに確認する（最大5分）
+function pollVideo(opName, caption, tries){
+  if (tries > 30){
+    busy(false);
+    msg('時間内に完了しませんでした。しばらくしてからもう一度お試しください', 'err');
+    return;
+  }
+  msg('動画を生成中…（' + (tries * 10) + '秒経過。1〜3分かかります）');
+  api('videoPoll', [opName]).then(function(r){
+    if (r && r.done){
+      busy(false);
+      msg('完成しました', 'ok');
+      addCard(r, caption);
+    } else {
+      setTimeout(function(){ pollVideo(opName, caption, tries + 1); }, 10000);
+    }
+  }).catch(fail);
+}
+
+var SEQ = 0;
+function addCard(img, caption){
+  document.getElementById('empty').style.display = 'none';
+  var url = 'data:' + img.mime + ';base64,' + img.data;
+  var isVideo = String(img.mime).indexOf('video/') === 0;
+  var card = document.createElement('div');
+  card.className = 'card';
+  var ext = isVideo ? 'mp4' : (img.mime === 'image/jpeg' ? 'jpg' : 'png');
+  var name = 'pixi-ai-' + (++SEQ) + '.' + ext;
+  card.innerHTML =
+    (isVideo ? '<video src="' + url + '" controls loop></video>' : '<img src="' + url + '">') +
+    '<div class="meta"></div>' +
+    '<div class="acts"><button>⬇ 保存</button>' +
+    (isVideo ? '' : '<button>🖌 これを編集</button>') + '</div>';
+  card.querySelector('.meta').textContent = caption;
+  card.querySelector('.meta').title = caption;
+  var acts = card.querySelectorAll('.acts button');
+  acts[0].onclick = function(){
+    var a = document.createElement('a');
+    a.href = url; a.download = name; a.click();
+  };
+  if (acts[1]) acts[1].onclick = function(){
+    SRC_IMG = { data: img.data, mime: img.mime };
+    setMode('edit');
+    var drop = document.getElementById('drop');
+    drop.className = 'has';
+    drop.innerHTML = '<img src="' + url + '">';
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+  var g = document.getElementById('gallery');
+  g.insertBefore(card, g.firstChild);
+}
+</script>
+</body>
+</html>
