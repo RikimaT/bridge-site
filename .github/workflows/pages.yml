@@ -46,10 +46,8 @@ jobs:
           mkdir -p _site
           # rikima81.com の公開ページ
           cp -r public-site/. _site/
-          # ⚠フェーズ1（検証中）: CNAME は入れない。bridge-app 側が rikima81.com を配信している間に
-          # 同じドメインを二重に主張するとデプロイが失敗するため。
-          # フェーズ2（切替時）: bridge-app 側のCNAME送出を止めた後、次の行を削除して本番切替する。
-          rm -f _site/CNAME
+          # フェーズ2（2026-07-08 切替）: CNAME を同梱して rikima81.com をこのリポジトリから配信する。
+          # 前提: bridge-app の非公開化（Pages停止）でドメインが解放されていること。
           # プロンプトビデオメーカー /douga/
           mkdir -p _site/douga
           cp ai-video-maker/index.html _site/douga/index.html

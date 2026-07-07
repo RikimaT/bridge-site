@@ -28,8 +28,11 @@
 
 ## 切替の状態
 
-- [x] フェーズ1: コンテンツ移植・ステージング配信（`rikimat.github.io/bridge-site/`）
-- [ ] フェーズ2: rikima81.com のCNAMEを bridge-app→bridge-site へ切替（本人在席時に実施）
-- [ ] フェーズ3: bridge-app を非公開化（本人がSettings→Danger Zoneで操作）
+- [x] フェーズ1: コンテンツ移植（2026-07-07）
+- [x] フェーズ2: CNAME同梱＝rikima81.com をこのリポジトリから配信（2026-07-08 朝7:15の自動デプロイで有効化）
+- [ ] フェーズ3: bridge-app を非公開化（本人がSettings→Danger Zone→Change visibilityで操作）
+  ※フェーズ3が先に済んでいないと、7:15のデプロイがドメインの二重主張で失敗する場合がある。
+  その場合は失敗を検知した時点でClaudeが再実行する。万一カスタムドメインが自動で付かない場合は、
+  bridge-site の Settings→Pages→Custom domain に rikima81.com を手で入力する（1分）。
 
 デプロイは 23時〜7時(JST) のカーフューで停止し、翌朝7:15に自動再開する（bridge-appと同じルール）。
