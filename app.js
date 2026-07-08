@@ -503,6 +503,9 @@ function renderDashboard(){
   h+='<button class="navbtn" onclick="changeDashMonth(1)">▶</button>';
   if(!isCurrentMonth)h+='<button class="navbtn-today" onclick="jumpToCurrentDashMonth()">今月</button>';
   h+='</div>';
+  if(isCurrentMonth){
+    h+='<div class="dash-chart-wrap todo-wrap"><div class="dash-chart-title">✅ 今日やること</div><div id="dash-todo"><div style="font-size:13px;color:var(--muted);padding:6px 0;">確認中...</div></div></div>';
+  }
   h+='<div class="kpi-grid">';
   h+='<div class="kpi-card"><div class="kpi-label">延べ在籍数</div><div class="kpi-val">'+enrollCount+'<span style="font-size:14px;color:var(--muted);">名</span></div><div class="kpi-sub">実人数 <span class="ltv-val">'+realCount+'名</span>　平均 <span class="ltv-val">'+avgMonths+'ヶ月</span></div></div>';
   h+='<div class="kpi-card"><div class="kpi-label">'+monthlyLabel+'</div><div class="kpi-val" style="font-size:20px;">¥'+monthlyTotal.toLocaleString()+'</div>';
@@ -511,12 +514,16 @@ function renderDashboard(){
   h+='</div>';
   h+='<div class="kpi-card"><div class="kpi-label">'+mo+'月 入会 / 退会</div><div class="kpi-val '+netClass+'">'+netStr+'</div><div class="kpi-sub">+'+joins+' / -'+leaves+'</div></div>';
   h+='</div>';
+  if(isCurrentMonth){
+    h+='<div class="dash-chart-wrap"><div class="dash-chart-title">📈 今月の着地予測</div><div id="dash-forecast"><div style="font-size:13px;color:var(--muted);padding:6px 0;">読込中...</div></div></div>';
+  }
   h+=buildGradePanel();
   h+=buildLtvPanel();
   if(!isFuture)h+='<div class="dash-chart-wrap"><div class="dash-chart-title">未入金一覧（'+monthLabel+'）</div><div id="dash-unpaid"><div style="font-size:13px;color:var(--muted);padding:6px 0;">読込中...</div></div></div>';
   h+='<div class="dash-chart-wrap"><div class="dash-chart-title">入退会推移（直近6ヶ月）</div><canvas id="dash-trend-canvas" class="dash-chart-canvas"></canvas></div>';
   h+='<div class="dash-chart-wrap"><div class="dash-chart-title">コース別月額構成</div><div class="course-bar-wrap" id="course-dist"></div></div>';
   document.getElementById('dash-content').innerHTML=h;
+  if(isCurrentMonth)renderDashTodo(yr,mo);
   if(!isFuture)renderDashUnpaid(yr,mo);
   try{buildDashTrendChart();}catch(e){console.error('trend chart:',e);}
   try{buildCourseDistChart();}catch(e){console.error('course chart:',e);}
@@ -598,6 +605,102 @@ function buildLtvPanel(){
   return h;
 }
 
+/* ========== 今日やること・着地予測（概況・当月のみ） ========== */
+// 今日やることサマリー: 未入金・体験生フォロー・今日の体験をチェックリスト表示
+function renderDashTodo(yr,mo){
+  var box=document.getElementById('dash-todo');
+  if(!box)return;
+  var today=todayStr();
+  var items=[];
+  // 体験生まわり（同期で出せるものから）
+  var todays=ALL_TRIALS.filter(function(t){return t.status==='予定'&&t.trialDate===today;});
+  var overdue=ALL_TRIALS.filter(function(t){return t.status==='予定'&&t.trialDate&&t.trialDate<today;});
+  var pending=ALL_TRIALS.filter(function(t){return t.status==='済';});
+  if(todays.length)items.push({icon:'🔔',label:'今日の体験',detail:todays.map(function(t){return t.name;}).join('・'),count:todays.length,onclick:"switchTab('trial')"});
+  if(overdue.length)items.push({icon:'📝',label:'体験結果の記録待ち',detail:'体験日を過ぎています',count:overdue.length,onclick:"switchTab('trial')"});
+  if(pending.length)items.push({icon:'🤝',label:'入会・見送りの判断待ち',detail:'体験済みのままの体験生',count:pending.length,onclick:"switchTab('trial')"});
+  function draw(unpaidItem){
+    var list=items.slice();
+    if(unpaidItem)list.unshift(unpaidItem);
+    if(!list.length){box.innerHTML='<div style="font-size:14px;color:var(--ok);padding:6px 0;">今日やることはありません 🎉</div>';return;}
+    box.innerHTML=list.map(function(it){
+      return '<div class="todo-row"'+(it.onclick?' onclick="'+it.onclick+'"':'')+'><span class="todo-ico">'+it.icon+'</span>'
+        +'<span class="todo-body"><span class="todo-label">'+it.label+'</span><span class="todo-detail">'+esc(it.detail||'')+'</span></span>'
+        +'<span class="todo-count">'+it.count+'件</span></div>';
+    }).join('');
+  }
+  draw(null);
+  fetchPayments(yr,mo).then(function(pay){
+    if(dashViewYear!==yr||dashViewMonth!==mo)return;
+    var monthEnrolls=enrollsForMonth(yr,mo);
+    var unpaid=studentsForMonth(yr,mo).filter(function(s){return !pay[s.studentID];});
+    var total=0;
+    unpaid.forEach(function(s){total+=monthEnrolls.filter(function(e){return e.studentID===s.studentID;}).reduce(function(sum,e){return sum+effPrice(e);},0);});
+    var unpaidItem=unpaid.length?{icon:'💰',label:mo+'月の未入金',detail:'合計 ¥'+total.toLocaleString()+'（下の一覧から督促文をコピーできます）',count:unpaid.length,onclick:"scrollToUnpaid()"}:null;
+    draw(unpaidItem);
+    renderDashForecast(yr,mo,pay);
+  }).catch(function(){
+    draw(null);
+    var f=document.getElementById('dash-forecast');
+    if(f)f.innerHTML='<div style="font-size:13px;color:var(--muted);">入金データを取得できませんでした</div>';
+  });
+}
+function scrollToUnpaid(){
+  var el=document.getElementById('dash-unpaid');
+  if(el)el.closest('.dash-chart-wrap').scrollIntoView({behavior:'smooth',block:'start'});
+}
+// 今月の着地予測: 請求見込み・入金済み・残り未回収・目標比
+function renderDashForecast(yr,mo,pay){
+  var box=document.getElementById('dash-forecast');
+  if(!box)return;
+  var monthEnrolls=enrollsForMonth(yr,mo);
+  var students=studentsForMonth(yr,mo);
+  var expected=0,paidSum=0;
+  students.forEach(function(s){
+    var m=monthEnrolls.filter(function(e){return e.studentID===s.studentID;}).reduce(function(sum,e){return sum+effPrice(e);},0);
+    expected+=m;
+    if(pay[s.studentID])paidSum+=m;
+  });
+  var remain=expected-paidSum;
+  var pct=expected>0?Math.round(paidSum/expected*100):0;
+  var target=ALL_TARGETS[yr+'年'+mo+'月']||null;
+  var h='<div style="display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:10px;">';
+  h+='<span style="font-size:24px;font-weight:700;color:var(--accent);">¥'+expected.toLocaleString()+'</span>';
+  h+='<span style="font-size:12px;color:var(--muted);">このままの在籍で今月の請求見込み</span></div>';
+  h+='<div class="course-bar-track" style="height:10px;margin-bottom:8px;"><div class="course-bar-fill" style="height:10px;background:var(--ok);width:'+pct+'%;"></div></div>';
+  h+='<div style="display:flex;justify-content:space-between;font-size:13px;flex-wrap:wrap;gap:6px;">';
+  h+='<span>入金済み <span style="color:var(--ok);font-weight:700;">¥'+paidSum.toLocaleString()+'</span>（'+pct+'%）</span>';
+  h+='<span>残り <span style="color:'+(remain>0?'var(--ng)':'var(--ok)')+';font-weight:700;">¥'+remain.toLocaleString()+'</span></span></div>';
+  if(target){
+    var tp=Math.round(expected/target*100);
+    h+='<div style="font-size:12px;color:var(--muted);margin-top:8px;">目標 ¥'+target.toLocaleString()+' に対して <span class="'+(tp>=100?'pos':'neg')+'" style="font-weight:700;">'+tp+'%</span></div>';
+  }
+  box.innerHTML=h;
+}
+// 未入金の督促メッセージを作ってコピー（LINEに貼るだけ）
+function copyReminder(btn){
+  var name=btn.dataset.name,amount=Number(btn.dataset.amount)||0,mo=btn.dataset.mo;
+  var msg='【総合学習教室ブリッジ】\n'+name+'さん 保護者様\n\nいつもお世話になっております。\n'
+    +mo+'月分のお月謝（¥'+amount.toLocaleString()+'）のご入金が、まだ確認できておりません。\n'
+    +'お手数をおかけしますが、ご確認のほどよろしくお願いいたします。\n'
+    +'※行き違いでお手続き済みの場合は、ご容赦ください。';
+  function done(){showToast(name+'さんへの督促文をコピーしました。LINEに貼り付けてください','ok');}
+  function fail(){showToast('コピーできませんでした','err');}
+  if(navigator.clipboard&&navigator.clipboard.writeText){
+    navigator.clipboard.writeText(msg).then(done).catch(function(){legacyCopy(msg)?done():fail();});
+  }else{legacyCopy(msg)?done():fail();}
+}
+function legacyCopy(text){
+  try{
+    var ta=document.createElement('textarea');
+    ta.value=text;ta.style.position='fixed';ta.style.opacity='0';
+    document.body.appendChild(ta);ta.select();
+    var ok=document.execCommand('copy');
+    document.body.removeChild(ta);
+    return ok;
+  }catch(e){return false;}
+}
+
 // 指定月の未入金生徒一覧を概況タブに描画する
 function renderDashUnpaid(yr,mo){
   fetchPayments(yr,mo).then(function(pay){
@@ -614,7 +717,9 @@ function renderDashUnpaid(yr,mo){
     unpaid.forEach(function(s){
       var monthly=monthEnrolls.filter(function(e){return e.studentID===s.studentID;}).reduce(function(sum,e){return sum+effPrice(e);},0);
       total+=monthly;
-      rows+='<div class="uncoll-row"><span>'+esc(s.name)+(s.grade?'<span style="color:var(--muted);font-size:11px;margin-left:6px;">'+esc(s.grade)+'</span>':'')+'</span><span style="color:var(--ng);font-weight:700;">¥'+monthly.toLocaleString()+'</span></div>';
+      rows+='<div class="uncoll-row"><span>'+esc(s.name)+(s.grade?'<span style="color:var(--muted);font-size:11px;margin-left:6px;">'+esc(s.grade)+'</span>':'')+'</span>';
+      rows+='<span style="display:flex;align-items:center;gap:8px;"><span style="color:var(--ng);font-weight:700;">¥'+monthly.toLocaleString()+'</span>';
+      rows+='<button class="btn btn-ghost btn-sm" data-name="'+esc(s.name)+'" data-amount="'+monthly+'" data-mo="'+mo+'" onclick="copyReminder(this)">📋 督促文</button></span></div>';
     });
     box.innerHTML='<div style="display:flex;justify-content:space-between;font-size:12px;color:var(--muted);padding-bottom:8px;border-bottom:1px solid var(--border);"><span>未入金 <span style="color:var(--ng);font-weight:700;">'+unpaid.length+'名</span></span><span>合計 <span style="color:var(--ng);font-weight:700;">¥'+total.toLocaleString()+'</span></span></div>'+rows
       +'<div style="font-size:11px;color:var(--muted);margin-top:8px;">先月分の未入金は毎週月曜に「未納管理」シートへ自動転記され、段階督促が始まります。</div>';

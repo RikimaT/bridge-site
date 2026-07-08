@@ -156,6 +156,17 @@ select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/
 .lock-msg{color:var(--ng);font-size:13px;min-height:20px;margin-top:12px;line-height:1.6;}
 .lock-alt{background:none;border:none;color:var(--muted);font-size:13px;margin-top:20px;cursor:pointer;text-decoration:underline;font-family:inherit;min-height:38px;}
 
+/* 今日やること（概況） */
+.todo-wrap{border-color:rgba(232,168,76,.35);}
+.todo-row{display:flex;align-items:center;gap:12px;padding:11px 4px;border-bottom:1px solid rgba(48,54,61,.4);cursor:pointer;min-height:52px;transition:background .15s;border-radius:8px;}
+.todo-row:last-child{border-bottom:none;}
+.todo-row:active{background:rgba(232,168,76,.08);}
+.todo-ico{font-size:19px;flex-shrink:0;}
+.todo-body{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px;}
+.todo-label{font-size:14px;font-weight:600;}
+.todo-detail{font-size:11px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;}
+.todo-count{flex-shrink:0;background:rgba(232,168,76,.14);color:var(--accent);font-size:13px;font-weight:700;border-radius:14px;padding:4px 12px;}
+
 /* 接続バナー（サーバー不達のときだけ） */
 .conn-banner{position:fixed;top:0;left:0;right:0;z-index:250;background:rgba(180,35,36,.96);color:#fff;font-size:13px;font-weight:600;display:flex;align-items:center;justify-content:center;gap:12px;padding:10px 14px;padding-top:calc(10px + env(safe-area-inset-top));backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);}
 .conn-banner.hide{display:none;}
