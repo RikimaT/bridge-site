@@ -480,6 +480,15 @@
       <div class="note warn" style="margin-top:8px;">★ 生徒の顔が写っている写真は、必ずモザイクをかけてから書き出してください</div>
     </div>
 
+    <div class="card">
+      <h2>台本を読み込む（任意・メールの台本データをコピペ）</h2>
+      <div class="note">金曜PR動画キットやInstagram週間パックのメールに入っている台本データ（JSON）を貼り付けると、写真の順番どおりにテロップ・話者・セリフを自動入力します。先に写真を追加してから読み込んでください。</div>
+      <textarea id="script-import-input" rows="3" style="width:100%;margin-top:8px;font-family:monospace;font-size:12px;" placeholder='例）[{"telop":"...","speaker":"りきま先生","serifu":"..."}, ...]'></textarea>
+      <div class="row" style="margin-top:8px;">
+        <button type="button" class="btn ghost small" id="script-import-btn">台本を読み込む</button>
+      </div>
+    </div>
+
     <div class="card" id="edit-card">
       <h2>2. 選択中の写真を編集 <span id="edit-target" style="font-size:13px;color:#555;font-weight:600;"></span></h2>
       <div class="note" id="edit-empty">写真を追加して、一覧から選択すると編集できます</div>
@@ -1617,6 +1626,47 @@ nofaceCheck.addEventListener('change', () => {
   if (!slide) return;
   slide.noFace = nofaceCheck.checked;
   renderPhotoList();
+});
+
+/* ========== 台本の読み込み（メールのJSONを写真に自動割り当て） ========== */
+function applyReelScript(cuts) {
+  if (!Array.isArray(cuts) || cuts.length === 0) { toast('台本の形式が正しくありません'); return; }
+  if (state.slides.length === 0) { toast('先に写真を追加してから読み込んでください'); return; }
+  let applied = 0;
+  cuts.forEach((cut, i) => {
+    const slide = state.slides[i];
+    if (!slide || !cut) return;
+    slide.telop = String(cut.telop || '');
+    slide.speaker = String(cut.speaker || '');
+    slide.serifu = String(cut.serifu || '');
+    applied++;
+  });
+  renderPhotoList();
+  if (applied < cuts.length) {
+    toast(`${applied}枚に反映しました（写真が足りず${cuts.length - applied}カット分は未反映）`);
+  } else {
+    toast(`${applied}枚にテロップ・セリフを反映しました`);
+  }
+}
+
+document.getElementById('script-import-btn').addEventListener('click', () => {
+  const input = document.getElementById('script-import-input');
+  const raw = input.value.trim();
+  if (!raw) { toast('台本のJSONを貼り付けてください'); return; }
+  let parsed;
+  try {
+    parsed = JSON.parse(raw);
+  } catch (e) {
+    toast('JSONの形式が正しくありません。メールの台本データをそのままコピペしてください');
+    return;
+  }
+  const cuts = Array.isArray(parsed) ? parsed
+             : Array.isArray(parsed.cuts) ? parsed.cuts
+             : Array.isArray(parsed.slides) ? parsed.slides
+             : null;
+  if (!cuts) { toast('台本の形式が正しくありません'); return; }
+  applyReelScript(cuts);
+  input.value = '';
 });
 
 document.getElementById('voice-select-btn').addEventListener('click', () => document.getElementById('voice-file').click());
