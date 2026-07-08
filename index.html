@@ -4,13 +4,47 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Bridge管理">
+<meta name="theme-color" content="#0d1117">
 <meta name="robots" content="noindex,nofollow">
 <title>Bridge 生徒管理</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700&family=DM+Serif+Display&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
+
+<!-- Face ID / Touch ID ロック（登録端末のみ解除可能） -->
+<div id="lock-screen" class="lock-screen hide">
+  <div class="lock-inner">
+    <div class="logo" style="font-size:34px;">BRIDGE</div>
+    <div class="sub" style="margin-bottom:28px;">Student Management System</div>
+    <div id="lock-main">
+      <button class="btn btn-primary" id="lock-unlock-btn" onclick="lockUnlock()">🔓 Face ID / Touch ID で開く</button>
+      <div id="lock-msg" class="lock-msg"></div>
+      <button class="lock-alt" onclick="lockShowSetup()">合言葉でこの端末を登録する</button>
+    </div>
+    <div id="lock-setup" class="hide">
+      <div class="field" style="text-align:left;">
+        <label>合言葉（初回のみ・端末を登録します）</label>
+        <input type="password" id="lock-pass" placeholder="合言葉を入力" autocomplete="off">
+      </div>
+      <button class="btn btn-primary" onclick="lockRegister()">この端末を登録して開く</button>
+      <div id="lock-setup-msg" class="lock-msg"></div>
+      <button class="lock-alt" onclick="lockShowMain()">← 戻る</button>
+    </div>
+  </div>
+</div>
+
+<!-- 通信状態バナー（サーバーに届かないときだけ表示） -->
+<div id="conn-banner" class="conn-banner hide">
+  <span id="conn-banner-msg">サーバーに接続できません</span>
+  <button class="btn btn-sm conn-retry" onclick="retryConnection(this)">再試行</button>
+</div>
+
 <header>
   <div class="logo">BRIDGE</div>
   <div class="sub">Student Management System</div>
@@ -34,7 +68,7 @@
 <div id="pane-reg" class="pane">
   <div class="stitle">基本情報</div>
   <div class="field"><label>氏名 *</label><input type="text" id="r-name" placeholder="田中 花子"></div>
-  <div class="field"><label>よみ（五十音順の並び順に使用）</label><input type="text" id="r-yomi" placeholder="たなか はなこ"></div>
+  <div class="field"><label>よみ *（五十音順の並び順に使用）</label><input type="text" id="r-yomi" placeholder="たなか はなこ"></div>
   <div class="row2">
     <div class="field"><label>学年</label>
       <select id="r-grade">
@@ -215,6 +249,7 @@
   <div class="modal">
     <div class="modal-title"><span id="convert-modal-title">入会処理</span><button class="mclose" onclick="closeModal('convert-modal')">&#x2715;</button></div>
     <p id="convert-modal-msg" class="modal-note"></p>
+    <div class="field"><label>よみ *（五十音順の並び順に使用）</label><input type="text" id="convert-yomi" placeholder="たなか はなこ"></div>
     <div class="field"><label>入会日</label><input type="date" id="convert-join-date"></div>
     <div style="display:flex;gap:8px;margin-top:14px;">
       <button class="btn btn-ghost" style="flex:1;" onclick="closeModal('convert-modal')">キャンセル</button>

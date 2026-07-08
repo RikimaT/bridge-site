@@ -51,9 +51,10 @@ jobs:
           # プロンプトビデオメーカー /douga/
           mkdir -p _site/douga
           cp ai-video-maker/index.html _site/douga/index.html
-          # 生徒管理アプリ /kanri/（noindex付き・bridge-app と同一挙動）
+          # 生徒管理アプリ /kanri/（noindex付き・bridge-app と同一挙動。PWA一式も配信）
           mkdir -p _site/kanri/data
-          cp index.html app.js style.css _site/kanri/
+          cp index.html app.js style.css manifest.webmanifest sw.js _site/kanri/
+          cp -r icons _site/kanri/icons
           cp data/sales-history.json _site/kanri/data/
           # 金曜PR動画メーカー（PWA）
           mkdir -p _site/pr-video-maker

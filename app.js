@@ -27,14 +27,157 @@ function hasOverride(e){return e.overridePrice!==null&&e.overridePrice!==undefin
 // コース登録1件分の実効月額
 function effPrice(e){return hasOverride(e)?parseFloat(e.overridePrice)||0:parseFloat(e.standardPrice)||0;}
 
+/* ========== 五十音順ヘルパー ========== */
+// よみ（無ければ氏名）を正規化して並び替えキーにする。
+// カタカナ→ひらがな・全角半角ゆらぎ・スペースを吸収し、どんな入力でも正しい位置に並ぶようにする
+function yomiKey(s){
+  var raw=String((s&&(s.yomi||s.name))||'');
+  try{raw=raw.normalize('NFKC');}catch(e){}
+  raw=raw.replace(/[ァ-ヶ]/g,function(ch){return String.fromCharCode(ch.charCodeAt(0)-0x60);});
+  return raw.replace(/[\s　]/g,'').toLowerCase();
+}
+function byYomi(a,b){return yomiKey(a).localeCompare(yomiKey(b),'ja');}
+
+/* ========== 画面ロック（Face ID / Touch ID・登録端末のみ） ========== */
+// 合言葉のSHA-256。合言葉を知る人（田中夫妻）だけが端末を登録できる。
+// 変更したいときは新しい合言葉のSHA-256に差し替える。
+var LOCK_HASH='4b355cd6cc19844a3c8fd44cf16c6c168a2eb81eba0fb74bec0f5f21687c2acc';
+var LOCK_SESSION_MS=8*60*60*1000; // 一度解除したら8時間は再認証なし
+function _b64(buf){return btoa(String.fromCharCode.apply(null,new Uint8Array(buf)));}
+function _unb64(s){var bin=atob(s),a=new Uint8Array(bin.length);for(var i=0;i<bin.length;i++)a[i]=bin.charCodeAt(i);return a.buffer;}
+function _rand(n){var a=new Uint8Array(n);crypto.getRandomValues(a);return a;}
+async function _sha256hex(str){
+  var buf=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(str));
+  return Array.from(new Uint8Array(buf)).map(function(b){return b.toString(16).padStart(2,'0');}).join('');
+}
+function lockIsOpen(){
+  try{
+    if(sessionStorage.getItem('bridge_unlocked')==='1')return true;
+    var until=parseInt(localStorage.getItem('bridge_lock_until')||'0',10);
+    return until>Date.now();
+  }catch(e){return true;}
+}
+function lockInit(){
+  // file:// での開発時・非対応ブラウザではロックを掛けない（本番はHTTPSなので必ず掛かる）
+  if(location.protocol==='file:'||!window.crypto||!crypto.subtle)return;
+  if(lockIsOpen())return;
+  var el=document.getElementById('lock-screen');
+  el.classList.remove('hide');
+  var cred=null;
+  try{cred=localStorage.getItem('bridge_lock_cred');}catch(e){}
+  if(!cred){lockShowSetup();}
+}
+function lockShowSetup(){
+  document.getElementById('lock-main').classList.add('hide');
+  document.getElementById('lock-setup').classList.remove('hide');
+}
+function lockShowMain(){
+  document.getElementById('lock-setup').classList.add('hide');
+  document.getElementById('lock-main').classList.remove('hide');
+}
+function _lockOpen(){
+  try{
+    sessionStorage.setItem('bridge_unlocked','1');
+    localStorage.setItem('bridge_lock_until',String(Date.now()+LOCK_SESSION_MS));
+  }catch(e){}
+  document.getElementById('lock-screen').classList.add('hide');
+}
+async function lockRegister(){
+  var msg=document.getElementById('lock-setup-msg');
+  var pass=document.getElementById('lock-pass').value;
+  if(!pass){msg.textContent='合言葉を入力してください';return;}
+  var hex=await _sha256hex(pass.trim());
+  if(hex!==LOCK_HASH){msg.textContent='合言葉が違います';return;}
+  document.getElementById('lock-pass').value='';
+  // WebAuthn（Face ID / Touch ID）で端末を登録。非対応端末は合言葉のみで通す
+  if(window.PublicKeyCredential){
+    msg.style.color='var(--muted)';msg.textContent='Face ID / Touch ID を確認しています…';
+    try{
+      var cred=await navigator.credentials.create({publicKey:{
+        rp:{name:'Bridge 生徒管理'},
+        user:{id:_rand(16),name:'bridge-owner',displayName:'Bridge管理者'},
+        challenge:_rand(32),
+        pubKeyCredParams:[{type:'public-key',alg:-7},{type:'public-key',alg:-257}],
+        authenticatorSelection:{authenticatorAttachment:'platform',userVerification:'required'},
+        timeout:60000
+      }});
+      try{localStorage.setItem('bridge_lock_cred',_b64(cred.rawId));}catch(e){}
+      showToast('この端末を登録しました。次回からFace ID / Touch IDで開けます','ok');
+    }catch(e){
+      // 生体認証の登録がキャンセル・失敗しても合言葉が正しければ通す（次回また登録できる）
+    }
+    msg.textContent='';msg.style.color='';
+  }
+  _lockOpen();
+}
+async function lockUnlock(){
+  var msg=document.getElementById('lock-msg');
+  var credB64=null;
+  try{credB64=localStorage.getItem('bridge_lock_cred');}catch(e){}
+  if(!credB64){msg.textContent='この端末は未登録です。合言葉で登録してください';lockShowSetup();return;}
+  msg.style.color='var(--muted)';msg.textContent='認証しています…';
+  try{
+    await navigator.credentials.get({publicKey:{
+      challenge:_rand(32),
+      allowCredentials:[{type:'public-key',id:_unb64(credB64)}],
+      userVerification:'required',
+      timeout:60000
+    }});
+    msg.textContent='';msg.style.color='';
+    _lockOpen();
+  }catch(e){
+    msg.style.color='';
+    msg.textContent='認証できませんでした。もう一度お試しいただくか、合言葉をご利用ください';
+  }
+}
+
+/* ========== 接続バナー・起動キャッシュ ========== */
+function showConnBanner(msg){
+  var el=document.getElementById('conn-banner');
+  if(!el)return;
+  document.getElementById('conn-banner-msg').textContent=msg||'サーバーに接続できません';
+  el.classList.remove('hide');
+}
+function hideConnBanner(){var el=document.getElementById('conn-banner');if(el)el.classList.add('hide');}
+async function retryConnection(btn){
+  if(btn){btn.disabled=true;btn.textContent='接続中...';}
+  try{await loadStudents();}finally{if(btn){btn.disabled=false;btn.textContent='再試行';}}
+}
+// 前回取得したデータを即座に表示して起動を体感ゼロ秒にする（裏で最新に更新）
+function saveBootCache(){
+  try{
+    localStorage.setItem('bridge_cache_v1',JSON.stringify({
+      ts:Date.now(),students:ALL_STUDENTS,enroll:ALL_ENROLL,trials:ALL_TRIALS,courses:ALL_COURSES
+    }));
+  }catch(e){}
+}
+function loadBootCache(){
+  try{
+    var s=localStorage.getItem('bridge_cache_v1');
+    if(!s)return false;
+    var d=JSON.parse(s);
+    if(!d||!Array.isArray(d.students)||!d.students.length)return false;
+    ALL_STUDENTS=d.students;ALL_ENROLL=d.enroll||[];ALL_TRIALS=d.trials||[];
+    if(Array.isArray(d.courses)&&d.courses.length)ALL_COURSES=d.courses;
+    return true;
+  }catch(e){return false;}
+}
+
 document.addEventListener('DOMContentLoaded',function(){
+  lockInit();
   document.getElementById('r-join').value=todayStr();
   document.getElementById('tr-date').value=todayStr();
+  if(loadBootCache()){renderMgr();renderDashboard();renderPriceSim();}
   loadTargets();
   loadSchools();
   loadCourses();
   loadStudents();
 });
+
+// PWA: Service Worker登録（オフライン時も画面は開けるように）
+if('serviceWorker' in navigator&&location.protocol!=='file:'){
+  window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js').catch(function(){});});
+}
 
 async function gas(action,extra){
   var body=JSON.stringify(Object.assign({action:action},extra||{}));
@@ -55,9 +198,9 @@ async function refreshAll(btn){
   if(btn){btn.disabled=true;btn.classList.add('spin');}
   _payCache={};
   try{
-    await loadStudents();
+    var ok=await loadStudents();
     if(document.getElementById('pane-mgr').classList.contains('active'))loadPaymentForCurrentMonth();
-    showToast('データを更新しました','ok');
+    showToast(ok?'データを更新しました':'更新に失敗しました',ok?'ok':'err');
   }catch(e){
     showToast('更新に失敗しました: '+e.message,'err');
   }finally{
@@ -154,6 +297,8 @@ function renderAddTags(){document.getElementById('add-stags').innerHTML=addSel.m
 async function submitReg(){
   var name=document.getElementById('r-name').value.trim();
   if(!name){showToast('氏名を入力してください','err');return;}
+  // よみは五十音順の並びの生命線なので必須にする（新規追加者が並びから外れる事故を防ぐ）
+  if(!document.getElementById('r-yomi').value.trim()){showToast('「よみ」を入力してください（五十音順の並びに使います）','err');document.getElementById('r-yomi').focus();return;}
   var btn=document.getElementById('reg-btn');btn.disabled=true;btn.textContent='登録中...';
   try{
     var schoolEl=document.getElementById('r-school');
@@ -180,6 +325,11 @@ async function loadStudents(){
   try{
     var settled=await Promise.allSettled([gas('getStudents'),gas('getEnrollments'),gas('getTrials'),gas('getCourses')]);
     var res=settled.map(function(r){return r.status==='fulfilled'?r.value:{status:'error'};});
+    // 生徒一覧が取れなかったら「0名」で静かに固まらず、はっきり失敗として扱う
+    if(res[0].status!=='ok'){
+      var reason=settled[0].status==='rejected'?(settled[0].reason&&settled[0].reason.message||'通信エラー'):(res[0].message||'サーバーエラー');
+      throw new Error(reason);
+    }
     if(res[0].status==='ok')ALL_STUDENTS=res[0].students;
     if(res[1].status==='ok')ALL_ENROLL=res[1].enrollments;
     if(res[2]&&res[2].status==='ok')ALL_TRIALS=res[2].trials||[];
@@ -197,14 +347,22 @@ async function loadStudents(){
         }
       });
     }
+    hideConnBanner();
+    saveBootCache();
     renderMgr();
     renderDashboard();
     renderPriceSim();
   }catch(e){
-    var errHtml='<div class="empty">読み込みエラー: '+esc(e.message)+'<br><button class="btn btn-ghost btn-sm" style="margin-top:12px;" onclick="loadStudents()">再試行</button></div>';
-    document.getElementById('mgr-list').innerHTML=errHtml;
-    document.getElementById('dash-content').innerHTML=errHtml;
+    showConnBanner('サーバーに接続できません: '+e.message);
+    // キャッシュ表示中ならデータはそのまま残す（バナーだけで知らせる）
+    if(!ALL_STUDENTS.length){
+      var errHtml='<div class="empty">読み込みエラー: '+esc(e.message)+'<br><button class="btn btn-ghost btn-sm" style="margin-top:12px;" onclick="loadStudents()">再試行</button></div>';
+      document.getElementById('mgr-list').innerHTML=errHtml;
+      document.getElementById('dash-content').innerHTML=errHtml;
+    }
+    return false;
   }
+  return true;
 }
 
 function calcMonths(dateStr){
@@ -217,7 +375,7 @@ function renderMgr(){
   var q=(document.getElementById('mgr-search').value||'').toLowerCase();
   var list=ALL_STUDENTS.filter(function(s){return s.isActive;});
   if(q)list=list.filter(function(s){return (s.name+' '+(s.yomi||'')+' '+(s.grade||'')+' '+(s.school||'')).toLowerCase().indexOf(q)>=0;});
-  list.sort(function(a,b){return (a.yomi||a.name).localeCompare((b.yomi||b.name),'ja',{sensitivity:'base'});});
+  list.sort(byYomi);
   var el=document.getElementById('mgr-list');
   if(!list.length){el.innerHTML='<div class="empty">在籍中の生徒がいません</div>';return;}
   var h='';
@@ -448,7 +606,7 @@ function renderDashUnpaid(yr,mo){
     var box=document.getElementById('dash-unpaid');
     if(!box)return;
     var unpaid=studentsForMonth(yr,mo).filter(function(s){return !pay[s.studentID];});
-    unpaid.sort(function(a,b){return (a.yomi||a.name).localeCompare((b.yomi||b.name),'ja',{sensitivity:'base'});});
+    unpaid.sort(byYomi);
     if(!unpaid.length){box.innerHTML='<div style="font-size:13px;color:var(--ok);padding:6px 0;">全員入金済みです</div>';return;}
     // 金額もその月時点の在籍コースで計算する（現在の在籍で計算すると過去月の金額がずれる）
     var monthEnrolls=enrollsForMonth(yr,mo);
@@ -686,19 +844,23 @@ function convertTrialBtn(btn){
   _convertCtx={tid:btn.dataset.tid,name:btn.dataset.name};
   document.getElementById('convert-modal-title').textContent=btn.dataset.name+' の入会処理';
   document.getElementById('convert-modal-msg').textContent=btn.dataset.name+' を正式入会に変換します。学年・学校・連絡先・メモは体験生の情報を引き継ぎます。';
+  document.getElementById('convert-yomi').value='';
   document.getElementById('convert-join-date').value=todayStr();
   document.getElementById('convert-confirm-btn').onclick=confirmConvert;
   document.getElementById('convert-modal').classList.remove('hide');
 }
 
 async function confirmConvert(){
+  // 入会時にも「よみ」を必ず入れる（五十音順の並びから漏れる生徒を作らない）
+  var yomi=document.getElementById('convert-yomi').value.trim();
+  if(!yomi){showToast('「よみ」を入力してください（五十音順の並びに使います）','err');document.getElementById('convert-yomi').focus();return;}
   var btn=document.getElementById('convert-confirm-btn');btn.disabled=true;btn.textContent='処理中...';
   try{
     var trial=null;ALL_TRIALS.forEach(function(t){if(t.trialID===_convertCtx.tid)trial=t;});
     var joinDate=document.getElementById('convert-join-date').value||todayStr();
     // 体験時のメモに体験日も残しておく（いつ体験して入会したかが後から追える）
     var memo=(trial&&trial.memo?trial.memo:'')+(trial&&trial.trialDate?(trial.memo?' / ':'')+'体験日:'+trial.trialDate:'');
-    var p={name:_convertCtx.name,grade:trial?trial.grade:'',school:trial?trial.school:'',phone:trial?trial.contact:'',lineId:'',joinDate:joinDate,memo:memo};
+    var p={name:_convertCtx.name,yomi:yomi,grade:trial?trial.grade:'',school:trial?trial.school:'',phone:trial?trial.contact:'',lineId:'',joinDate:joinDate,memo:memo};
     var r=await gas('addStudent',p);
     if(r.status!=='ok')throw new Error(r.message);
     await gas('updateTrialStatus',{trialID:_convertCtx.tid,status:'入会'});
@@ -1020,7 +1182,7 @@ function renderSalesDetail(){
   if(active.length){
     var byS={};
     active.forEach(function(e){if(!byS[e.studentID]){var st=ALL_STUDENTS.find(function(s){return s.studentID===e.studentID;})||{};byS[e.studentID]={name:e.studentName,yomi:st.yomi||'',courses:[]};}byS[e.studentID].courses.push(e);});
-    var sids=Object.keys(byS).sort(function(a,b){return (byS[a].yomi||byS[a].name).localeCompare((byS[b].yomi||byS[b].name),'ja');});
+    var sids=Object.keys(byS).sort(function(a,b){return byYomi(byS[a],byS[b]);});
     h+='<table class="stbl"><thead><tr><th>氏名</th><th>コース</th><th style="text-align:right">月謝</th></tr></thead><tbody>';
     sids.forEach(function(sid){
       var s=byS[sid];
