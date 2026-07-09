@@ -88,9 +88,14 @@ async function lockRegister(){
   if(!pass){msg.textContent='合言葉を入力してください';return;}
   var hex=await _sha256hex(pass.trim());
   if(hex!==LOCK_HASH){msg.textContent='合言葉が違います';return;}
+  // Phase 3: 合言葉からAPIキーを導出してこの端末に保存（データ通信の鍵。公開コードには載らない）
+  try{localStorage.setItem('bridge_api_key',await _sha256hex('bridge-kanri-api|'+pass.trim()));}catch(e){}
   document.getElementById('lock-pass').value='';
-  // WebAuthn（Face ID / Touch ID）で端末を登録。非対応端末は合言葉のみで通す
-  if(window.PublicKeyCredential){
+  // WebAuthn（Face ID / Touch ID）で端末を登録。非対応端末は合言葉のみで通す。
+  // 既に登録済みの端末（鍵の再入力で来た場合）は二重登録しない
+  var alreadyCred=null;
+  try{alreadyCred=localStorage.getItem('bridge_lock_cred');}catch(e){}
+  if(window.PublicKeyCredential&&!alreadyCred){
     msg.style.color='var(--muted)';msg.textContent='Face ID / Touch ID を確認しています…';
     try{
       var cred=await navigator.credentials.create({publicKey:{
@@ -109,6 +114,22 @@ async function lockRegister(){
     msg.textContent='';msg.style.color='';
   }
   _lockOpen();
+  // 再入力フロー（鍵の更新）から来た場合はデータを取り直す
+  if(_rekeyMode){_rekeyMode=false;hideConnBanner();loadStudents();}
+}
+
+// バックエンドに鍵を拒否されたとき: ロック画面を再表示して合言葉の再入力を求める
+var _rekeyMode=false,_rekeyShown=false;
+function lockRequireRekey(){
+  if(_rekeyShown)return; // 並行する複数リクエストで何度も出さない
+  _rekeyShown=true;_rekeyMode=true;
+  var el=document.getElementById('lock-screen');
+  el.classList.remove('hide');
+  lockShowSetup();
+  var msg=document.getElementById('lock-setup-msg');
+  msg.style.color='var(--muted)';
+  msg.textContent='セキュリティ強化のため、合言葉をもう一度入力してください（この端末で1回だけ）';
+  setTimeout(function(){_rekeyShown=false;},4000);
 }
 async function lockUnlock(){
   var msg=document.getElementById('lock-msg');
@@ -180,14 +201,28 @@ if('serviceWorker' in navigator&&location.protocol!=='file:'){
 }
 
 async function gas(action,extra){
-  var body=JSON.stringify(Object.assign({action:action},extra||{}));
+  // Phase 3: 端末登録時に合言葉から導出したAPIキーを毎回添付する（バックエンドが照合）
+  var apiKey=null;
+  try{apiKey=localStorage.getItem('bridge_api_key');}catch(e){}
+  var body=JSON.stringify(Object.assign({action:action},apiKey?{key:apiKey}:{},extra||{}));
   var lastErr=null;
   for(var attempt=0;attempt<3;attempt++){
     try{
       var r=await fetch(GAS_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:body});
       var t=await r.text();
-      try{return JSON.parse(t);}catch(e){lastErr=new Error('GAS応答エラー: '+t.slice(0,80));}
-    }catch(e){lastErr=new Error('通信エラー: '+e.message);}
+      try{
+        var parsed=JSON.parse(t);
+        // 鍵が無い・古い端末 → 合言葉の再入力を促す（リトライしても無駄なので即終了）
+        if(parsed&&parsed.status==='unauthorized'){lockRequireRekey();throw new Error('合言葉の確認が必要です');}
+        return parsed;
+      }catch(e){
+        if(e&&e.message==='合言葉の確認が必要です')throw e;
+        lastErr=new Error('GAS応答エラー: '+t.slice(0,80));
+      }
+    }catch(e){
+      if(e&&e.message==='合言葉の確認が必要です')throw e;
+      lastErr=new Error('通信エラー: '+e.message);
+    }
     if(attempt<2)await new Promise(function(ok){setTimeout(ok,1000*(attempt+1));});
   }
   throw lastErr;
