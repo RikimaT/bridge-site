@@ -406,13 +406,32 @@ function calcMonths(dateStr){
   return Math.max(0,(now.getFullYear()-d.getFullYear())*12+(now.getMonth()-d.getMonth()));
 }
 
+// 生徒タブ: 学年フィルター（'all'=すべて）
+var mgrGradeFilter='all';
+function mgrGradeOf(s){return GRADE_ORDER.indexOf(s.grade)>=0?s.grade:'未設定';}
+function renderMgrGradeTabs(activeList){
+  var box=document.getElementById('mgr-grade-tabs');
+  if(!box)return;
+  var counts={};
+  activeList.forEach(function(s){var g=mgrGradeOf(s);counts[g]=(counts[g]||0)+1;});
+  var grades=GRADE_ORDER.concat(['未設定']).filter(function(g){return counts[g];});
+  var h='<button class="ctab'+(mgrGradeFilter==='all'?' active':'')+'" onclick="setMgrGradeFilter(\'all\')">すべて <span class="ctab-count">'+activeList.length+'</span></button>';
+  grades.forEach(function(g){
+    h+='<button class="ctab'+(mgrGradeFilter===g?' active':'')+'" onclick="setMgrGradeFilter(\''+esc(g)+'\')">'+esc(g)+' <span class="ctab-count">'+counts[g]+'</span></button>';
+  });
+  box.innerHTML=h;
+}
+function setMgrGradeFilter(g){mgrGradeFilter=g;renderMgr();}
+
 function renderMgr(){
   var q=(document.getElementById('mgr-search').value||'').toLowerCase();
-  var list=ALL_STUDENTS.filter(function(s){return s.isActive;});
+  var activeList=ALL_STUDENTS.filter(function(s){return s.isActive;});
+  renderMgrGradeTabs(activeList);
+  var list=mgrGradeFilter==='all'?activeList:activeList.filter(function(s){return mgrGradeOf(s)===mgrGradeFilter;});
   if(q)list=list.filter(function(s){return (s.name+' '+(s.yomi||'')+' '+(s.grade||'')+' '+(s.school||'')).toLowerCase().indexOf(q)>=0;});
   list.sort(byYomi);
   var el=document.getElementById('mgr-list');
-  if(!list.length){el.innerHTML='<div class="empty">在籍中の生徒がいません</div>';return;}
+  if(!list.length){el.innerHTML='<div class="empty">'+(mgrGradeFilter==='all'?'在籍中の生徒がいません':esc(mgrGradeFilter)+'の生徒はいません')+'</div>';return;}
   var h='';
   list.forEach(function(s){
     var enrolls=ALL_ENROLL.filter(function(e){return e.studentID===s.studentID&&e.isActive;});

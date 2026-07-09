@@ -35,6 +35,8 @@ select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/
 .ctabs::-webkit-scrollbar{display:none;}
 .ctab{background:var(--surface);border:1px solid var(--border);border-radius:20px;color:var(--muted);padding:8px 14px;font-size:13px;cursor:pointer;font-family:inherit;white-space:nowrap;flex-shrink:0;min-height:38px;transition:all .2s;}
 .ctab.active{background:var(--accent);border-color:var(--accent);color:#000;font-weight:700;}
+.ctab-count{display:inline-block;background:rgba(139,148,158,.18);border-radius:10px;padding:1px 7px;font-size:11px;font-weight:700;margin-left:2px;}
+.ctab.active .ctab-count{background:rgba(0,0,0,.18);}
 .cgrid{display:grid;grid-template-columns:1fr;gap:8px;}
 @media(min-width:420px){.cgrid{grid-template-columns:1fr 1fr;}}
 .citem{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:11px 13px;cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:8px;min-height:56px;transition:all .15s;}
