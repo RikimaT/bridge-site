@@ -552,7 +552,8 @@
           <input type="checkbox" id="opening-check" checked>
           <span>オープニングを付ける（3秒）</span>
         </label>
-        <input type="text" id="opening-input" placeholder="今週のタイトル（例）そろばん教室のとある金曜日" style="margin-top:8px;">
+        <input type="text" id="opening-input" placeholder="今週のタイトル（例）そろばん教室の【集中力】が変わった日" style="margin-top:8px;">
+        <div class="note" style="margin-top:6px;">【 】で囲んだ部分だけ色が変わって強調されます（例: そろばんの【集中力】が変わった日）</div>
       </div>
       <div class="field">
         <label class="check-row">
@@ -561,6 +562,7 @@
         </label>
         <textarea id="ending-input" rows="2" style="margin-top:8px;">無料体験 受付中！
 お気軽にお問い合わせください</textarea>
+        <div class="note" style="margin-top:6px;">1行目がボタン風の見出し、2行目以降はその下に小さく表示されます</div>
       </div>
     </div>
 
@@ -1082,46 +1084,208 @@ function drawSerifu(c, speaker, text, W, H, photoIndex) {
   lines.forEach((ln, i) => c.fillText(ln, bx + pad, ty + lh * (i + 0.5)));
 }
 
-function drawCard(c, type, W, H, p) {
+// 【 】で囲んだ部分だけアクセントカラーにする（Hormozi/Ali Abdaal型の強調テロップ）
+function parseHighlightSegments(text) {
+  const segs = [];
+  const rest = String(text);
+  const re = /【([^】]*)】/g;
+  let last = 0, m;
+  while ((m = re.exec(rest))) {
+    if (m.index > last) segs.push({ text: rest.slice(last, m.index), hl: false });
+    segs.push({ text: m[1], hl: true });
+    last = re.lastIndex;
+  }
+  if (last < rest.length) segs.push({ text: rest.slice(last), hl: false });
+  return segs.length ? segs : [{ text: rest, hl: false }];
+}
+
+// フォント指定済みの状態で、強調区間を保ったまま折り返す（1行 = [{ch,hl}, ...]）
+function wrapHighlighted(c, text, maxW) {
+  const lines = [];
+  for (const para of String(text).split('\n')) {
+    const segs = parseHighlightSegments(para);
+    let cur = [], curW = 0;
+    for (const seg of segs) {
+      for (const ch of seg.text) {
+        const w = c.measureText(ch).width;
+        if (cur.length && curW + w > maxW) { lines.push(cur); cur = []; curW = 0; }
+        cur.push({ ch, hl: seg.hl });
+        curW += w;
+      }
+    }
+    lines.push(cur);
+  }
+  return lines;
+}
+
+// 1行を中央揃えで描画（強調区間だけ色を変える。フォントは呼び出し側で設定済み）
+function drawHighlightedLine(c, line, cx, cy, colorNormal, colorHl) {
+  const total = line.reduce((s, o) => s + c.measureText(o.ch).width, 0);
+  let x = cx - total / 2;
+  const prevAlign = c.textAlign;
+  c.textAlign = 'left';
+  for (const o of line) {
+    c.fillStyle = o.hl ? colorHl : colorNormal;
+    c.fillText(o.ch, x, cy);
+    x += c.measureText(o.ch).width;
+  }
+  c.textAlign = prevAlign;
+}
+
+function easeOutBack(p) {
+  const c1 = 1.70158, c3 = c1 + 1;
+  const t = Math.min(1, Math.max(0, p));
+  return 1 + c3 * Math.pow(t - 1, 3) + c1 * Math.pow(t - 1, 2);
+}
+
+function clamp01(v) { return Math.min(1, Math.max(0, v)); }
+
+// カード共通の背景（濃紺のグラデ＋上からのアンバーの光暈＋周辺ビネットで中央に視線を集める）
+function drawCardBackground(c, W, H, glowY) {
   const g = c.createLinearGradient(0, 0, 0, H);
-  g.addColorStop(0, '#2C5F8A');
-  g.addColorStop(1, '#16324c');
+  g.addColorStop(0, '#16283a');
+  g.addColorStop(1, '#0a141f');
   c.fillStyle = g;
   c.fillRect(0, 0, W, H);
+  const glow = c.createRadialGradient(W / 2, glowY, 0, W / 2, glowY, W * 0.95);
+  glow.addColorStop(0, 'rgba(240,165,0,0.30)');
+  glow.addColorStop(0.5, 'rgba(240,165,0,0.10)');
+  glow.addColorStop(1, 'rgba(240,165,0,0)');
+  c.fillStyle = glow;
+  c.fillRect(0, 0, W, H);
+  const vig = c.createRadialGradient(W / 2, H / 2, H * 0.32, W / 2, H / 2, H * 0.78);
+  vig.addColorStop(0, 'rgba(0,0,0,0)');
+  vig.addColorStop(1, 'rgba(0,0,0,0.38)');
+  c.fillStyle = vig;
+  c.fillRect(0, 0, W, H);
+}
+
+// 小さなタグ（丸ピル）。教室名など、脇役の情報をここに収める
+function drawPillTag(c, text, cx, cy, fs, alpha, colorBg, colorText) {
+  if (alpha <= 0) return;
+  c.save();
+  c.globalAlpha = alpha;
+  c.font = `700 ${fs}px 'Noto Sans JP',sans-serif`;
+  const padX = fs * 0.9, padY = fs * 0.55;
+  const w = c.measureText(text).width + padX * 2;
+  const h = fs + padY * 2;
+  c.fillStyle = colorBg;
+  roundRectPath(c, cx - w / 2, cy - h / 2, w, h, h / 2);
+  c.fill();
+  c.textAlign = 'center';
+  c.textBaseline = 'middle';
+  c.fillStyle = colorText;
+  c.fillText(text, cx, cy + fs * 0.04);
+  c.restore();
+}
+
+function drawCard(c, type, W, H, p) {
   const base = Math.min(W, H);
-  const scale = 1 + 0.02 * Math.min(1, Math.max(0, p));
+  const pp = clamp01(p);
+  const glowY = type === 'open' ? H * 0.22 : H * 0.78;
+  drawCardBackground(c, W, H, glowY);
+
+  // カード全体はごくわずかに呼吸するようにゆっくり拡大（既存の演出を踏襲）
+  const breathe = 1 + 0.015 * pp;
   c.save();
   c.translate(W / 2, H / 2);
-  c.scale(scale, scale);
+  c.scale(breathe, breathe);
   c.translate(-W / 2, -H / 2);
   c.textAlign = 'center';
   c.textBaseline = 'middle';
+
   if (type === 'open') {
-    const nameFs = Math.round(base * 0.05);
-    c.font = `700 ${nameFs}px 'Noto Sans JP',sans-serif`;
-    c.fillStyle = '#F0A500';
-    c.fillText(state.schoolName, W / 2, H * 0.38);
+    // ① 教室名タグ（0.00-0.22でフェード＋わずかに上へ）
+    const tagP = clamp01(pp / 0.22);
+    const tagFs = Math.round(base * 0.034);
+    const tagY = H * 0.30 + (1 - tagP) * base * 0.02;
+    drawPillTag(c, state.schoolName, W / 2, tagY, tagFs, tagP, 'rgba(240,165,0,0.16)', '#F0A500');
+
+    // ② メインタイトル（行ごとに 0.12 遅れてポップイン。【 】区間はアンバーで強調）
     const title = state.openingTitle || '今週のようす';
-    const fs = Math.round(base * 0.075);
+    const fs = Math.round(base * 0.078);
     c.font = `900 ${fs}px 'Noto Sans JP',sans-serif`;
-    c.fillStyle = '#fff';
-    const lines = wrapText(c, title, W * 0.86);
-    const lh = fs * 1.4;
-    lines.forEach((ln, i) => c.fillText(ln, W / 2, H * 0.48 + lh * i));
-    c.fillStyle = '#F0A500';
-    c.fillRect(W / 2 - base * 0.1, H * 0.48 + lh * lines.length + fs * 0.3, base * 0.2, base * 0.008);
+    const lines = wrapHighlighted(c, title, W * 0.84);
+    const lh = fs * 1.36;
+    const totalH = lh * lines.length;
+    const y0 = H * 0.50 - totalH / 2 + lh / 2;
+    lines.forEach((ln, i) => {
+      const start = 0.14 + i * 0.10;
+      const lp = clamp01((pp - start) / 0.30);
+      if (lp <= 0) return;
+      const s = 0.75 + 0.25 * easeOutBack(lp);
+      const alpha = clamp01(lp * 1.6);
+      const cy = y0 + lh * i;
+      c.save();
+      c.globalAlpha = alpha;
+      c.translate(W / 2, cy);
+      c.scale(s, s);
+      c.shadowColor = 'rgba(0,0,0,0.45)';
+      c.shadowBlur = fs * 0.18;
+      drawHighlightedLine(c, ln, 0, 0, '#fff', '#F0A500');
+      c.restore();
+    });
+
+    // ③ 下線バー（タイトルが出そろってから 0.46-0.62 で左右に伸びる）
+    const barP = clamp01((pp - 0.46) / 0.16);
+    if (barP > 0) {
+      const barW = base * 0.22 * barP;
+      const blockBottom = H * 0.50 + totalH / 2;
+      c.fillStyle = '#F0A500';
+      c.fillRect(W / 2 - barW / 2, blockBottom + fs * 0.35, barW, base * 0.007);
+    }
   } else {
-    const fs = Math.round(base * 0.062);
-    c.font = `900 ${fs}px 'Noto Sans JP',sans-serif`;
-    c.fillStyle = '#fff';
-    const lines = wrapText(c, state.endingText, W * 0.86);
-    const lh = fs * 1.5;
-    const y0 = H * 0.45 - lh * (lines.length - 1) / 2;
-    lines.forEach((ln, i) => c.fillText(ln, W / 2, y0 + lh * i));
-    const nameFs = Math.round(base * 0.045);
-    c.font = `700 ${nameFs}px 'Noto Sans JP',sans-serif`;
+    const lines = String(state.endingText || '').split('\n').filter(s => s.length > 0);
+    const primary = lines[0] || '無料体験 受付中！';
+    const rest = lines.slice(1);
+
+    // ① CTAをボタン風のピルで大きく見せる（0.05-0.40でバウンドしながら登場）
+    const btnFs = Math.round(base * 0.056);
+    c.font = `900 ${btnFs}px 'Noto Sans JP',sans-serif`;
+    const btnLines = wrapText(c, primary, W * 0.72);
+    const btnLh = btnFs * 1.28;
+    const padX = base * 0.09, padY = btnFs * 0.6;
+    let btnTextW = 0;
+    btnLines.forEach(ln => { btnTextW = Math.max(btnTextW, c.measureText(ln).width); });
+    const btnW = btnTextW + padX * 2;
+    const btnH = btnLines.length * btnLh + padY * 2;
+    const btnCy = H * 0.42;
+    const btnP = clamp01(pp / 0.40);
+    const btnScale = 0.7 + 0.3 * easeOutBack(btnP);
+    const btnAlpha = clamp01(btnP * 1.6);
+    c.save();
+    c.globalAlpha = btnAlpha;
+    c.translate(W / 2, btnCy);
+    c.scale(btnScale, btnScale);
+    c.shadowColor = 'rgba(0,0,0,0.35)';
+    c.shadowBlur = base * 0.02;
     c.fillStyle = '#F0A500';
-    c.fillText(state.schoolName, W / 2, y0 + lh * lines.length + nameFs * 1.2);
+    roundRectPath(c, -btnW / 2, -btnH / 2, btnW, btnH, btnH / 2);
+    c.fill();
+    c.shadowBlur = 0;
+    c.fillStyle = '#1a1206';
+    btnLines.forEach((ln, i) => c.fillText(ln, 0, -btnH / 2 + padY + btnLh * (i + 0.5)));
+    c.restore();
+
+    // ② 補足文（0.30-0.55でフェードイン）
+    if (rest.length) {
+      const subFs = Math.round(base * 0.042);
+      c.font = `700 ${subFs}px 'Noto Sans JP',sans-serif`;
+      const subLines = wrapText(c, rest.join('\n'), W * 0.82);
+      const subLh = subFs * 1.5;
+      const subP = clamp01((pp - 0.30) / 0.25);
+      c.save();
+      c.globalAlpha = clamp01(subP);
+      c.fillStyle = '#fff';
+      const subY0 = btnCy + btnH / 2 + subFs * 1.3;
+      subLines.forEach((ln, i) => c.fillText(ln, W / 2, subY0 + subLh * (i + 0.5)));
+      c.restore();
+    }
+
+    // ③ 教室名タグ（一番下・0.45以降でフェード）
+    const tagP = clamp01((pp - 0.45) / 0.2);
+    const tagFs = Math.round(base * 0.032);
+    drawPillTag(c, state.schoolName, W / 2, H * 0.86, tagFs, tagP, 'rgba(255,255,255,0.12)', '#fff');
   }
   c.restore();
 }
