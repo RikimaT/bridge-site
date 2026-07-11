@@ -465,12 +465,17 @@
   #rec-stage{position:relative;flex:1;overflow:hidden;background:#000;}
   #rec-preview{
     position:absolute;
-    inset:0;
+    left:50%;
+    top:50%;
     width:100%;
     height:100%;
     object-fit:cover;
+    transform:translate(-50%,-50%);
   }
-  #rec-preview.mirror{transform:scaleX(-1);}
+  /* 表示サイズ（🔍ボタンで 大→中→小 を切替。録画サイズには影響しない） */
+  #rec-preview.size-m{width:72%;height:72%;border-radius:16px;}
+  #rec-preview.size-s{width:52%;height:52%;border-radius:16px;}
+  #rec-preview.mirror{transform:translate(-50%,-50%) scaleX(-1);}
   #rec-prompter{
     position:absolute;
     left:0;
@@ -866,6 +871,7 @@
     <div class="rec-topbar">
       <button type="button" class="btn icon" id="rec-close-btn" title="閉じる">✕</button>
       <div style="display:flex;gap:8px;">
+        <button type="button" class="btn icon" id="rec-size-btn" title="表示サイズ切替（大・中・小）">🔍</button>
         <button type="button" class="btn icon" id="rec-prompter-btn" title="プロンプター原稿">📜</button>
         <button type="button" class="btn icon" id="rec-flip-btn" title="カメラ切替">🔄</button>
       </div>
@@ -2763,6 +2769,26 @@ document.getElementById('rec-flip-btn').addEventListener('click', async () => {
   if (rec.recording) { toast('撮影中はカメラを切り替えられません'); return; }
   rec.facing = rec.facing === 'user' ? 'environment' : 'user';
   await startCamera();
+});
+// プレビュー表示サイズ（大→中→小の3段階。録画される映像のサイズは変わらない）
+const REC_SIZES = [
+  { cls: '', label: '大' },
+  { cls: 'size-m', label: '中' },
+  { cls: 'size-s', label: '小' }
+];
+let recSizeIdx = Math.max(0, REC_SIZES.findIndex(s => s.cls === (localStorage.getItem('prRecPreviewSize') || '')));
+function applyRecSize() {
+  recPreview.classList.remove('size-m', 'size-s');
+  const s = REC_SIZES[recSizeIdx];
+  if (s.cls) recPreview.classList.add(s.cls);
+}
+applyRecSize();
+document.getElementById('rec-size-btn').addEventListener('click', () => {
+  recSizeIdx = (recSizeIdx + 1) % REC_SIZES.length;
+  const s = REC_SIZES[recSizeIdx];
+  applyRecSize();
+  localStorage.setItem('prRecPreviewSize', s.cls);
+  toast('プレビュー表示: ' + s.label + '（録画サイズは変わりません）');
 });
 document.getElementById('rec-prompter-btn').addEventListener('click', () => {
   if (rec.recording) return;
