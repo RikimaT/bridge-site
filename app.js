@@ -232,6 +232,7 @@ async function gas(action,extra){
 async function refreshAll(btn){
   if(btn){btn.disabled=true;btn.classList.add('spin');}
   _payCache={};
+  _realCache={};
   try{
     var ok=await loadStudents();
     if(document.getElementById('pane-mgr').classList.contains('active'))loadPaymentForCurrentMonth();
@@ -562,14 +563,14 @@ function renderDashboard(){
   }
   h+='<div class="kpi-grid">';
   h+='<div class="kpi-card"><div class="kpi-label">延べ在籍数</div><div class="kpi-val">'+enrollCount+'<span style="font-size:14px;color:var(--muted);">名</span></div><div class="kpi-sub">実人数 <span class="ltv-val">'+realCount+'名</span>　平均 <span class="ltv-val">'+avgMonths+'ヶ月</span></div></div>';
-  h+='<div class="kpi-card"><div class="kpi-label">'+monthlyLabel+'</div><div class="kpi-val" style="font-size:20px;">¥'+monthlyTotal.toLocaleString()+'</div>';
-  if(salesData&&salesData.actual){h+='<div class="kpi-sub">入金: <span style="color:var(--ok)">¥'+salesData.actual.toLocaleString()+'</span></div>';}
-  else{h+='<div class="kpi-sub" style="color:var(--muted);">在籍ベース</div>';}
+  h+='<div class="kpi-card"><div class="kpi-label" id="kpi-money-label">'+monthlyLabel+'</div><div class="kpi-val" id="kpi-money-val" style="font-size:20px;">¥'+monthlyTotal.toLocaleString()+'</div>';
+  if(salesData&&salesData.actual){h+='<div class="kpi-sub" id="kpi-money-sub">入金: <span style="color:var(--ok)">¥'+salesData.actual.toLocaleString()+'</span></div>';}
+  else{h+='<div class="kpi-sub" id="kpi-money-sub" style="color:var(--muted);">在籍ベース</div>';}
   h+='</div>';
   h+='<div class="kpi-card"><div class="kpi-label">'+mo+'月 入会 / 退会</div><div class="kpi-val '+netClass+'">'+netStr+'</div><div class="kpi-sub">+'+joins+' / -'+leaves+'</div></div>';
   h+='</div>';
   if(isCurrentMonth){
-    h+='<div class="dash-chart-wrap"><div class="dash-chart-title">📈 今月の着地予測</div><div id="dash-forecast"><div style="font-size:13px;color:var(--muted);padding:6px 0;">読込中...</div></div></div>';
+    h+='<div class="dash-chart-wrap"><div class="dash-chart-title">💰 今月の入金状況</div><div id="dash-forecast"><div style="font-size:13px;color:var(--muted);padding:6px 0;">読込中...</div></div></div>';
   }
   h+=buildGradePanel();
   h+=buildLtvPanel();
@@ -577,6 +578,7 @@ function renderDashboard(){
   h+='<div class="dash-chart-wrap"><div class="dash-chart-title">入退会推移（直近6ヶ月）</div><canvas id="dash-trend-canvas" class="dash-chart-canvas"></canvas></div>';
   h+='<div class="dash-chart-wrap"><div class="dash-chart-title">コース別月額構成</div><div class="course-bar-wrap" id="course-dist"></div></div>';
   document.getElementById('dash-content').innerHTML=h;
+  if(!isFuture)patchDashMoneyCard(yr,mo);
   if(isCurrentMonth)renderDashTodo(yr,mo);
   if(!isFuture)renderDashUnpaid(yr,mo);
   try{buildDashTrendChart();}catch(e){console.error('trend chart:',e);}
@@ -684,15 +686,24 @@ function renderDashTodo(yr,mo){
     }).join('');
   }
   draw(null);
-  fetchPayments(yr,mo).then(function(pay){
+  Promise.all([fetchPayments(yr,mo),fetchMonthlyReal(yr,mo)]).then(function(res){
+    var pay=res[0],real=res[1];
     if(dashViewYear!==yr||dashViewMonth!==mo)return;
-    var monthEnrolls=enrollsForMonth(yr,mo);
-    var unpaid=studentsForMonth(yr,mo).filter(function(s){return !pay[s.studentID];});
-    var total=0;
-    unpaid.forEach(function(s){total+=monthEnrolls.filter(function(e){return e.studentID===s.studentID;}).reduce(function(sum,e){return sum+effPrice(e);},0);});
-    var unpaidItem=unpaid.length?{icon:'💰',label:mo+'月の未入金',detail:'合計 ¥'+total.toLocaleString()+'（下の一覧から督促文をコピーできます）',count:unpaid.length,onclick:"scrollToUnpaid()"}:null;
+    var unpaidCount,total;
+    if(real&&real.exists){
+      // 月謝表（正本）の実数: 赤字（[済]なし）の生徒だけを未入金として数える
+      var un=real.students.filter(function(s){return !s.paid&&s.amount>0&&!s.isFamilyDiscount;});
+      unpaidCount=un.length;
+      total=un.reduce(function(a,s){return a+s.amount;},0);
+    }else{
+      var monthEnrolls=enrollsForMonth(yr,mo);
+      var unpaid=studentsForMonth(yr,mo).filter(function(s){return !pay[s.studentID];});
+      unpaidCount=unpaid.length;total=0;
+      unpaid.forEach(function(s){total+=monthEnrolls.filter(function(e){return e.studentID===s.studentID;}).reduce(function(sum,e){return sum+effPrice(e);},0);});
+    }
+    var unpaidItem=unpaidCount?{icon:'💰',label:mo+'月の未入金',detail:'合計 ¥'+total.toLocaleString()+'（下の一覧から督促文をコピーできます）',count:unpaidCount,onclick:"scrollToUnpaid()"}:null;
     draw(unpaidItem);
-    renderDashForecast(yr,mo,pay);
+    renderDashForecast(yr,mo,pay,real);
   }).catch(function(){
     draw(null);
     var f=document.getElementById('dash-forecast');
@@ -703,32 +714,29 @@ function scrollToUnpaid(){
   var el=document.getElementById('dash-unpaid');
   if(el)el.closest('.dash-chart-wrap').scrollIntoView({behavior:'smooth',block:'start'});
 }
-// 今月の着地予測: 請求見込み・入金済み・残り未回収・目標比
-function renderDashForecast(yr,mo,pay){
+// 今月の入金状況: 入金済み・残り未回収（請求見込みの実額表示・目標比は非表示。本人希望で入金進捗のみに絞った）
+function renderDashForecast(yr,mo,pay,real){
   var box=document.getElementById('dash-forecast');
   if(!box)return;
-  var monthEnrolls=enrollsForMonth(yr,mo);
-  var students=studentsForMonth(yr,mo);
   var expected=0,paidSum=0;
-  students.forEach(function(s){
-    var m=monthEnrolls.filter(function(e){return e.studentID===s.studentID;}).reduce(function(sum,e){return sum+effPrice(e);},0);
-    expected+=m;
-    if(pay[s.studentID])paidSum+=m;
-  });
+  if(real&&real.exists){
+    // 月謝表（正本）の実数: 請求合計と[済]ベースの入金合計
+    expected=real.total;paidSum=real.paidTotal;
+  }else{
+    var monthEnrolls=enrollsForMonth(yr,mo);
+    var students=studentsForMonth(yr,mo);
+    students.forEach(function(s){
+      var m=monthEnrolls.filter(function(e){return e.studentID===s.studentID;}).reduce(function(sum,e){return sum+effPrice(e);},0);
+      expected+=m;
+      if(pay[s.studentID])paidSum+=m;
+    });
+  }
   var remain=expected-paidSum;
   var pct=expected>0?Math.round(paidSum/expected*100):0;
-  var target=ALL_TARGETS[yr+'年'+mo+'月']||null;
-  var h='<div style="display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:10px;">';
-  h+='<span style="font-size:24px;font-weight:700;color:var(--accent);">¥'+expected.toLocaleString()+'</span>';
-  h+='<span style="font-size:12px;color:var(--muted);">このままの在籍で今月の請求見込み</span></div>';
-  h+='<div class="course-bar-track" style="height:10px;margin-bottom:8px;"><div class="course-bar-fill" style="height:10px;background:var(--ok);width:'+pct+'%;"></div></div>';
+  var h='<div class="course-bar-track" style="height:10px;margin-bottom:8px;"><div class="course-bar-fill" style="height:10px;background:var(--ok);width:'+pct+'%;"></div></div>';
   h+='<div style="display:flex;justify-content:space-between;font-size:13px;flex-wrap:wrap;gap:6px;">';
   h+='<span>入金済み <span style="color:var(--ok);font-weight:700;">¥'+paidSum.toLocaleString()+'</span>（'+pct+'%）</span>';
   h+='<span>残り <span style="color:'+(remain>0?'var(--ng)':'var(--ok)')+';font-weight:700;">¥'+remain.toLocaleString()+'</span></span></div>';
-  if(target){
-    var tp=Math.round(expected/target*100);
-    h+='<div style="font-size:12px;color:var(--muted);margin-top:8px;">目標 ¥'+target.toLocaleString()+' に対して <span class="'+(tp>=100?'pos':'neg')+'" style="font-weight:700;">'+tp+'%</span></div>';
-  }
   box.innerHTML=h;
 }
 // 未入金の督促メッセージを作ってコピー（LINEに貼るだけ）
@@ -755,27 +763,48 @@ function legacyCopy(text){
   }catch(e){return false;}
 }
 
-// 指定月の未入金生徒一覧を概況タブに描画する
+// 名前でALL_STUDENTSを引く（空白の全半角差を吸収）
+function findStudentByName(name){
+  var t=String(name||'').replace(/[\s　]/g,'');
+  for(var i=0;i<ALL_STUDENTS.length;i++){
+    if(String(ALL_STUDENTS[i].name||'').replace(/[\s　]/g,'')===t)return ALL_STUDENTS[i];
+  }
+  return null;
+}
+
+// 指定月の未入金生徒一覧を概況タブに描画する（月謝表の実数を優先）
 function renderDashUnpaid(yr,mo){
-  fetchPayments(yr,mo).then(function(pay){
+  Promise.all([fetchPayments(yr,mo),fetchMonthlyReal(yr,mo)]).then(function(res){
+    var pay=res[0],real=res[1];
     // 取得中に表示月が変わっていたら描画しない
     if(dashViewYear!==yr||dashViewMonth!==mo)return;
     var box=document.getElementById('dash-unpaid');
     if(!box)return;
-    var unpaid=studentsForMonth(yr,mo).filter(function(s){return !pay[s.studentID];});
-    unpaid.sort(byYomi);
-    if(!unpaid.length){box.innerHTML='<div style="font-size:13px;color:var(--ok);padding:6px 0;">全員入金済みです</div>';return;}
-    // 金額もその月時点の在籍コースで計算する（現在の在籍で計算すると過去月の金額がずれる）
-    var monthEnrolls=enrollsForMonth(yr,mo);
+    var items;
+    if(real&&real.exists){
+      // 月謝表（正本）の実数: 赤字（[済]なし）の生徒と金額をそのまま使う
+      items=real.students.filter(function(s){return !s.paid&&s.amount>0&&!s.isFamilyDiscount;}).map(function(s){
+        var st=findStudentByName(s.name);
+        return {name:s.name,grade:st?st.grade:'',yomi:st?st.yomi:'',amount:s.amount};
+      });
+    }else{
+      // フォールバック: 在籍コースからの計算（月謝表に該当月が無い場合のみ）
+      var monthEnrolls=enrollsForMonth(yr,mo);
+      items=studentsForMonth(yr,mo).filter(function(s){return !pay[s.studentID];}).map(function(s){
+        var monthly=monthEnrolls.filter(function(e){return e.studentID===s.studentID;}).reduce(function(sum,e){return sum+effPrice(e);},0);
+        return {name:s.name,grade:s.grade,yomi:s.yomi,amount:monthly};
+      });
+    }
+    items.sort(function(a,b){return String(a.yomi||a.name).localeCompare(String(b.yomi||b.name),'ja');});
+    if(!items.length){box.innerHTML='<div style="font-size:13px;color:var(--ok);padding:6px 0;">全員入金済みです</div>';return;}
     var total=0,rows='';
-    unpaid.forEach(function(s){
-      var monthly=monthEnrolls.filter(function(e){return e.studentID===s.studentID;}).reduce(function(sum,e){return sum+effPrice(e);},0);
-      total+=monthly;
+    items.forEach(function(s){
+      total+=s.amount;
       rows+='<div class="uncoll-row"><span>'+esc(s.name)+(s.grade?'<span style="color:var(--muted);font-size:11px;margin-left:6px;">'+esc(s.grade)+'</span>':'')+'</span>';
-      rows+='<span style="display:flex;align-items:center;gap:8px;"><span style="color:var(--ng);font-weight:700;">¥'+monthly.toLocaleString()+'</span>';
-      rows+='<button class="btn btn-ghost btn-sm" data-name="'+esc(s.name)+'" data-amount="'+monthly+'" data-mo="'+mo+'" onclick="copyReminder(this)">📋 督促文</button></span></div>';
+      rows+='<span style="display:flex;align-items:center;gap:8px;"><span style="color:var(--ng);font-weight:700;">¥'+s.amount.toLocaleString()+'</span>';
+      rows+='<button class="btn btn-ghost btn-sm" data-name="'+esc(s.name)+'" data-amount="'+s.amount+'" data-mo="'+mo+'" onclick="copyReminder(this)">📋 督促文</button></span></div>';
     });
-    box.innerHTML='<div style="display:flex;justify-content:space-between;font-size:12px;color:var(--muted);padding-bottom:8px;border-bottom:1px solid var(--border);"><span>未入金 <span style="color:var(--ng);font-weight:700;">'+unpaid.length+'名</span></span><span>合計 <span style="color:var(--ng);font-weight:700;">¥'+total.toLocaleString()+'</span></span></div>'+rows
+    box.innerHTML='<div style="display:flex;justify-content:space-between;font-size:12px;color:var(--muted);padding-bottom:8px;border-bottom:1px solid var(--border);"><span>未入金 <span style="color:var(--ng);font-weight:700;">'+items.length+'名</span>'+(real&&real.exists?'<span style="margin-left:6px;">（月謝表ベース）</span>':'')+'</span><span>合計 <span style="color:var(--ng);font-weight:700;">¥'+total.toLocaleString()+'</span></span></div>'+rows
       +'<div style="font-size:11px;color:var(--muted);margin-top:8px;">先月分の未入金は毎週月曜に「未納管理」シートへ自動転記され、段階督促が始まります。</div>';
   }).catch(function(e){
     console.error('unpaid load',e);
@@ -817,15 +846,18 @@ function buildCourseDistChart() {
   const PATTERNS = [/そろばん/, /算数/, /国語/, /ブリッジ/];
   const COLORS   = ['#e8a84c', '#3fb950', '#58a6ff', '#f85149', '#8b949e'];
 
-  // ALL_ENROLLからカテゴリ別合計を集計
+  // ALL_ENROLLからカテゴリ別の月額合計と受講生徒数を集計
   const totals = CATS.map(() => 0);
+  const heads  = CATS.map(() => ({}));   // カテゴリ別の受講生徒ID（掛け持ちは各カテゴリで1名扱い）
   ALL_ENROLL.filter(e => e.isActive).forEach(e => {
     const price = effPrice(e);
     if (!price) return;
     let idx = PATTERNS.findIndex(p => p.test(e.courseName || ''));
     if (idx < 0) idx = CATS.length - 1;
     totals[idx] += price;
+    if (e.studentID != null) heads[idx][e.studentID] = 1;
   });
+  const counts = heads.map(h => Object.keys(h).length);
 
   const grand = totals.reduce((s, v) => s + v, 0);
   const maxV  = Math.max(...totals, 1);
@@ -847,7 +879,7 @@ function buildCourseDistChart() {
           const bar = Math.round(totals[i] / maxV * 100);
           return `<div style="margin-bottom:14px;">
             <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px;">
-              <span style="font-weight:600;color:${COLORS[i]};font-size:.9rem;">${cat}</span>
+              <span style="font-weight:600;color:${COLORS[i]};font-size:.9rem;">${cat}<span style="color:var(--muted);font-weight:400;font-size:.78rem;margin-left:6px;">${counts[i]}名</span></span>
               <span style="font-size:.85rem;">¥${totals[i].toLocaleString()}
                 <span style="color:${COLORS[i]};font-size:.8rem;margin-left:4px;">(${pct}%)</span>
               </span>
@@ -1172,7 +1204,12 @@ async function loadSales(){
   try{
     var r=await gas('getSales');
     if(r.status!=='ok')throw new Error(r.message);
-    ALL_SALES=Object.assign({},HISTORICAL_SALES,r.sales||{});buildSalesUI();
+    // 確定済みの過去実績（sales-history.jsonでactualが入っている月）はAPIの計算値で上書きしない
+    var merged=Object.assign({},HISTORICAL_SALES,r.sales||{});
+    Object.keys(HISTORICAL_SALES).forEach(function(k){
+      if(HISTORICAL_SALES[k]&&HISTORICAL_SALES[k].actual>0)merged[k]=HISTORICAL_SALES[k];
+    });
+    ALL_SALES=merged;buildSalesUI();
   }catch(e){ALL_SALES=Object.assign({},HISTORICAL_SALES);buildSalesUI();showToast('売上データの取得に失敗しました（過去データのみ表示）','err');}
   finally{salesLoading=false;}
 }
@@ -1397,6 +1434,29 @@ function showToast(msg,type){
 
 /* ========== PAYMENTS ========== */
 var _payCache={};
+// 月謝表の実数（getMonthlyReal）のキャッシュ。取得できない月はnull＝従来計算にフォールバック
+var _realCache={};
+function fetchMonthlyReal(y,m,force){
+  var key=y+'-'+m;
+  if(!force&&_realCache[key]!==undefined)return Promise.resolve(_realCache[key]);
+  return gas('getMonthlyReal',{year:String(y),month:m}).then(function(r){
+    var real=(r&&r.status==='ok')?r:null;
+    _realCache[key]=real;
+    return real;
+  }).catch(function(){return null;});
+}
+// 概況の金額カードを月謝表の実数へ差し替える（実数が無い月は従来表示のまま）
+function patchDashMoneyCard(yr,mo){
+  fetchMonthlyReal(yr,mo).then(function(real){
+    if(!real||!real.exists)return;
+    if(dashViewYear!==yr||dashViewMonth!==mo)return;
+    var lb=document.getElementById('kpi-money-label'),v=document.getElementById('kpi-money-val'),sb=document.getElementById('kpi-money-sub');
+    if(!v)return;
+    if(lb)lb.textContent='請求額（月謝表）';
+    v.textContent='¥'+Number(real.total).toLocaleString();
+    if(sb)sb.innerHTML='入金済み <span style="color:var(--ok)">¥'+Number(real.paidTotal).toLocaleString()+'</span>';
+  });
+}
 // 指定月の入金状況 {studentID: boolean} を返す（キャッシュ付き、force=trueで再取得）
 function fetchPayments(y,m,force){
   var key=y+'-'+m;
@@ -1451,6 +1511,7 @@ function togglePayment(sid,checked){
   // キャッシュも同期しないと、月を切り替えて戻ったときに古いチェック状態が表示される
   var cacheKey=y+'-'+m;
   if(_payCache[cacheKey])_payCache[cacheKey][sid]=checked;
+  delete _realCache[cacheKey]; // 実数キャッシュも無効化（[済]が変わるため）
   var student=ALL_STUDENTS.find(function(s){return s.studentID===sid;})||{};
   gas('savePaymentStatus',{studentID:sid,studentName:student.name||'',year:y,month:m,paid:checked,isPaid:checked})
     .then(function(r){if(r&&r.status&&r.status!=='ok')throw new Error(r.message||'保存エラー');})
