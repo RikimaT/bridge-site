@@ -4,4 +4,4 @@ Disallow: /kanri/
 Disallow: /douga/
 Disallow: /pr-video-maker/
 
-Sitemap: https://rikima81.com/sitemap.xml
+Sitemap: https://rikimat.github.io/bridge-site/sitemap.xml
