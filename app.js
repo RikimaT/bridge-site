@@ -50,6 +50,15 @@ async function _sha256hex(str){
   var buf=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(str));
   return Array.from(new Uint8Array(buf)).map(function(b){return b.toString(16).padStart(2,'0');}).join('');
 }
+var URL_KEY=null;
+function _looksKey(x){return typeof x==='string'&&/^[0-9a-f]{64}$/.test(x);}
+function _urlKey(){try{var p=new URLSearchParams(location.search).get('key');if(_looksKey(p))return p;}catch(e){}return URL_KEY;}
+function _storedKey(){try{var s=localStorage.getItem('bridge_api_key');if(_looksKey(s))return s;}catch(e){}return null;}
+function _anyKey(){return _urlKey()||_storedKey();}
+function captureUrlKey(){
+  function keep(k){if(_looksKey(k)){URL_KEY=k;try{localStorage.setItem('bridge_api_key',k);}catch(e){}}}
+  try{keep(new URLSearchParams(location.search).get('key'));}catch(e){}
+}
 function lockIsOpen(){
   try{
     if(sessionStorage.getItem('bridge_unlocked')==='1')return true;
@@ -60,6 +69,7 @@ function lockIsOpen(){
 function lockInit(){
   // file:// での開発時・非対応ブラウザではロックを掛けない（本番はHTTPSなので必ず掛かる）
   if(location.protocol==='file:'||!window.crypto||!crypto.subtle)return;
+  if(_anyKey()){_lockOpen();return;}
   if(lockIsOpen())return;
   var el=document.getElementById('lock-screen');
   el.classList.remove('hide');
@@ -185,6 +195,7 @@ function loadBootCache(){
 }
 
 document.addEventListener('DOMContentLoaded',function(){
+  captureUrlKey();
   lockInit();
   document.getElementById('r-join').value=todayStr();
   document.getElementById('tr-date').value=todayStr();
@@ -202,8 +213,7 @@ if('serviceWorker' in navigator&&location.protocol!=='file:'){
 
 async function gas(action,extra){
   // Phase 3: 端末登録時に合言葉から導出したAPIキーを毎回添付する（バックエンドが照合）
-  var apiKey=null;
-  try{apiKey=localStorage.getItem('bridge_api_key');}catch(e){}
+  var apiKey=_anyKey();
   var body=JSON.stringify(Object.assign({action:action},apiKey?{key:apiKey}:{},extra||{}));
   var lastErr=null;
   for(var attempt=0;attempt<3;attempt++){
@@ -526,6 +536,32 @@ function changeDashMonth(delta){
   renderDashboard();
 }
 function jumpToCurrentDashMonth(){var now=new Date();dashViewYear=now.getFullYear();dashViewMonth=now.getMonth()+1;renderDashboard();}
+
+// ダッシュボード表示直前の軽い整合性チェック（2026-08 追加）。
+// バックエンド側はintegration/DataRepair.gsのdataIntegrityNightly()が同種のチェックを毎晩行うが、
+// ここでは「今まさに画面に出す数字」自体が矛盾していないかをもう一段見る（表示バグの二重防御）。
+// 異常を検出したらコンソール警告＋呼び出し元で小さな注意表示を出す。表示を壊すほどの処理はしない。
+function checkDashIntegrity_(activeStudents,monthEnrolls){
+  var warnings=[];
+  try{
+    // 実人数（activeStudents配列の中に同じstudentIDが重複していないか）
+    var seenIds={},dupStudents=0;
+    (activeStudents||[]).forEach(function(s){if(seenIds[s.studentID])dupStudents++;seenIds[s.studentID]=true;});
+    if(dupStudents>0)warnings.push('生徒データに重複行が'+dupStudents+'件あります（実人数の集計が水増しされている可能性）');
+    // 同一生徒×同一コースの重複アクティブ在籍（延べ在籍数の水増し要因）
+    var seenPairs={},dupEnroll=0;
+    (monthEnrolls||[]).forEach(function(e){var k=e.studentID+'|'+e.courseID;if(seenPairs[k])dupEnroll++;seenPairs[k]=true;});
+    if(dupEnroll>0)warnings.push('同一生徒が同じコースに重複登録されている可能性があります（'+dupEnroll+'件）');
+    // 実人数あたりの平均コース数が異常（延べ在籍数÷実人数が高すぎないか）
+    if(activeStudents&&activeStudents.length>0&&monthEnrolls){
+      var avg=monthEnrolls.length/activeStudents.length;
+      if(avg>3)warnings.push('実人数あたりの平均コース数が'+avg.toFixed(1)+'件です（延べ在籍数の水増しの疑い）');
+    }
+    if(warnings.length)console.warn('[dash-integrity] 整合性チェックで異常を検出:',warnings);
+  }catch(e){console.error('[dash-integrity] チェック失敗:',e);}
+  return warnings;
+}
+
 function renderDashboard(){
   if(!document.getElementById('pane-dash').classList.contains('active')) return;
   initDashMonth();
@@ -551,6 +587,7 @@ function renderDashboard(){
   var netDelta=joins-leaves;
   var netStr=(netDelta>0?'+':'')+netDelta;
   var netClass=netDelta>0?'pos':netDelta<0?'neg':'';
+  var dashWarnings=checkDashIntegrity_(activeStudents,monthEnrolls);
   var h='';
   h+='<div class="month-nav" style="margin-bottom:18px;">';
   h+='<button class="navbtn" onclick="changeDashMonth(-1)">◀</button>';
@@ -558,6 +595,10 @@ function renderDashboard(){
   h+='<button class="navbtn" onclick="changeDashMonth(1)">▶</button>';
   if(!isCurrentMonth)h+='<button class="navbtn-today" onclick="jumpToCurrentDashMonth()">今月</button>';
   h+='</div>';
+  if(dashWarnings.length){
+    h+='<div class="dash-chart-wrap" style="border-color:var(--ng);padding:8px 12px;margin-bottom:12px;">'
+      +'<div style="font-size:12px;color:var(--ng);line-height:1.5;">⚠ '+dashWarnings.join('<br>⚠ ')+'</div></div>';
+  }
   if(isCurrentMonth){
     h+='<div class="dash-chart-wrap todo-wrap"><div class="dash-chart-title">✅ 今日やること</div><div id="dash-todo"><div style="font-size:13px;color:var(--muted);padding:6px 0;">確認中...</div></div></div>';
   }
@@ -572,8 +613,8 @@ function renderDashboard(){
   if(isCurrentMonth){
     h+='<div class="dash-chart-wrap"><div class="dash-chart-title">💰 今月の入金状況</div><div id="dash-forecast"><div style="font-size:13px;color:var(--muted);padding:6px 0;">読込中...</div></div></div>';
   }
-  h+=buildGradePanel();
-  h+=buildLtvPanel();
+  h+=buildGradePanel(activeStudents,monthEnrolls);
+  h+=buildLtvPanel(activeStudents,monthEnrolls);
   if(!isFuture)h+='<div class="dash-chart-wrap"><div class="dash-chart-title">未入金一覧（'+monthLabel+'）</div><div id="dash-unpaid"><div style="font-size:13px;color:var(--muted);padding:6px 0;">読込中...</div></div></div>';
   h+='<div class="dash-chart-wrap"><div class="dash-chart-title">入退会推移（直近6ヶ月）</div><canvas id="dash-trend-canvas" class="dash-chart-canvas"></canvas></div>';
   h+='<div class="dash-chart-wrap"><div class="dash-chart-title">コース別月額構成</div><div class="course-bar-wrap" id="course-dist"></div></div>';
@@ -588,22 +629,25 @@ function renderDashboard(){
 /* ========== 学年別在籍・卒業予測 / LTV ========== */
 var GRADE_ORDER=['幼児','小1','小2','小3','小4','小5','小6','中1','中2','中3','高1','高2','高3'];
 
-// 生徒1人の現在のアクティブ月額合計
-function studentMonthly(sid){
-  return ALL_ENROLL.filter(function(e){return e.studentID===sid&&e.isActive;})
+// 生徒1人の指定月時点のアクティブ月額合計（enrolls省略時は現在のアクティブ在籍で計算＝従来互換）
+function studentMonthly(sid,enrolls){
+  var list=enrolls||ALL_ENROLL.filter(function(e){return e.isActive;});
+  return list.filter(function(e){return e.studentID===sid;})
     .reduce(function(sum,e){return sum+effPrice(e);},0);
 }
 
-// 学年別の在籍・月額と、来年3月に卒業で抜ける売上のダッシュボード（現在の在籍ベース）
-function buildGradePanel(){
-  var active=ALL_STUDENTS.filter(function(s){return s.isActive;});
+// 学年別の在籍・月額と、来年3月に卒業で抜ける売上のダッシュボード
+// students/enrolls省略時は現在の在籍ベース（従来互換）。renderDashboardからは閲覧中の月の
+// studentsForMonth()/enrollsForMonth()を渡し、過去月を見ているときに「今」のデータが混ざらないようにする
+function buildGradePanel(students,enrolls){
+  var active=students||ALL_STUDENTS.filter(function(s){return s.isActive;});
   if(!active.length)return '';
   var byGrade={};
   active.forEach(function(s){
     var g=GRADE_ORDER.indexOf(s.grade)>=0?s.grade:'未設定';
     if(!byGrade[g])byGrade[g]={count:0,monthly:0};
     byGrade[g].count++;
-    byGrade[g].monthly+=studentMonthly(s.studentID);
+    byGrade[g].monthly+=studentMonthly(s.studentID,enrolls);
   });
   var now=new Date();
   var gradYear=now.getMonth()+1>=4?now.getFullYear()+1:now.getFullYear();
@@ -634,11 +678,12 @@ function buildGradePanel(){
 }
 
 // 平均月謝×平均在籍月数からLTV（生徒1人の生涯売上）と許容獲得コストを出す
-function buildLtvPanel(){
-  var active=ALL_STUDENTS.filter(function(s){return s.isActive;});
+// students/enrolls省略時は現在の在籍ベース（従来互換）。閲覧中の月の在籍で計算する場合はrenderDashboardから渡される
+function buildLtvPanel(students,enrolls){
+  var active=students||ALL_STUDENTS.filter(function(s){return s.isActive;});
   if(!active.length)return '';
   var totalMonthly=0;
-  active.forEach(function(s){totalMonthly+=studentMonthly(s.studentID);});
+  active.forEach(function(s){totalMonthly+=studentMonthly(s.studentID,enrolls);});
   var avgMonthly=Math.round(totalMonthly/active.length);
   // 在籍月数: 退会者（入会日と退会日が揃う人）の実績を優先。いなければ現役の平均在籍
   var leaverMonths=ALL_STUDENTS.filter(function(s){return s.leaveDate&&s.joinDate;}).map(function(s){
