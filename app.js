@@ -199,9 +199,8 @@ document.addEventListener('DOMContentLoaded',function(){
   lockInit();
   document.getElementById('r-join').value=todayStr();
   document.getElementById('tr-date').value=todayStr();
-  if(loadBootCache()){renderMgr();renderDashboard();renderPriceSim();}
+  if(loadBootCache()){renderMgr();renderDashboard();renderPriceSim();populateSchools();}
   loadTargets();
-  loadSchools();
   loadCourses();
   loadStudents();
 });
@@ -211,10 +210,24 @@ if('serviceWorker' in navigator&&location.protocol!=='file:'){
   window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js').catch(function(){});});
 }
 
-async function gas(action,extra){
-  // Phase 3: 端末登録時に合言葉から導出したAPIキーを毎回添付する（バックエンドが照合）
+// 同じ読み取りリクエスト（get*）が同時に飛んだら1本にまとめる。
+// 概況タブは patchDashMoneyCard / renderDashTodo / renderDashUnpaid がそれぞれ getMonthlyReal・getPaymentData を
+// 呼ぶため、素のままだと1回の描画で同じGAS処理（年シート全走査）が3回走っていた。起動時の getCourses の二重取得も同様。
+var _gasInflight={};
+function gas(action,extra){
   var apiKey=_anyKey();
   var body=JSON.stringify(Object.assign({action:action},apiKey?{key:apiKey}:{},extra||{}));
+  var dedupe=/^get/.test(String(action||''));
+  if(dedupe&&_gasInflight[body])return _gasInflight[body];
+  var p=_gasRequest(body);
+  if(dedupe){
+    _gasInflight[body]=p;
+    p.then(function(){delete _gasInflight[body];},function(){delete _gasInflight[body];});
+  }
+  return p;
+}
+async function _gasRequest(body){
+  // Phase 3: 端末登録時に合言葉から導出したAPIキーを毎回添付する（バックエンドが照合）
   var lastErr=null;
   for(var attempt=0;attempt<3;attempt++){
     try{
@@ -265,15 +278,21 @@ function switchTab(id){
 }
 
 /* ========== SCHOOLS ========== */
-async function loadSchools(){
-  try{
-    var r=await gas('getSchools');
-    var sel=document.getElementById('r-school');
-    if(r.status==='ok'&&r.schools&&r.schools.length){
-      sel.innerHTML='<option value="">未選択</option>';
-      r.schools.forEach(function(s){sel.innerHTML+='<option value="'+esc(s)+'">'+esc(s)+'</option>';});
-    }else{sel.outerHTML='<input type="text" id="r-school" placeholder="学校名を入力">';}
-  }catch(e){var el=document.getElementById('r-school');if(el)el.outerHTML='<input type="text" id="r-school" placeholder="学校名を入力">';}
+// 登録タブの学校名プルダウン。以前は getSchools で生徒シートをもう1回丸ごと読んでいたが、
+// getStudents で取った ALL_STUDENTS から作れるので通信を1本減らした（loadStudents から呼ぶ）。
+function populateSchools(){
+  var sel=document.getElementById('r-school');
+  if(!sel)return;
+  var schools=[];
+  ALL_STUDENTS.forEach(function(s){var n=String(s.school||'').trim();if(n&&schools.indexOf(n)<0)schools.push(n);});
+  if(schools.length){
+    if(sel.tagName!=='SELECT')return; // 既にテキスト入力へ切り替え済み（入力中の値を壊さない）
+    var cur=sel.value;
+    sel.innerHTML='<option value="">未選択</option>'+schools.map(function(s){return '<option value="'+esc(s)+'">'+esc(s)+'</option>';}).join('');
+    if(cur&&schools.indexOf(cur)>=0)sel.value=cur;
+  }else if(sel.tagName==='SELECT'){
+    sel.outerHTML='<input type="text" id="r-school" placeholder="学校名を入力">';
+  }
 }
 
 /* ========== COURSES ========== */
@@ -398,10 +417,12 @@ async function loadStudents(){
     renderMgr();
     renderDashboard();
     renderPriceSim();
+    populateSchools();
   }catch(e){
     showConnBanner('サーバーに接続できません: '+e.message);
     // キャッシュ表示中ならデータはそのまま残す（バナーだけで知らせる）
     if(!ALL_STUDENTS.length){
+      populateSchools(); // 生徒が取れないときは学校名を手入力できるようにする
       var errHtml='<div class="empty">読み込みエラー: '+esc(e.message)+'<br><button class="btn btn-ghost btn-sm" style="margin-top:12px;" onclick="loadStudents()">再試行</button></div>';
       document.getElementById('mgr-list').innerHTML=errHtml;
       document.getElementById('dash-content').innerHTML=errHtml;
@@ -1515,7 +1536,16 @@ function fetchPayments(y,m,force){
       var paidVal=p.paid;
       if(typeof paidVal==='string'){paidVal=(paidVal.toUpperCase()==='TRUE');}
       else{paidVal=!!paidVal;}
-      map[p.studentID]=paidVal;
+      // バックエンド（getPaymentData）は月謝表の行から返すため studentID に「氏名」が入っている。
+      // 画面側は s.studentID（H001 等）で引くので、氏名から生徒を特定して本来のIDにも載せる。
+      // これが無いと生徒タブの入金チェックが毎回すべて空で表示されていた（保存自体は氏名で通っていた）。
+      var keys=[];
+      if(p.studentID!=null&&p.studentID!=='')keys.push(String(p.studentID));
+      if(p.studentName&&keys.indexOf(String(p.studentName))<0)keys.push(String(p.studentName));
+      var st=findStudentByName(p.studentName||p.studentID);
+      if(st&&keys.indexOf(String(st.studentID))<0)keys.push(String(st.studentID));
+      // 同じ生徒が複数コース行に分かれている場合、いずれかに[済]があれば入金済み（getMonthlyRealと同じ判定）
+      keys.forEach(function(k){map[k]=!!map[k]||paidVal;});
     });
     _payCache[key]=map;
     return map;
@@ -1540,12 +1570,16 @@ function loadPaymentForCurrentMonth(){
   _initPayMonth();
   var y=window._payYear,m=window._payMonth;
   _updatePayLabel();
-  // localStorageは使わずGASを正として初期化
-  window._payData={};
+  // localStorageは使わず、GASを正とする。ただし同じ月を今セッションで取得済みならまずそれを出し、
+  // 裏で最新を取り直す（毎回チェックが全部消えて数秒後に戻る「ちらつき」と待ち時間をなくす）。
+  var cached=_payCache[y+'-'+m];
+  window._payData=cached||{};
   renderMgr();
   fetchPayments(y,m,true).then(function(map){
+    if(window._payYear!==y||window._payMonth!==m)return; // 取得中に月を切り替えていたら捨てる
+    var changed=JSON.stringify(map)!==JSON.stringify(window._payData);
     window._payData=map;
-    renderMgr();
+    if(changed||!cached)renderMgr();
   }).catch(function(e){console.error('pay load',e);showToast('入金状況の取得に失敗しました','err');});
 }
 function togglePayment(sid,checked){
