@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Threadsの自動投稿——Geminiで生成し、採点し、翌日の投稿に学習させる｜一人塾のGAS自動化 実録｜田中力磨</title>
+<meta name="description" content="GASでThreads自動投稿をGeminiに生成・採点・学習させ続けている塾の実録。禁止表現検出と字数調整の設計を解説。">
+<link rel="canonical" href="https://rikimat.github.io/bridge-site/gas/threads-auto-post/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Threadsの自動投稿——Geminiで生成し、採点し、翌日の投稿に学習させる">
+<meta property="og:description" content="GASでThreads自動投稿をGeminiに生成・採点・学習させ続けている塾の実録。禁止表現検出と字数調整の設計を解説。">
+<meta property="og:url" content="https://rikimat.github.io/bridge-site/gas/threads-auto-post/">
+<meta property="og:image" content="https://rikimat.github.io/bridge-site/og-rikima.jpg">
+<meta property="og:site_name" content="田中力磨｜総合学習教室ブリッジ">
+<meta property="og:locale" content="ja_JP">
+<meta name="twitter:card" content="summary_large_image">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "TechArticle",
+  "headline": "Threadsの自動投稿——Geminiで生成し、採点し、翌日の投稿に学習させる",
+  "description": "GASでThreads自動投稿をGeminiに生成・採点・学習させ続けている塾の実録。禁止表現検出と字数調整の設計を解説。",
+  "inLanguage": "ja",
+  "datePublished": "2026-09-14",
+  "dateModified": "2026-09-14",
+  "author": { "@type": "Person", "name": "田中力磨", "url": "https://rikimat.github.io/bridge-site/" },
+  "publisher": { "@type": "Person", "name": "田中力磨" },
+  "mainEntityOfPage": "https://rikimat.github.io/bridge-site/gas/threads-auto-post/",
+  "isPartOf": { "@type": "Blog", "name": "一人塾のGAS自動化 実録", "url": "https://rikimat.github.io/bridge-site/gas/" }
+}
+</script>
+<style>
+:root{--ink:#1d2433;--paper:#f5f9fc;--white:#fff;--amber:#2b8fd0;--amber-dark:#1667a0;--line:#dde7ef;--sub:#5d6473;--muted:#949aa8;--code:#0f172a;}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:"Hiragino Kaku Gothic ProN","Noto Sans JP",sans-serif;background:var(--paper);color:var(--ink);line-height:1.95;font-size:16px;}
+.wrap{max-width:760px;margin:0 auto;padding:0 20px;}
+nav{position:sticky;top:0;z-index:50;background:rgba(245,249,252,.92);backdrop-filter:blur(10px);border-bottom:1px solid var(--line);}
+.nv{max-width:760px;margin:0 auto;padding:12px 20px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;}
+.nv .nm{font-weight:700;letter-spacing:2px;font-size:14px;}.nv .nm small{display:block;font-size:9px;letter-spacing:3px;color:var(--amber-dark);}
+.nv ul{display:flex;gap:14px;list-style:none;}.nv a{color:var(--sub);text-decoration:none;font-size:12.5px;white-space:nowrap;}.nv a:hover{color:var(--amber-dark);}
+header.art{padding:48px 0 24px;border-bottom:1px solid var(--line);}
+.crumb{font-size:12px;color:var(--muted);margin-bottom:12px;}.crumb a{color:var(--amber-dark);text-decoration:none;}
+h1{font-size:26px;line-height:1.5;letter-spacing:.5px;margin-bottom:12px;}
+.lead{color:var(--sub);font-size:15px;}
+.meta{font-size:12px;color:var(--muted);margin-top:10px;}
+article{padding:24px 0 40px;}
+article h2{font-size:20px;margin:40px 0 12px;padding-left:12px;border-left:4px solid var(--amber);line-height:1.5;}
+article h3{font-size:16.5px;margin:26px 0 8px;color:var(--amber-dark);}
+article p{margin:0 0 14px;}
+article ul,article ol{margin:0 0 14px 22px;}article li{margin-bottom:4px;}
+article table{border-collapse:collapse;width:100%;margin:0 0 16px;font-size:14px;}
+article th,article td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top;background:var(--white);}
+article th{background:#e8f3fb;}
+pre{background:var(--code);color:#e2e8f0;padding:16px 18px;border-radius:8px;overflow-x:auto;font-size:13px;line-height:1.6;margin:0 0 16px;}
+code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;}
+p code,li code,td code{background:#e8f3fb;padding:1px 6px;border-radius:4px;font-size:.92em;color:var(--amber-dark);}
+.note{background:var(--white);border:1px solid var(--line);border-left:4px solid var(--amber);padding:12px 16px;border-radius:6px;margin:0 0 16px;font-size:14.5px;}
+.box{background:var(--white);border:1px solid var(--line);border-radius:10px;padding:20px 22px;margin:36px 0 0;}
+.box h2{border:0;padding:0;margin:0 0 10px;font-size:18px;}
+.box a{color:var(--amber-dark);font-weight:700;text-decoration:none;}
+.box ul{list-style:none;margin:0;}.box li{margin-bottom:8px;}
+.box small{color:var(--muted);display:block;font-size:12px;}
+.series{margin:32px 0 0;font-size:14px;}.series a{color:var(--amber-dark);text-decoration:none;}.series li{margin-bottom:4px;}
+footer{border-top:1px solid var(--line);padding:32px 0 48px;text-align:center;color:var(--muted);font-size:12.5px;}
+footer a{color:var(--amber-dark);text-decoration:none;}
+@media (max-width:480px){h1{font-size:22px;}article h2{font-size:18px;}}
+</style>
+</head>
+<body>
+<nav><div class="nv">
+  <div class="nm"><a href="../../" style="color:inherit;text-decoration:none">田中力磨<small>RIKIMA TANAKA</small></a></div>
+  <ul>
+    <li><a href="../">実録シリーズ一覧</a></li>
+    <li><a href="../../#book">著書</a></li>
+    <li><a href="../../#school">教室</a></li>
+    <li><a href="https://note.com/rikima81" target="_blank" rel="noopener">note</a></li>
+  </ul>
+</div></nav>
+
+<header class="art"><div class="wrap">
+  <div class="crumb"><a href="../../">田中力磨</a> › <a href="../">一人塾のGAS自動化 実録</a> › Threads自動投稿</div>
+  <h1>Threadsの自動投稿——Geminiで生成し、採点し、翌日の投稿に学習させる</h1>
+  <p class="lead">Geminiに投稿文を作らせ、自己採点させ、翌日の投稿に学習させる。GASだけで回している仕組みの記録。</p>
+  <p class="meta">2026-09-14 公開 ／ 滋賀県彦根市の一人塾「総合学習教室ブリッジ」で実際に動いている仕組みの記録 ／ Google Apps Script（GAS）</p>
+</div></header>
+
+<article><div class="wrap">
+<h2>何を自動化したか</h2>
+<p>塾の運営をしながらThreadsを毎日更新するのは、続けようとするほど負担になる作業だった。文章を考える時間、投稿する時間、翻ってみて反応を見て次に活かす時間——どれも塾の仕事の合間に差し込むには重い。今はこの一連の流れをGoogle Apps Script（GAS）が担っている。Geminiに下書きを生成させ、田中力磨らしくない表現や関西弁が混ざっていれば自動で弾いて作り直させ、100点満点で自己採点させたうえで一番良い案を投稿する。投稿後は閲覧数・いいね数・返信数を取得し、フォロワーの増減と突き合わせて「何が伸びたか」を毎晩学習し、翌日以降の生成プロンプトに反映する。</p>
+<p>2026-09-13時点で運用しているのは1日2回（08時・12時）の投稿。もともとは08/12/20時の3回体制だったが、投稿ログを見ると20時の回は3スロット中もっとも閲覧が伸びず（7〜8月平均で朝50・昼52に対し夜36）、直近32日のフォロワー純増は+1にとどまっていた。惰性で続けるより回数を絞って質に寄せる判断をし、宣伝ナイト（後述）や記事告知の期間だけ夜枠を復活させる形にした。数字が実測、それ以外の「体感で助かっている点」（文体チェックの手間がゼロになったこと、ネタ切れで詰まらなくなったこと）は体感であることをここに明記しておく。</p>
+
+<h2>仕組み（データの流れ）</h2>
+<p>1回の投稿が生成されてから公開されるまでの流れは次のとおり。</p>
+<table>
+<tr><th>ステップ</th><th>内容</th></tr>
+<tr><td>1. テーマ決定</td><td>過去の投稿ログから「閲覧数の平均が高いテーマ・型」を7割の確率で再利用し、3割は新しいテーマ・型を探索する。12時台は必ず著書（国語の解答力の本）由来のネタを差し込む</td></tr>
+<tr><td>2. 旬の話題取得</td><td>Googleニュースの公開RSSから教育関連キーワードで見出しを取得し、テーマと自然に重なるものがあれば起点にする</td></tr>
+<tr><td>3. 生成</td><td>Geminiに人物プロファイル・バズ構造パターン・直近の書き出し（重複回避用）・前日の学習メモを渡して下書きを作らせる</td></tr>
+<tr><td>4. 検査</td><td>関西弁・固定挨拶・ハッシュタグなどの禁止表現を正規表現で検出。ヒットしたら理由を添えて再生成（最大6回）</td></tr>
+<tr><td>5. 字数調整</td><td>Threadsの上限500字を超えたら、まず既存の下書きを意味を保ったまま短縮させる。短縮が失敗した場合のみ字数指示付きで作り直す</td></tr>
+<tr><td>6. 採点</td><td>Geminiに100点満点で自己採点させ、90点に届いたら即採用。届かない場合は6回分の最高得点を採用</td></tr>
+<tr><td>7. 画像生成・投稿</td><td>本文に合う画像を生成し画像つきで投稿。失敗すればテキストのみで投稿</td></tr>
+<tr><td>8. 記録・学習</td><td>投稿ログに記録。毎晩、閲覧数の更新→フォロワー推移の記録→「伸びる投稿のルール」の抽出、の順に学習が回る</td></tr>
+</table>
+
+<h2>コード（要点）</h2>
+<p>禁止表現の検出は、置換ではなく再生成に倒しているのが要点。関西弁の語尾を機械的に置換すると不自然な文章になりやすいため、検出したら理由をフィードバックとして渡し、Geminiに文章ごと作り直させている。</p>
+<pre><code>var REJECTION_CHECKS = [
+  { pattern: /こんにちは。ブリッジの田中です/, label: '固定挨拶禁止' },
+  { pattern: /ほんまに/,   label: 'ほんまに（関西弁）' },
+  { pattern: /やった(?!こと|ら|ん)/, label: 'やった（関西弁語尾）' },
+  { pattern: /やんか/,     label: 'やんか（関西弁）' },
+  { pattern: /#[\w぀-ヿ一-龯]+/, label: 'ハッシュタグ（禁止）' },
+  // ...ほか関西弁パターンを列挙
+];
+
+function findViolations(text) {
+  var found = [];
+  REJECTION_CHECKS.forEach(function(check) {
+    if (check.pattern.test(text)) found.push(check.label);
+  });
+  return found;
+}</code></pre>
+<p>字数オーバーへの対処は「短縮を先に試す」実装にしている。理由は後述のハマった点で説明する。</p>
+<pre><code>function threadsShrinkDraft(draft, maxChars) {
+  try {
+    var target = maxChars - 20;
+    if (target < 150) target = 150;
+    var prompt = '次のThreads向け投稿文を、意味・口調・文体を変えずに'
+      + target + '字以内へ短縮してください。\n'
+      + '・最も鋭い一文と結論だけを残し、背景説明・経緯・重複表現を削る\n'
+      + '・新しい内容を足さない。関西弁・ハッシュタグ（#）は入れない\n'
+      + '--- 投稿文 ---\n' + draft;
+    var out = autoGeminiText(prompt, { temperature: 0.2, maxTokens: 900 });
+    if (!out) return null;
+    out = out.trim();
+    if (!out || findViolations(out).length > 0) return null;
+    if (out.length > maxChars) return null;
+    return out;
+  } catch (e) {
+    return null;
+  }
+}</code></pre>
+<p>投稿後の学習部分は、投稿ログとフォロワー推移を突き合わせてGeminiに「伸びる投稿のルール」を箇条書きで抽出させ、そのメモを翌日以降の生成プロンプトに差し込むだけの単純な作りにしてある（要点のみ。全文はnoteへ）。</p>
+<pre><code>var note = autoGeminiText([
+  '学習塾のThreadsアカウントの直近データから',
+  '「フォロワーが増える投稿のルール」を抽出してください。',
+  '【直近の投稿と成績】', posts.join('\n'),
+  '【フォロワー数の推移】', followerLines.join('\n'),
+  '出力形式（300字以内・箇条書き）: 伸びたテーマ/書き出しの共通点、'
+  + '伸びなかった投稿の共通点、明日守るべきルール3つ。'
+  + 'データから読み取れないことは書かない。'
+].join('\n'), { temperature: 0.3 });
+
+sheet.appendRow([new Date(), note]);  // 「投稿学習メモ」シートへ保存</code></pre>
+
+<h2>ハマった点と回避策</h2>
+<p>一番大きくハマったのが字数オーバーの扱いだった。Threadsの本文上限は500字で、超えると投稿全体がAPIから拒否される（実際にエラーコード100「Param text must be at most 500 characters long」で返ってくる）。最初は「字数指示だけを添えて丸ごと作り直させる」対応にしていたが、これだと6回の再生成すべてが字数オーバーで全滅する日が実際に発生した。Geminiに「短くしてください」とだけ伝えても、同じ構成のまま似た長さの文章を繰り返し出してくることがある。そこで、字数オーバー時はまず今の下書きを「意味・口調は変えず短縮するだけ」の専用プロンプトに通す実装に切り替えた。作り直しではなく圧縮を先に試すことで、全滅する日はほぼなくなった。</p>
+<p>もう一つは、夜の回に付けるURL案内の分だけ本文の許容字数を削っておく必要があったこと。末尾に「無料体験は公式LINEから」のような案内を追記すると、本文だけなら収まっていたものが合計で上限を超えることがある。案内文の最大長を見込んで生成段階の目標文字数を下げ、投稿直前にも「本文＋案内が500字を超えていたら本文側だけを詰める」安全網を二重に用意した。URL自体を切ってリンク切れにする事故だけは避けたかったため、削るのは常に本文側に固定してある。</p>
+<p>もう一つの教訓は、貯めるだけで使わないデータを作らないこと。他アカウントのバズ投稿から型を抽出する仕組みはあったが、しばらくは抽出されるだけで実際の生成プロンプトには一度も読み込まれていなかった。仕組みを作った時点と、それを使う配線をつなぐ時点がずれると「動いているつもりで何も効いていない」状態になりやすい。作ったら必ずどこかの生成処理から呼ばれているかを確認する、という当たり前のことを見落としていた。</p>
+
+<h2>導入手順</h2>
+<ol>
+<li>Threads for Developersでアプリを作成し、Threads APIのアクセストークンとユーザーIDを取得する</li>
+<li>GASプロジェクトのスクリプトプロパティに以下を設定する: <code>THREADS_USER_ID</code> / <code>THREADS_ACCESS_TOKEN</code> / <code>GEMINI_API_KEY</code></li>
+<li>投稿の生成・採点・投稿・学習を行う関数群（本文生成・禁止表現チェック・字数調整・投稿・インサイト取得・学習メモ更新）を1つの.gsファイルにまとめる</li>
+<li>投稿頻度に合わせて時間トリガーを作成する（GASの時刻トリガーは1時間単位で指定。タイムゾーンはappsscript.jsonでAsia/Tokyoに設定しておく）</li>
+<li>投稿ログ用のスプレッドシートを用意し、投稿のたびに日時・テーマ・型・スコア・本文を1行ずつ記録する</li>
+<li>毎晩1回、閲覧数などのインサイト取得→フォロワー数の記録→学習メモの更新、の順で回すトリガーを追加する</li>
+<li>まずは手動実行できるテスト関数で生成結果を目視確認してから、本番の時間トリガーに切り替える</li>
+</ol>
+
+<h2>よくある質問</h2>
+<h3>Q. 生成AIっぽい文章になってしまいませんか</h3>
+<p>なる。だからこそ「田中力磨らしさ」を定義したプロファイルと、禁止表現の検出、直近の投稿と被らない書き出しの指示をプロンプトに積み重ねている。それでも一定確率でAI的な言い回しは出るため、採点でも減点対象にし、最終的には人間が投稿ログを時々読み返して違和感がないか確認している。</p>
+<h3>Q. 毎回同じ内容の繰り返しになりませんか</h3>
+<p>直近7件の投稿の書き出し1行をプロンプトに渡し「これと被らないこと」と明示している。それでもテーマプール自体が有限なので、テーマは時々見直して入れ替えている。</p>
+<h3>Q. Threads以外のSNSにも応用できますか</h3>
+<p>できる。X（旧Twitter）向けの投稿も生成・採点・学習ロジックはこの仕組みと共通で、文字数制約とAPI認証方式（OAuth 1.0a）だけがThreads側と異なる作りにしている。</p>
+
+
+<div class="box">
+  <h2>この仕組みの「全体像」と「コード全文」</h2>
+  <ul>
+    <li><a href="https://www.amazon.co.jp/dp/B0HCGTWG3J?ref=site-gas-threads-auto-post" target="_blank" rel="noopener">Kindle『個人塾長、AIを雇う。』（500円・Kindle Unlimited対応）</a><small>2年間の実録を1冊に。何をどの順で自動化したか、失敗も含めて</small></li>
+    <li><a href="https://note.com/rikima81/n/n32a261a6e064?ref=site-gas-threads-auto-post" target="_blank" rel="noopener">note『個人塾をGASで自動化した実録（実コード付き）』（1,800円）</a><small>この記事で省略したコード全文と、貼り付け手順</small></li>
+    <li><a href="https://www.amazon.com/dp/B0HBPFZXDQ?ref=site-gas-threads-auto-post" target="_blank" rel="noopener">English edition: How I Automated My One-Man Tutoring School with AI ($6.99)</a></li>
+  </ul>
+</div>
+
+<div class="series">
+  <strong>実録シリーズ（全8本）</strong>
+  <ol>
+    <li><a href="../line-auto-reply/">LINE公式アカウントの即時自動応答と申込フォーム</a></li>
+    <li><a href="../trial-follow/">体験生フォローの自動化（前日リマインド・退会予兆）</a></li>
+    <li><a href="../monthly-fee-sync/">OneDriveの月謝表をGoogleスプレッドシートへ毎日同期</a></li>
+    <li><a href="../unpaid-tracking/">未納の自動転記と回収済み更新</a></li>
+    <li><a href="../threads-auto-post/">Threads自動投稿（生成→採点→学習ループ）</a></li>
+    <li><a href="../trigger-dispatcher/">GASトリガー上限20本の壁と6本ディスパッチャー</a></li>
+    <li><a href="../receipt-ocr-budget/">レシート撮影で家計簿が埋まる（Gemini OCR）</a></li>
+    <li><a href="../grade-promotion/">毎年4月1日に学年を自動で進級させる</a></li>
+  </ol>
+</div>
+</div></article>
+
+<footer>
+  <p><a href="../../">田中力磨｜RIKIMA TANAKA</a></p>
+  <p>総合学習教室ブリッジ（滋賀県彦根市稲枝町311-5）</p>
+</footer>
+</body>
+</html>

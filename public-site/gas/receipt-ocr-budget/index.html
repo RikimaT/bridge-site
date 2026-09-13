@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>レシートを撮るだけで家計簿が埋まる——GeminiのOCRと楽天メール取込｜一人塾のGAS自動化 実録｜田中力磨</title>
+<meta name="description" content="レシート撮影をGemini APIで自動読取し、楽天カード・楽天ペイの明細メールも自動取込む。GAS家計簿アプリの実装と重複排除の工夫。">
+<link rel="canonical" href="https://rikimat.github.io/bridge-site/gas/receipt-ocr-budget/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="レシートを撮るだけで家計簿が埋まる——GeminiのOCRと楽天メール取込">
+<meta property="og:description" content="レシート撮影をGemini APIで自動読取し、楽天カード・楽天ペイの明細メールも自動取込む。GAS家計簿アプリの実装と重複排除の工夫。">
+<meta property="og:url" content="https://rikimat.github.io/bridge-site/gas/receipt-ocr-budget/">
+<meta property="og:image" content="https://rikimat.github.io/bridge-site/og-rikima.jpg">
+<meta property="og:site_name" content="田中力磨｜総合学習教室ブリッジ">
+<meta property="og:locale" content="ja_JP">
+<meta name="twitter:card" content="summary_large_image">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "TechArticle",
+  "headline": "レシートを撮るだけで家計簿が埋まる——GeminiのOCRと楽天メール取込",
+  "description": "レシート撮影をGemini APIで自動読取し、楽天カード・楽天ペイの明細メールも自動取込む。GAS家計簿アプリの実装と重複排除の工夫。",
+  "inLanguage": "ja",
+  "datePublished": "2026-09-14",
+  "dateModified": "2026-09-14",
+  "author": { "@type": "Person", "name": "田中力磨", "url": "https://rikimat.github.io/bridge-site/" },
+  "publisher": { "@type": "Person", "name": "田中力磨" },
+  "mainEntityOfPage": "https://rikimat.github.io/bridge-site/gas/receipt-ocr-budget/",
+  "isPartOf": { "@type": "Blog", "name": "一人塾のGAS自動化 実録", "url": "https://rikimat.github.io/bridge-site/gas/" }
+}
+</script>
+<style>
+:root{--ink:#1d2433;--paper:#f5f9fc;--white:#fff;--amber:#2b8fd0;--amber-dark:#1667a0;--line:#dde7ef;--sub:#5d6473;--muted:#949aa8;--code:#0f172a;}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:"Hiragino Kaku Gothic ProN","Noto Sans JP",sans-serif;background:var(--paper);color:var(--ink);line-height:1.95;font-size:16px;}
+.wrap{max-width:760px;margin:0 auto;padding:0 20px;}
+nav{position:sticky;top:0;z-index:50;background:rgba(245,249,252,.92);backdrop-filter:blur(10px);border-bottom:1px solid var(--line);}
+.nv{max-width:760px;margin:0 auto;padding:12px 20px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;}
+.nv .nm{font-weight:700;letter-spacing:2px;font-size:14px;}.nv .nm small{display:block;font-size:9px;letter-spacing:3px;color:var(--amber-dark);}
+.nv ul{display:flex;gap:14px;list-style:none;}.nv a{color:var(--sub);text-decoration:none;font-size:12.5px;white-space:nowrap;}.nv a:hover{color:var(--amber-dark);}
+header.art{padding:48px 0 24px;border-bottom:1px solid var(--line);}
+.crumb{font-size:12px;color:var(--muted);margin-bottom:12px;}.crumb a{color:var(--amber-dark);text-decoration:none;}
+h1{font-size:26px;line-height:1.5;letter-spacing:.5px;margin-bottom:12px;}
+.lead{color:var(--sub);font-size:15px;}
+.meta{font-size:12px;color:var(--muted);margin-top:10px;}
+article{padding:24px 0 40px;}
+article h2{font-size:20px;margin:40px 0 12px;padding-left:12px;border-left:4px solid var(--amber);line-height:1.5;}
+article h3{font-size:16.5px;margin:26px 0 8px;color:var(--amber-dark);}
+article p{margin:0 0 14px;}
+article ul,article ol{margin:0 0 14px 22px;}article li{margin-bottom:4px;}
+article table{border-collapse:collapse;width:100%;margin:0 0 16px;font-size:14px;}
+article th,article td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top;background:var(--white);}
+article th{background:#e8f3fb;}
+pre{background:var(--code);color:#e2e8f0;padding:16px 18px;border-radius:8px;overflow-x:auto;font-size:13px;line-height:1.6;margin:0 0 16px;}
+code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;}
+p code,li code,td code{background:#e8f3fb;padding:1px 6px;border-radius:4px;font-size:.92em;color:var(--amber-dark);}
+.note{background:var(--white);border:1px solid var(--line);border-left:4px solid var(--amber);padding:12px 16px;border-radius:6px;margin:0 0 16px;font-size:14.5px;}
+.box{background:var(--white);border:1px solid var(--line);border-radius:10px;padding:20px 22px;margin:36px 0 0;}
+.box h2{border:0;padding:0;margin:0 0 10px;font-size:18px;}
+.box a{color:var(--amber-dark);font-weight:700;text-decoration:none;}
+.box ul{list-style:none;margin:0;}.box li{margin-bottom:8px;}
+.box small{color:var(--muted);display:block;font-size:12px;}
+.series{margin:32px 0 0;font-size:14px;}.series a{color:var(--amber-dark);text-decoration:none;}.series li{margin-bottom:4px;}
+footer{border-top:1px solid var(--line);padding:32px 0 48px;text-align:center;color:var(--muted);font-size:12.5px;}
+footer a{color:var(--amber-dark);text-decoration:none;}
+@media (max-width:480px){h1{font-size:22px;}article h2{font-size:18px;}}
+</style>
+</head>
+<body>
+<nav><div class="nv">
+  <div class="nm"><a href="../../" style="color:inherit;text-decoration:none">田中力磨<small>RIKIMA TANAKA</small></a></div>
+  <ul>
+    <li><a href="../">実録シリーズ一覧</a></li>
+    <li><a href="../../#book">著書</a></li>
+    <li><a href="../../#school">教室</a></li>
+    <li><a href="https://note.com/rikima81" target="_blank" rel="noopener">note</a></li>
+  </ul>
+</div></nav>
+
+<header class="art"><div class="wrap">
+  <div class="crumb"><a href="../../">田中力磨</a> › <a href="../">一人塾のGAS自動化 実録</a> › レシートOCR家計簿</div>
+  <h1>レシートを撮るだけで家計簿が埋まる——GeminiのOCRと楽天メール取込</h1>
+  <p class="lead">レシートを撮るだけで家計簿の入力が終わる仕組みを、GeminiのOCRとGmail自動取り込みで作った。実際に動いているコードと、重複計上とデータ消失を防ぐために足した工夫を記録する。</p>
+  <p class="meta">2026-09-14 公開 ／ 滋賀県彦根市の一人塾「総合学習教室ブリッジ」で実際に動いている仕組みの記録 ／ Google Apps Script（GAS）</p>
+</div></header>
+
+<article><div class="wrap">
+<h2>何を自動化したか</h2>
+<p>家計簿の入力で一番面倒なのは、レシートを見ながら日付・店名・金額・品目ごとの費目を手で打ち込む作業だと思う。うちで運用している「ウキウキ家計簿」（GASで作った個人用Webアプリ）では、レシートやスクリーンショットをスマホで撮るだけでこの入力を済ませ、さらに楽天カード・楽天ペイの利用明細メールを自動で取り込んで、何も撮らなくても記録が埋まっていくようにした。</p>
+<p>撮影1回あたりの入力時間を計測してはいないため実測値は無いが、体感では「レシートを見ながら日付・店名・金額・費目を1つずつ選ぶ」作業がほぼ無くなり、撮って内容を確認して保存するだけになった。メール取り込みの分は完全に無操作で、キャッシュレス払いの記録は何もしなくても翌日には家計簿に載っている。</p>
+
+<h2>仕組み（データの流れ）</h2>
+<p>「塾 GAS 自動化」というより家計簿寄りの話だが、しくみ自体は「Google Apps Script スプレッドシート 同期」の文脈とも重なる部分が多い。レシート撮影とメール取り込みの2経路があり、最終的には同じ1つのデータファイルに合流する。</p>
+<table>
+<tr><th>経路</th><th>読み取り元</th><th>実行場所</th></tr>
+<tr><td>レシート撮影</td><td>スマホのカメラ・アルバム画像</td><td>ブラウザ内（クライアントJS）からGemini APIへ直接送信</td></tr>
+<tr><td>楽天カード明細</td><td>Gmail「カード利用のお知らせ」（確定版・速報版）</td><td>GAS（<code>budgetFetchRakutenCard</code> 等）が定期的にGmailを検索</td></tr>
+<tr><td>楽天ペイ明細</td><td>Gmail「楽天ペイお支払い完了」</td><td>GAS（<code>budgetFetchRakutenPay</code>）が定期的にGmailを検索</td></tr>
+</table>
+<p>レシート撮影は、画像を長辺1600pxまで縮小してからGemini（<code>gemini-2.5-flash</code>）へ直接投げ、「日付・店名・合計・品目ごとの費目」をJSONで返してもらう。サーバー（GAS）を経由させず、ブラウザから直接APIを呼ぶ構成にしているため、画像をいったんどこかにアップロードする手間が無い。</p>
+<p>メール取り込みのほうは、楽天カードには「速報版」（利用直後に届くが店名が無い）と「確定版」（数日遅れで店名つき）の2種類のメールがあり、速報版を仮レコードとして先に記録し、確定版が届いたら店名つきの記録に置き換える2段構えにしている。これにより、家計簿への反映が数日遅れる不満と、店名が分からない不便さの両方を避けている。楽天ペイも別ルートで届くため、同じ買い物が「ペイの完了メール」と「カードの利用明細」の両方に載る問題があり、同じ利用日・同額のペイ記録が既にある場合はカード側の取り込みを飛ばす、という重複排除を挟んでいる。</p>
+<p>データの保存先はサーバー側の1つのJSONファイル（Google ドライブ）で、iPhone・Mac のどちらから開いても同じファイルを読み書きする。ここに「①レシート撮影」「②メール自動取り込み（定期実行）」「③手入力」が同時に書き込みに来るため、保存のたびに単純上書きはせず、現状のファイルとマージしてから書く方式にしている（詳細は次章）。</p>
+
+<h2>コード（要点）</h2>
+<p>レシート撮影は完全にクライアント側（ブラウザのJavaScript）で完結する。画像を縮小し、プロンプトと一緒にGemini APIへ投げるだけの構成。</p>
+<pre><code>function callOcr(b64, mime) {
+  var exCats = DB.categories.filter(function(c){ return c.kind==='expense'; })
+    .map(function(c){ return c.name; });
+  var prompt = 'あなたは日本のレシートや支払い画面のスクリーンショットを読み取る家計簿アシスタントです。'
+    + '画像から支払い1件を読み取り、JSONだけを返してください。\n'
+    + '形式: {"date":"YYYY-MM-DD","store":"店名","total":合計金額の数値,'
+    + '"items":[{"name":"品名","price":数値,"category":"費目"}]}\n'
+    + '費目は次の中から各品目に最も近いものを1つ選ぶ: ' + exCats.join('、') + '。';
+
+  var url = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent'
+    + '?key=' + encodeURIComponent(DB.settings.geminiKey);
+  return fetch(url, {
+    method: 'POST', headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({
+      contents: [{ parts: [{ text: prompt }, { inline_data: { mime_type: mime, data: b64 } }] }],
+      generationConfig: { temperature: 0.1, maxOutputTokens: 4096 }
+    })
+  }).then(function(r){ return r.json(); }).then(function(j){
+    var txt = j.candidates[0].content.parts.map(function(p){ return p.text || ''; }).join('');
+    var m = txt.match(/\{[\s\S]*\}/);
+    return JSON.parse(m[0]);
+  });
+}</code></pre>
+<p>APIキーは本人のGoogleアカウントに保存され、Gemini公式サイトの無料枠で取得したものを使う想定なので、コード自体にキーは書かない。GAS側のメール取り込みは、Gmail検索でヒットしたメール本文を正規表現でパースするだけのシンプルな構成になっている（本文の細かいパース処理はnoteの全文を参照）。</p>
+<pre><code>function budgetFetchRakutenPay(afterYmd) {
+  var q = 'from:(楽天ペイの通知アドレス) subject:(楽天ペイお支払い完了)';
+  q += afterYmd ? (' after:' + afterYmd) : ' newer_than:1y';
+  var threads = GmailApp.search(q, 0, 200);
+  var out = [];
+  threads.forEach(function(t){
+    t.getMessages().forEach(function(m){
+      var rec = parseRakutenPayBody_(m.getPlainBody() || '');
+      if (rec) out.push(rec);
+    });
+  });
+  return out;
+}</code></pre>
+
+<h2>ハマった点と回避策</h2>
+<ul>
+<li><strong>保存の単純上書きは危険。</strong> このデータファイルには「10分おきの自動取り込みトリガー」「毎晩の定期実行」「LINEからのレシート送信」「アプリ画面からの保存」の複数系統が書き込みに来る。アプリ画面は開いた時点の古いスナップショットを送ってくるため、単純に上書きすると、その間にトリガーやLINE経由で追加された記録が消えてしまう事故が起きた。対策として、保存のたびに「ファイルの現状」と「送られてきたデータ」をマージしてから書き込む方式に変更した。ルールは、設定類は送信側をそのまま採用し、記録は id で突き合わせてどちらか片方にしか無いものを残す、削除の印（墓標）は両側の和を取る、というもの。</li>
+<li><strong>同じ買い物が別経路で二重に記録される。</strong> 楽天ペイでの支払いは「ペイの完了メール」と「カードの利用明細メール」の両方に載るため、何も対策しないと同じ買い物が2件記録される。同一日・同額のペイ記録が既にあればカード側の取り込みをスキップする形で防いでいる。また、店名の表記ゆれ（同じ店でも「楽天ＳＰ ○○」と実店舗名の両方で届く等）による二重計上も発生したため、定期的に走る掃除処理で明らかな二重を後から消す仕組みも足した。</li>
+<li><strong>同じレシートを2回撮ってしまう。</strong> 手ぶれ等で撮り直した際に気づかず両方保存すると重複するため、保存前に同じ日付・同額・同じ店の記録が既にあるかを確認し、あれば確認ダイアログを出す簡単な仕組みを入れている。</li>
+<li><strong>画像はそのまま送らない。</strong> スマホのカメラ画像をそのまま送ると通信が遅く不安定になりやすいため、送信前にブラウザ側で長辺1600px・JPEGに縮小してから送るようにした。読み取り速度と安定性が上がり、通信量もかなり減った。</li>
+</ul>
+
+<h2>導入手順</h2>
+<ol>
+<li>Google AI StudioでGemini APIキーを無料枠で取得する。</li>
+<li>家計簿アプリの設定画面でAPIキーを入力する（本人のGoogleアカウントに保存され、端末間で共有される）。</li>
+<li>楽天カード・楽天ペイのメール取り込みを使う場合は、GAS側のスクリプトプロパティは特に必要無く、Web アプリを公開した本人のGmailをそのまま検索する構成にする（複数人分をまとめたい場合は、家族のメールアドレスを設定項目として保持しておく）。</li>
+<li>データ保存用にGoogle ドライブへJSON形式のファイルを1つ用意し、読み込み・保存の2つの関数（<code>DriveApp.getFilesByName</code> で検索して読む／マージしてから書く）をGAS側に用意する。</li>
+<li>保存関数は必ず「現状とのマージ」を経由させる。複数の書き込み元がある場合、単純な <code>setContent</code> による上書きは避ける。</li>
+<li>日次バックアップとして、保存ファイルの日付つきコピーを一定世代数だけ残しておくと、事故が起きたときに貼り戻して復旧できる。</li>
+</ol>
+
+<h2>よくある質問</h2>
+<h3>Q. Gemini APIの利用は有料ですか？</h3>
+<p>無料枠の範囲で個人の家計簿用途には十分足りている。詳しい料金体系はGoogle公式のページを確認してほしい。</p>
+<h3>Q. レシートの品目を1つずつ費目分けしてくれますか？</h3>
+<p>する。スーパーのレシートのように食品と日用品が混ざっている場合は、品目ごとにAIが費目を割り当て、金額の大きい費目を代表として全体のカテゴリにも反映する。違っていればその場で選び直せる。</p>
+<h3>Q. メールの書式が変わったら壊れませんか？</h3>
+<p>正規表現でのパースなので書式変更には弱い。実際にコロン記号が全角・半角どちらでも来ることがあったため、両方を受け付けるようにするなど、頑丈さは実際に届いたメールを見ながら少しずつ足している。完全に無音で止まらないよう、取り込み失敗はエラーとして拾い、件数と合わせて確認できるようにしておくとよい。</p>
+
+
+<div class="box">
+  <h2>この仕組みの「全体像」と「コード全文」</h2>
+  <ul>
+    <li><a href="https://www.amazon.co.jp/dp/B0HCGTWG3J?ref=site-gas-receipt-ocr-budget" target="_blank" rel="noopener">Kindle『個人塾長、AIを雇う。』（500円・Kindle Unlimited対応）</a><small>2年間の実録を1冊に。何をどの順で自動化したか、失敗も含めて</small></li>
+    <li><a href="https://note.com/rikima81/n/n32a261a6e064?ref=site-gas-receipt-ocr-budget" target="_blank" rel="noopener">note『個人塾をGASで自動化した実録（実コード付き）』（1,800円）</a><small>この記事で省略したコード全文と、貼り付け手順</small></li>
+    <li><a href="https://www.amazon.com/dp/B0HBPFZXDQ?ref=site-gas-receipt-ocr-budget" target="_blank" rel="noopener">English edition: How I Automated My One-Man Tutoring School with AI ($6.99)</a></li>
+  </ul>
+</div>
+
+<div class="series">
+  <strong>実録シリーズ（全8本）</strong>
+  <ol>
+    <li><a href="../line-auto-reply/">LINE公式アカウントの即時自動応答と申込フォーム</a></li>
+    <li><a href="../trial-follow/">体験生フォローの自動化（前日リマインド・退会予兆）</a></li>
+    <li><a href="../monthly-fee-sync/">OneDriveの月謝表をGoogleスプレッドシートへ毎日同期</a></li>
+    <li><a href="../unpaid-tracking/">未納の自動転記と回収済み更新</a></li>
+    <li><a href="../threads-auto-post/">Threads自動投稿（生成→採点→学習ループ）</a></li>
+    <li><a href="../trigger-dispatcher/">GASトリガー上限20本の壁と6本ディスパッチャー</a></li>
+    <li><a href="../receipt-ocr-budget/">レシート撮影で家計簿が埋まる（Gemini OCR）</a></li>
+    <li><a href="../grade-promotion/">毎年4月1日に学年を自動で進級させる</a></li>
+  </ol>
+</div>
+</div></article>
+
+<footer>
+  <p><a href="../../">田中力磨｜RIKIMA TANAKA</a></p>
+  <p>総合学習教室ブリッジ（滋賀県彦根市稲枝町311-5）</p>
+</footer>
+</body>
+</html>

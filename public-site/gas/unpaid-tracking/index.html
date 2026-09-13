@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>未納を自動で転記し、入金されたら自動で消す｜一人塾のGAS自動化 実録｜田中力磨</title>
+<meta name="description" content="塾の月謝未納者を毎週自動で転記し、入金確認後は自動で回収済みにするGAS実装。段階的な督促下書き生成も含めて解説。">
+<link rel="canonical" href="https://rikimat.github.io/bridge-site/gas/unpaid-tracking/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="未納を自動で転記し、入金されたら自動で消す">
+<meta property="og:description" content="塾の月謝未納者を毎週自動で転記し、入金確認後は自動で回収済みにするGAS実装。段階的な督促下書き生成も含めて解説。">
+<meta property="og:url" content="https://rikimat.github.io/bridge-site/gas/unpaid-tracking/">
+<meta property="og:image" content="https://rikimat.github.io/bridge-site/og-rikima.jpg">
+<meta property="og:site_name" content="田中力磨｜総合学習教室ブリッジ">
+<meta property="og:locale" content="ja_JP">
+<meta name="twitter:card" content="summary_large_image">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "TechArticle",
+  "headline": "未納を自動で転記し、入金されたら自動で消す",
+  "description": "塾の月謝未納者を毎週自動で転記し、入金確認後は自動で回収済みにするGAS実装。段階的な督促下書き生成も含めて解説。",
+  "inLanguage": "ja",
+  "datePublished": "2026-09-14",
+  "dateModified": "2026-09-14",
+  "author": { "@type": "Person", "name": "田中力磨", "url": "https://rikimat.github.io/bridge-site/" },
+  "publisher": { "@type": "Person", "name": "田中力磨" },
+  "mainEntityOfPage": "https://rikimat.github.io/bridge-site/gas/unpaid-tracking/",
+  "isPartOf": { "@type": "Blog", "name": "一人塾のGAS自動化 実録", "url": "https://rikimat.github.io/bridge-site/gas/" }
+}
+</script>
+<style>
+:root{--ink:#1d2433;--paper:#f5f9fc;--white:#fff;--amber:#2b8fd0;--amber-dark:#1667a0;--line:#dde7ef;--sub:#5d6473;--muted:#949aa8;--code:#0f172a;}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:"Hiragino Kaku Gothic ProN","Noto Sans JP",sans-serif;background:var(--paper);color:var(--ink);line-height:1.95;font-size:16px;}
+.wrap{max-width:760px;margin:0 auto;padding:0 20px;}
+nav{position:sticky;top:0;z-index:50;background:rgba(245,249,252,.92);backdrop-filter:blur(10px);border-bottom:1px solid var(--line);}
+.nv{max-width:760px;margin:0 auto;padding:12px 20px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;}
+.nv .nm{font-weight:700;letter-spacing:2px;font-size:14px;}.nv .nm small{display:block;font-size:9px;letter-spacing:3px;color:var(--amber-dark);}
+.nv ul{display:flex;gap:14px;list-style:none;}.nv a{color:var(--sub);text-decoration:none;font-size:12.5px;white-space:nowrap;}.nv a:hover{color:var(--amber-dark);}
+header.art{padding:48px 0 24px;border-bottom:1px solid var(--line);}
+.crumb{font-size:12px;color:var(--muted);margin-bottom:12px;}.crumb a{color:var(--amber-dark);text-decoration:none;}
+h1{font-size:26px;line-height:1.5;letter-spacing:.5px;margin-bottom:12px;}
+.lead{color:var(--sub);font-size:15px;}
+.meta{font-size:12px;color:var(--muted);margin-top:10px;}
+article{padding:24px 0 40px;}
+article h2{font-size:20px;margin:40px 0 12px;padding-left:12px;border-left:4px solid var(--amber);line-height:1.5;}
+article h3{font-size:16.5px;margin:26px 0 8px;color:var(--amber-dark);}
+article p{margin:0 0 14px;}
+article ul,article ol{margin:0 0 14px 22px;}article li{margin-bottom:4px;}
+article table{border-collapse:collapse;width:100%;margin:0 0 16px;font-size:14px;}
+article th,article td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top;background:var(--white);}
+article th{background:#e8f3fb;}
+pre{background:var(--code);color:#e2e8f0;padding:16px 18px;border-radius:8px;overflow-x:auto;font-size:13px;line-height:1.6;margin:0 0 16px;}
+code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;}
+p code,li code,td code{background:#e8f3fb;padding:1px 6px;border-radius:4px;font-size:.92em;color:var(--amber-dark);}
+.note{background:var(--white);border:1px solid var(--line);border-left:4px solid var(--amber);padding:12px 16px;border-radius:6px;margin:0 0 16px;font-size:14.5px;}
+.box{background:var(--white);border:1px solid var(--line);border-radius:10px;padding:20px 22px;margin:36px 0 0;}
+.box h2{border:0;padding:0;margin:0 0 10px;font-size:18px;}
+.box a{color:var(--amber-dark);font-weight:700;text-decoration:none;}
+.box ul{list-style:none;margin:0;}.box li{margin-bottom:8px;}
+.box small{color:var(--muted);display:block;font-size:12px;}
+.series{margin:32px 0 0;font-size:14px;}.series a{color:var(--amber-dark);text-decoration:none;}.series li{margin-bottom:4px;}
+footer{border-top:1px solid var(--line);padding:32px 0 48px;text-align:center;color:var(--muted);font-size:12.5px;}
+footer a{color:var(--amber-dark);text-decoration:none;}
+@media (max-width:480px){h1{font-size:22px;}article h2{font-size:18px;}}
+</style>
+</head>
+<body>
+<nav><div class="nv">
+  <div class="nm"><a href="../../" style="color:inherit;text-decoration:none">田中力磨<small>RIKIMA TANAKA</small></a></div>
+  <ul>
+    <li><a href="../">実録シリーズ一覧</a></li>
+    <li><a href="../../#book">著書</a></li>
+    <li><a href="../../#school">教室</a></li>
+    <li><a href="https://note.com/rikima81" target="_blank" rel="noopener">note</a></li>
+  </ul>
+</div></nav>
+
+<header class="art"><div class="wrap">
+  <div class="crumb"><a href="../../">田中力磨</a> › <a href="../">一人塾のGAS自動化 実録</a> › 未納の自動転記</div>
+  <h1>未納を自動で転記し、入金されたら自動で消す</h1>
+  <p class="lead">未入金者を探して手で転記する作業をやめ、毎週月曜に自動転記→入金確認で自動的に消える仕組みにした。段階的な督促下書きの自動生成も合わせて紹介する。</p>
+  <p class="meta">2026-09-14 公開 ／ 滋賀県彦根市の一人塾「総合学習教室ブリッジ」で実際に動いている仕組みの記録 ／ Google Apps Script（GAS）</p>
+</div></header>
+
+<article><div class="wrap">
+<h2>何を自動化したか（塾 GAS 自動化・未納管理）</h2>
+<p>これまで、月謝の未入金者を把握するには生徒管理アプリの「概況」タブを開いて未入金一覧を目で確認し、督促が必要な生徒を別シートへ手で転記していました。転記自体が単純作業である上に、入金が確認できたあとに一覧から外す作業も忘れがちでした。</p>
+<p>そこで、毎週月曜に「先月分の未入金者」を自動で「未納管理」シートへ転記し、その後に入金が確認できた行は自動で「回収済み(自動)」に更新するGASを作りました。転記された行には、続けて段階的な督促メールの下書きを自動生成する処理が走ります。件数の実測はしていないため数字では出せませんが、体感では「未入金者を探して書き写す」作業自体がなくなりました。</p>
+<p>この記事で扱う仕組みは、生徒名・支払い状況・保護者連絡先という個人情報を直接扱います。そのため転記・督促生成のいずれも、データソースとなるスプレッドシートIDが未設定であれば何もしない安全設計にしてあります。</p>
+
+<h2>仕組み（データの流れ）</h2>
+<table>
+<tr><th>手順</th><th>処理</th></tr>
+<tr><td>1</td><td>生徒管理アプリのデータソースから、入金記録シート・生徒シート・在籍コースシートを、ヘッダー名で自動的に探し出す</td></tr>
+<tr><td>2</td><td>入金記録を「西暦-月 → {生徒ID: 入金済みか}」の形に整理する</td></tr>
+<tr><td>3</td><td>先月時点で在籍していた生徒（入会日・退会日から判定）を洗い出す</td></tr>
+<tr><td>4</td><td>在籍コースから生徒ごとの月額を概算する（先月の近似値として使う）</td></tr>
+<tr><td>5</td><td>先月分が未入金かつ「未納管理」シートに未登録の生徒を、1回あたり最大20名まで自動で追記する</td></tr>
+<tr><td>6</td><td>「未納管理」シートの既存行のうち、対象月の入金が確認できたものを「回収済み(自動)」に自動更新する</td></tr>
+<tr><td>7</td><td>転記された行に対して、経過日数に応じた段階的な督促文（Geminiで生成）の下書きをGmailに作る</td></tr>
+</table>
+<p>督促は3段階です。1段階目は「行き違いでしたらご容赦ください」を必ず添えたやんわりした確認、2段階目は支払期日を明記した事務的な依頼、3段階目はメールではなく電話・送迎時の声かけを促す通知に切り替えます。段階を進めるのは前回の督促から6日以上経過してからで、週次実行1回につき1段階までしか進みません。</p>
+
+<h2>コード（要点）</h2>
+<p>データソース側のシート構成が変わっても追従できるよう、必須の列を「ヘッダー名の別名候補」で探す仕組みにしています。</p>
+<pre><code>function salesSheetWithCols_(ss, required) {
+  var sheets = ss.getSheets();
+  for (var i = 0; i &lt; sheets.length; i++) {
+    var sh = sheets[i];
+    var headers = sh.getRange(1, 1, 1, sh.getLastColumn()).getValues()[0]
+      .map(function(h) { return String(h || '').trim().toLowerCase(); });
+    var cols = {}, ok = true;
+    for (var key in required) {
+      var idx = -1;
+      for (var c = 0; c &lt; required[key].length &amp;&amp; idx &lt; 0; c++) {
+        idx = headers.indexOf(required[key][c]);
+      }
+      if (idx &lt; 0) { ok = false; break; }
+      cols[key] = idx;
+    }
+    if (ok) return { sheet: sh, cols: cols };
+  }
+  return null;
+}</code></pre>
+<p>データソースのスプレッドシートIDは、コードに直接書かずスクリプトプロパティから読みます。未設定なら何もせず終了します。</p>
+<pre><code>function salesSyncUnpaidToRecovery() {
+  var srcId = PropertiesService.getScriptProperties().getProperty('BRIDGE_DATA_SHEET_ID');
+  if (!srcId) { Logger.log('未納転記: BRIDGE_DATA_SHEET_ID 未設定のためスキップ'); return; }
+  var src = SpreadsheetApp.openById(srcId);
+  // ...入金記録シート・生徒シート・在籍コースシートをヘッダー名で特定
+}</code></pre>
+<p>先月分の未入金者を、重複チェックをしながら最大20名まで追記します。</p>
+<pre><code>var lastPaid = paidBy[yr + '-' + mo] || {};
+actives.forEach(function(a) {
+  if (added.length &gt;= 20 || lastPaid[a.sid] || seen[a.name + '|' + monthLabel]) return;
+  var amount = monthlyBySid[a.sid] ? '¥' + Number(monthlyBySid[a.sid]).toLocaleString() : '';
+  sheet.appendRow([a.name, '', monthLabel, amount, '', '', '自動転記 ' + today]);
+  added.push('・' + a.name);
+});</code></pre>
+<p>転記済みの行は、対象月の入金が確認できた時点で自動的に状態を更新します。</p>
+<pre><code>for (var j = 1; j &lt; rows.length; j++) {
+  var state = String(rows[j][4] || '').trim();
+  if (state === '回収済み' || state === '回収済み(自動)' || state === '対応中止') continue;
+  var m = String(rows[j][2] || '').match(/^(\d{4})年(\d{1,2})月$/);
+  var rsid = nameToSid[String(rows[j][0]).trim()];
+  if (!m || !rsid) continue;
+  var pset = paidBy[Number(m[1]) + '-' + Number(m[2])];
+  if (pset &amp;&amp; pset[rsid]) {
+    sheet.getRange(j + 1, 5).setValue('回収済み(自動)');
+    recovered.push('・' + rows[j][0]);
+  }
+}</code></pre>
+<p>督促は段階に応じてトーンを変え、Geminiで文面を生成してGmailの下書きに残します。実際の送信はせず、下書きを作るところまでを自動化しています。</p>
+<pre><code>var tone = (nextStage === 1)
+  ? 'やんわりとした確認。「行き違いでしたらご容赦ください」と必ず添える。責める雰囲気ゼロ。'
+  : '丁寧だが事務的なお願い。お支払い期日を改めて明記し、難しい場合は相談してほしいと添える。';
+if (nextStage &gt;= 3) {
+  // 段階3: メールではなく電話・対面を推奨（こじらせないため自動文面は作らない）
+} else {
+  var result = autoGeminiJson([...tone を含むプロンプト...].join('\n'));
+  if (email) GmailApp.createDraft(email, result.subject, result.body);
+}</code></pre>
+<p>入金記録の解析部分やGeminiプロンプトの全文はnoteに掲載しています。</p>
+
+<h2>ハマった点と回避策</h2>
+<h3>督促の間隔をログ文字列から逆算している</h3>
+<p>督促の履歴は専用の日付列ではなく「段階1 9/1」のようなログ文字列に積んでいく形にしているため、次に進めてよいかの判定はログの最後の日付を正規表現で拾って比較する必要があります。列を増やさずに済む一方、ログの書式を変えると判定が壊れるため、書式（「段階N M/d」）は固定にしています。</p>
+<h3>「回収済み」判定は状態文字列の完全一致にしている</h3>
+<p>状態欄に人が「回収済」「入金確認済み」のように違う書き方をすると自動更新の対象から外れず何度も督促が走ってしまうため、自動更新が付ける文字列は必ず「回収済み(自動)」に固定し、人が手で書く「回収済み」「対応中止」とあわせて除外条件に含めています。表記が増えるたびに除外条件へ足す必要がある点は運用上の弱点です。</p>
+<h3>金額はあくまで概算</h3>
+<p>先月時点の月額ではなく、現在の在籍コースから逆算した概算値を表示しています。月の途中でコース変更があった生徒は実際の請求額とずれる可能性があるため、転記された金額は目安として扱い、督促メールの本文には具体的な金額を書かないトーンにしています。</p>
+
+<h2>導入手順</h2>
+<ol>
+<li>生徒管理アプリのデータソース（入金記録・生徒情報・在籍コースの3シート）が入っているスプレッドシートのIDを控える</li>
+<li>スクリプトプロパティに以下を設定する
+  <ul>
+    <li><code>BRIDGE_DATA_SHEET_ID</code> … データソースのスプレッドシートID</li>
+  </ul>
+</li>
+<li>「未納管理」シートを用意する（初回実行時にヘッダー付きで自動作成される）。列は「生徒名・保護者メール・対象月・金額・状態・督促段階・ログ」</li>
+<li>未入金の自動転記処理を、既存の定期実行の仕組み（トリガー）に週次で1本相乗りさせる</li>
+<li>段階督促の生成処理も同じく週次で、転記処理の直後に呼ぶように登録する</li>
+<li>初回実行後、「未納管理」シートに先月分の未入金者が並んでいるか、入金済みの生徒が誤って載っていないかを確認する</li>
+<li>回収できた行は、自動更新を待たずに手動で状態欄へ「回収済み」と書いてもよい（対象から除外される）</li>
+</ol>
+
+<h2>よくある質問</h2>
+<h3>督促メールは自動で送信されますか</h3>
+<p>送信はしません。Gmailの下書きを自動生成するところまでで、実際に送るかどうかは必ず人が最終確認してから送信します。督促は保護者との信頼関係に関わるため、自動送信はあえて実装していません。</p>
+<h3>入金確認のタイミングは即時ですか</h3>
+<p>週次の定期実行のタイミングでまとめて判定するため、最大で1週間ほど「回収済み」への反映が遅れます。即時性より、誤検知を防ぐために入金記録側の反映を待つことを優先しています。</p>
+<h3>対象月の判定はどこを見ていますか</h3>
+<p>実行日の前月を対象にしています。月初に実行することで、先月分の締めが終わった状態の入金記録を確実に参照できるようにしています。</p>
+
+
+<div class="box">
+  <h2>この仕組みの「全体像」と「コード全文」</h2>
+  <ul>
+    <li><a href="https://www.amazon.co.jp/dp/B0HCGTWG3J?ref=site-gas-unpaid-tracking" target="_blank" rel="noopener">Kindle『個人塾長、AIを雇う。』（500円・Kindle Unlimited対応）</a><small>2年間の実録を1冊に。何をどの順で自動化したか、失敗も含めて</small></li>
+    <li><a href="https://note.com/rikima81/n/n32a261a6e064?ref=site-gas-unpaid-tracking" target="_blank" rel="noopener">note『個人塾をGASで自動化した実録（実コード付き）』（1,800円）</a><small>この記事で省略したコード全文と、貼り付け手順</small></li>
+    <li><a href="https://www.amazon.com/dp/B0HBPFZXDQ?ref=site-gas-unpaid-tracking" target="_blank" rel="noopener">English edition: How I Automated My One-Man Tutoring School with AI ($6.99)</a></li>
+  </ul>
+</div>
+
+<div class="series">
+  <strong>実録シリーズ（全8本）</strong>
+  <ol>
+    <li><a href="../line-auto-reply/">LINE公式アカウントの即時自動応答と申込フォーム</a></li>
+    <li><a href="../trial-follow/">体験生フォローの自動化（前日リマインド・退会予兆）</a></li>
+    <li><a href="../monthly-fee-sync/">OneDriveの月謝表をGoogleスプレッドシートへ毎日同期</a></li>
+    <li><a href="../unpaid-tracking/">未納の自動転記と回収済み更新</a></li>
+    <li><a href="../threads-auto-post/">Threads自動投稿（生成→採点→学習ループ）</a></li>
+    <li><a href="../trigger-dispatcher/">GASトリガー上限20本の壁と6本ディスパッチャー</a></li>
+    <li><a href="../receipt-ocr-budget/">レシート撮影で家計簿が埋まる（Gemini OCR）</a></li>
+    <li><a href="../grade-promotion/">毎年4月1日に学年を自動で進級させる</a></li>
+  </ol>
+</div>
+</div></article>
+
+<footer>
+  <p><a href="../../">田中力磨｜RIKIMA TANAKA</a></p>
+  <p>総合学習教室ブリッジ（滋賀県彦根市稲枝町311-5）</p>
+</footer>
+</body>
+</html>

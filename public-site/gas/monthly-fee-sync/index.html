@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OneDriveの月謝表をGoogleスプレッドシートへ毎日同期する｜一人塾のGAS自動化 実録｜田中力磨</title>
+<meta name="description" content="OneDriveのExcel月謝表とGoogleスプレッドシートの二重管理をGASで解消した記録。月ブロック解析・位置/氏名照合・安全な3段階反映の実装。">
+<link rel="canonical" href="https://rikimat.github.io/bridge-site/gas/monthly-fee-sync/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="OneDriveの月謝表をGoogleスプレッドシートへ毎日同期する">
+<meta property="og:description" content="OneDriveのExcel月謝表とGoogleスプレッドシートの二重管理をGASで解消した記録。月ブロック解析・位置/氏名照合・安全な3段階反映の実装。">
+<meta property="og:url" content="https://rikimat.github.io/bridge-site/gas/monthly-fee-sync/">
+<meta property="og:image" content="https://rikimat.github.io/bridge-site/og-rikima.jpg">
+<meta property="og:site_name" content="田中力磨｜総合学習教室ブリッジ">
+<meta property="og:locale" content="ja_JP">
+<meta name="twitter:card" content="summary_large_image">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "TechArticle",
+  "headline": "OneDriveの月謝表をGoogleスプレッドシートへ毎日同期する",
+  "description": "OneDriveのExcel月謝表とGoogleスプレッドシートの二重管理をGASで解消した記録。月ブロック解析・位置/氏名照合・安全な3段階反映の実装。",
+  "inLanguage": "ja",
+  "datePublished": "2026-09-14",
+  "dateModified": "2026-09-14",
+  "author": { "@type": "Person", "name": "田中力磨", "url": "https://rikimat.github.io/bridge-site/" },
+  "publisher": { "@type": "Person", "name": "田中力磨" },
+  "mainEntityOfPage": "https://rikimat.github.io/bridge-site/gas/monthly-fee-sync/",
+  "isPartOf": { "@type": "Blog", "name": "一人塾のGAS自動化 実録", "url": "https://rikimat.github.io/bridge-site/gas/" }
+}
+</script>
+<style>
+:root{--ink:#1d2433;--paper:#f5f9fc;--white:#fff;--amber:#2b8fd0;--amber-dark:#1667a0;--line:#dde7ef;--sub:#5d6473;--muted:#949aa8;--code:#0f172a;}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:"Hiragino Kaku Gothic ProN","Noto Sans JP",sans-serif;background:var(--paper);color:var(--ink);line-height:1.95;font-size:16px;}
+.wrap{max-width:760px;margin:0 auto;padding:0 20px;}
+nav{position:sticky;top:0;z-index:50;background:rgba(245,249,252,.92);backdrop-filter:blur(10px);border-bottom:1px solid var(--line);}
+.nv{max-width:760px;margin:0 auto;padding:12px 20px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;}
+.nv .nm{font-weight:700;letter-spacing:2px;font-size:14px;}.nv .nm small{display:block;font-size:9px;letter-spacing:3px;color:var(--amber-dark);}
+.nv ul{display:flex;gap:14px;list-style:none;}.nv a{color:var(--sub);text-decoration:none;font-size:12.5px;white-space:nowrap;}.nv a:hover{color:var(--amber-dark);}
+header.art{padding:48px 0 24px;border-bottom:1px solid var(--line);}
+.crumb{font-size:12px;color:var(--muted);margin-bottom:12px;}.crumb a{color:var(--amber-dark);text-decoration:none;}
+h1{font-size:26px;line-height:1.5;letter-spacing:.5px;margin-bottom:12px;}
+.lead{color:var(--sub);font-size:15px;}
+.meta{font-size:12px;color:var(--muted);margin-top:10px;}
+article{padding:24px 0 40px;}
+article h2{font-size:20px;margin:40px 0 12px;padding-left:12px;border-left:4px solid var(--amber);line-height:1.5;}
+article h3{font-size:16.5px;margin:26px 0 8px;color:var(--amber-dark);}
+article p{margin:0 0 14px;}
+article ul,article ol{margin:0 0 14px 22px;}article li{margin-bottom:4px;}
+article table{border-collapse:collapse;width:100%;margin:0 0 16px;font-size:14px;}
+article th,article td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top;background:var(--white);}
+article th{background:#e8f3fb;}
+pre{background:var(--code);color:#e2e8f0;padding:16px 18px;border-radius:8px;overflow-x:auto;font-size:13px;line-height:1.6;margin:0 0 16px;}
+code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;}
+p code,li code,td code{background:#e8f3fb;padding:1px 6px;border-radius:4px;font-size:.92em;color:var(--amber-dark);}
+.note{background:var(--white);border:1px solid var(--line);border-left:4px solid var(--amber);padding:12px 16px;border-radius:6px;margin:0 0 16px;font-size:14.5px;}
+.box{background:var(--white);border:1px solid var(--line);border-radius:10px;padding:20px 22px;margin:36px 0 0;}
+.box h2{border:0;padding:0;margin:0 0 10px;font-size:18px;}
+.box a{color:var(--amber-dark);font-weight:700;text-decoration:none;}
+.box ul{list-style:none;margin:0;}.box li{margin-bottom:8px;}
+.box small{color:var(--muted);display:block;font-size:12px;}
+.series{margin:32px 0 0;font-size:14px;}.series a{color:var(--amber-dark);text-decoration:none;}.series li{margin-bottom:4px;}
+footer{border-top:1px solid var(--line);padding:32px 0 48px;text-align:center;color:var(--muted);font-size:12.5px;}
+footer a{color:var(--amber-dark);text-decoration:none;}
+@media (max-width:480px){h1{font-size:22px;}article h2{font-size:18px;}}
+</style>
+</head>
+<body>
+<nav><div class="nv">
+  <div class="nm"><a href="../../" style="color:inherit;text-decoration:none">田中力磨<small>RIKIMA TANAKA</small></a></div>
+  <ul>
+    <li><a href="../">実録シリーズ一覧</a></li>
+    <li><a href="../../#book">著書</a></li>
+    <li><a href="../../#school">教室</a></li>
+    <li><a href="https://note.com/rikima81" target="_blank" rel="noopener">note</a></li>
+  </ul>
+</div></nav>
+
+<header class="art"><div class="wrap">
+  <div class="crumb"><a href="../../">田中力磨</a> › <a href="../">一人塾のGAS自動化 実録</a> › 月謝表の自動同期</div>
+  <h1>OneDriveの月謝表をGoogleスプレッドシートへ毎日同期する</h1>
+  <p class="lead">妻が編集するOneDriveのExcelとアプリが見るGoogleスプレッドシート、2つの月謝表を手で合わせるのをやめた話。診断→プレビュー→反映の3段階で安全に自動化した。</p>
+  <p class="meta">2026-09-14 公開 ／ 滋賀県彦根市の一人塾「総合学習教室ブリッジ」で実際に動いている仕組みの記録 ／ Google Apps Script（GAS）</p>
+</div></header>
+
+<article><div class="wrap">
+<h2>何を自動化したか（塾 GAS 自動化・Google Apps Script スプレッドシート 同期）</h2>
+<p>総合学習教室ブリッジでは、月謝と未入金の「正本」は妻が編集するOneDriveのExcel（横並びの月ブロック形式）で、生徒管理アプリが読んでいるのはGoogleスプレッドシート「bridge生徒管理」です。この2つが別々に存在する限り、どちらかを見て手で転記するしかなく、転記漏れや二重管理のズレが避けられませんでした。</p>
+<p>そこで、OneDriveのExcelを定期的にダウンロードしてGoogleスプレッドシートに変換し、月ごとのブロックを突き合わせて「合計」セルの値と文字色（赤=未入金）だけをアプリ側へ反映するGASを作りました。手で転記する作業自体をなくすのが狙いです。実際に何件・何分減ったかは計測していないため数字では出せませんが、体感では「月謝表を開いて目を凝らして数字を拾う」作業が丸ごとなくなりました。</p>
+<p>設計で最も気を配ったのは、生徒名・保護者名・金額そのものといった個人情報を扱う処理でありながら、書き込み対象を「合計セルの値と色」だけに絞り、行の追加・削除やレイアウト変更は一切しないことです。正本を壊さない・アプリ側の見た目を変えないという制約を先に決めてから実装しています。</p>
+
+<h2>仕組み（データの流れ）</h2>
+<p>安全のため3段階に分けています。いきなり書き込む設計にはしていません。</p>
+<table>
+<tr><th>段階</th><th>関数</th><th>やること</th></tr>
+<tr><td>1. 診断</td><td>Inspect</td><td>読み取りのみ。両シートの構造（タブ名・月・人数）を診断シートに書き出す</td></tr>
+<tr><td>2. プレビュー</td><td>DryRun</td><td>読み取りのみ。生徒ごとの差分（一致／不一致／未照合）を専用シートに書き出す</td></tr>
+<tr><td>3. 反映</td><td>Apply</td><td>実書き込み。有効化フラグが立っているときだけ動く</td></tr>
+</table>
+<p>データの流れは次のとおりです。</p>
+<table>
+<tr><th>手順</th><th>処理</th></tr>
+<tr><td>1</td><td>OneDriveの共有Excel（またはMicrosoft連携済みなら本人ドライブ）からxlsxを取得し、一時的にGoogleスプレッドシートへ変換して開く</td></tr>
+<tr><td>2</td><td>各シートの1行目を走査し、「6月」「７月」のような月見出しセルをブロックの開始位置として検出する</td></tr>
+<tr><td>3</td><td>ブロック内の各行から生徒名と「合計」列（末尾側で最初に数値が拾える列）を取り出し、文字色が赤なら未入金と判定する</td></tr>
+<tr><td>4</td><td>同じ「西暦・月」のブロック同士を、まず並び順（位置）で対応づけを試み、人数が合わない・名前の並びが崩れている場合は正規化した氏名（＋手動の氏名対応表）で対応づける</td></tr>
+<tr><td>5</td><td>差分（アプリ側の現在値とOneDrive側の値・未入金フラグ）を集計し、不一致だけをアプリ側の該当セルへ書き込む</td></tr>
+<tr><td>6</td><td>入金状態を、アプリのバックエンドが備考欄で使う「[済]」テキストにも変換して付け外しする</td></tr>
+</table>
+<p>「合計」列は生徒ごとに列がずれることがあるため、月ブロックの末尾側から手前へ走査し、最初に数値として読める列を合計とみなしています。</p>
+
+<h2>コード（要点）</h2>
+<p>月見出しの検出は、全角数字（６月）や余分な空白が混じっていても拾えるよう正規化してから判定します。</p>
+<pre><code>function bridgeMonthFromHeader_(v) {
+  var s = String(v == null ? '' : v)
+    .replace(/[０-９]/g, function (c) { return String.fromCharCode(c.charCodeAt(0) - 0xFEE0); })
+    .replace(/[\s　]/g, '');
+  var m = s.match(/^(\d{1,2})月$/);
+  if (!m) return null;
+  var n = parseInt(m[1], 10);
+  return (n &gt;= 1 &amp;&amp; n &lt;= 12) ? n : null;
+}</code></pre>
+<p>未入金の判定は文字色から行います。「赤が強く、緑・青が弱い」を基準にしているので、多少の色味の違いも拾えます。</p>
+<pre><code>function bridgeIsRed_(hex) {
+  if (!hex) return false;
+  var m = String(hex).toLowerCase().match(/^#?([0-9a-f]{6})$/);
+  if (!m) return false;
+  var r = parseInt(m[1].substr(0, 2), 16);
+  var g = parseInt(m[1].substr(2, 2), 16);
+  var b = parseInt(m[1].substr(4, 2), 16);
+  return r &gt;= 150 &amp;&amp; g &lt;= 110 &amp;&amp; b &lt;= 110;
+}</code></pre>
+<p>月ブロック内の対応づけは、位置優先・氏名フォールバックの2段構えです。</p>
+<pre><code>function bridgeAlignBlock_(odBlock, appBlock, aliases) {
+  var odS = odBlock.students, appS = appBlock.students;
+  // (a) 人数一致 かつ 正規化氏名が並び順で8割以上一致 → 位置で対応
+  if (odS.length === appS.length &amp;&amp; odS.length &gt; 0) {
+    var same = 0;
+    for (var i = 0; i &lt; odS.length; i++) if (odS[i].normName === appS[i].normName) same++;
+    if (same / odS.length &gt;= 0.8) {
+      return odS.map(function (o, idx) { return { od: o, app: appS[idx], method: '位置' }; });
+    }
+  }
+  // (b) 氏名（＋氏名対応表のエイリアス）で対応
+  var appIdx = {};
+  appS.forEach(function (a) { if (a.normName) appIdx[a.normName] = a; });
+  return odS.map(function (o) {
+    var key = aliases[o.normName] || o.normName;
+    return { od: o, app: appIdx[key] || null, method: '氏名' };
+  });
+}</code></pre>
+<p>実際の書き込みは、不一致のセルの値と文字色だけを更新します。入金状態は備考欄の「[済]」表記へも変換します。</p>
+<pre><code>result.diffs.forEach(function (d) {
+  if (d.status !== '不一致') return;
+  var cell = sh.getRange(d.bRow + 1, d.bCol + 1); // 0始まり→1始まり
+  cell.setValue(d.odTotal);
+  cell.setFontColor(d.odUnpaid ? '#ff0000' : '#000000');
+});
+// 備考欄の [済] を色（未入金/入金済）に合わせて付け外しする
+var wantPaid = !d.odUnpaid;
+var hasPaid = /\[済\]/.test(note);
+if (wantPaid &amp;&amp; !hasPaid) {
+  sh.getRange(r + 1, noteCol + 1).setValue((note ? note + ' ' : '') + '[済]');
+} else if (!wantPaid &amp;&amp; hasPaid) {
+  sh.getRange(r + 1, noteCol + 1).setValue(note.replace(/\s*\[済\]/g, '').trim());
+}</code></pre>
+<p>反映前には毎回、対象スプレッドシートのコピーを自動でバックアップします（同日分は1つにまとめる）。実行のたびにファイルが増えて肥大化しないための工夫です。長い関数（OneDriveの取得を複数方式で試すフォールバック処理やMicrosoft連携部分）は全文をnoteに掲載しています。</p>
+
+<h2>ハマった点と回避策</h2>
+<h3>全角の月見出しを見落としていた</h3>
+<p>2026年のシートで6月・7月の見出しが全角（６月・７月）で入力されており、半角前提の正規表現ではそのブロックごと検出できていませんでした。見出し判定の前に全角数字を半角へ正規化する処理を先頭に足して解決しました。</p>
+<h3>正本に新しい月が増えても永遠に同期されない</h3>
+<p>月が変わって新しい月ブロックが正本側に追加されても、アプリ側に受け皿となる列がなければ、突き合わせ処理は「対応するブロックが無い」として読み飛ばしてしまいます。実際にある月でアプリ側にその月の数字が一切出ない状態が発生しました。対策として、反映処理の冒頭で「正本にあってアプリ側に無い月ブロック」を検出し、値と文字色ごと年シートの空き列にコピーしてから差分計算をする処理を追加しました。既存のブロックには触れず、右側に足すだけにしています。</p>
+<h3>取得経路の失敗理由が埋もれる</h3>
+<p>OneDriveの共有リンク取得は環境によって複数の失敗パターンがあり、認証連携が切れているだけなのに「共有リンクが401」という表面的なエラーだけが表に出て、根本原因（再認証が必要）に気づけないことがありました。各取得方式のログを配列にため、最終的なエラーメッセージの先頭に必ず載せる形にしています。</p>
+
+<h2>導入手順</h2>
+<ol>
+<li>アプリのバックエンドを管理しているGoogle Apps Scriptプロジェクトに、月謝表の月ブロック解析・突き合わせ・反映を行うスクリプトを追加する</li>
+<li>スクリプトプロパティに以下を設定する（値そのものはコードに書かない）
+  <ul>
+    <li><code>ONEDRIVE_SHARE_URL</code> … OneDriveの共有リンク（「リンクを知っている全員が閲覧可」）</li>
+    <li><code>BRIDGE_SHEET_ID</code> … 反映先スプレッドシートのID</li>
+    <li><code>MONTHLY_SYNC_ENABLED</code> … <code>'true'</code> のときだけ実書き込みを許可する（既定は無効）</li>
+    <li><code>NOTIFY_EMAIL</code> … （任意）同期結果を受け取るメールアドレス</li>
+  </ul>
+</li>
+<li>まず「診断」を実行し、両シートの月ブロックが想定どおり検出できているかを確認する</li>
+<li>「プレビュー」を実行し、差分（一致／不一致／未照合）の件数を確認する。未照合が出たら「氏名対応表」タブに読み替えを1行足す</li>
+<li>問題なければ <code>MONTHLY_SYNC_ENABLED</code> を <code>'true'</code> にし、既存の定期実行の仕組み（トリガー）から反映処理を呼ぶようにする</li>
+<li>初回の反映結果を確認し、バックアップファイルが作成されていることも合わせて見ておく</li>
+</ol>
+
+<h2>よくある質問</h2>
+<h3>Excelの行やレイアウトを変えても壊れませんか</h3>
+<p>月見出しの位置から動的にブロックを検出しているため、列の増減にはある程度追従します。ただし生徒の並び順を大きく入れ替えると、人数不一致から氏名対応に切り替わり、表記ゆれがあれば「未照合」になります。その場合は氏名対応表に1行足すだけで次回から解決します。</p>
+<h3>間違って書き込んでしまったら</h3>
+<p>反映のたびに対象スプレッドシートのコピーを自動でバックアップしているので、そこから復元できます。加えて、まず「診断」「プレビュー」の読み取り専用2段階を必ず通す設計にしているため、想定外の反映が起きにくくなっています。</p>
+<h3>OneDriveの共有リンクが期限切れになったら止まりますか</h3>
+<p>共有リンク方式に加えて、Microsoftアカウントでのサインインによる連携にも対応しており、そちらが失効した場合は自動で再サインインを促す通知を送る仕組みにしています（詳細はnote版のコード全文を参照してください）。</p>
+
+
+<div class="box">
+  <h2>この仕組みの「全体像」と「コード全文」</h2>
+  <ul>
+    <li><a href="https://www.amazon.co.jp/dp/B0HCGTWG3J?ref=site-gas-monthly-fee-sync" target="_blank" rel="noopener">Kindle『個人塾長、AIを雇う。』（500円・Kindle Unlimited対応）</a><small>2年間の実録を1冊に。何をどの順で自動化したか、失敗も含めて</small></li>
+    <li><a href="https://note.com/rikima81/n/n32a261a6e064?ref=site-gas-monthly-fee-sync" target="_blank" rel="noopener">note『個人塾をGASで自動化した実録（実コード付き）』（1,800円）</a><small>この記事で省略したコード全文と、貼り付け手順</small></li>
+    <li><a href="https://www.amazon.com/dp/B0HBPFZXDQ?ref=site-gas-monthly-fee-sync" target="_blank" rel="noopener">English edition: How I Automated My One-Man Tutoring School with AI ($6.99)</a></li>
+  </ul>
+</div>
+
+<div class="series">
+  <strong>実録シリーズ（全8本）</strong>
+  <ol>
+    <li><a href="../line-auto-reply/">LINE公式アカウントの即時自動応答と申込フォーム</a></li>
+    <li><a href="../trial-follow/">体験生フォローの自動化（前日リマインド・退会予兆）</a></li>
+    <li><a href="../monthly-fee-sync/">OneDriveの月謝表をGoogleスプレッドシートへ毎日同期</a></li>
+    <li><a href="../unpaid-tracking/">未納の自動転記と回収済み更新</a></li>
+    <li><a href="../threads-auto-post/">Threads自動投稿（生成→採点→学習ループ）</a></li>
+    <li><a href="../trigger-dispatcher/">GASトリガー上限20本の壁と6本ディスパッチャー</a></li>
+    <li><a href="../receipt-ocr-budget/">レシート撮影で家計簿が埋まる（Gemini OCR）</a></li>
+    <li><a href="../grade-promotion/">毎年4月1日に学年を自動で進級させる</a></li>
+  </ol>
+</div>
+</div></article>
+
+<footer>
+  <p><a href="../../">田中力磨｜RIKIMA TANAKA</a></p>
+  <p>総合学習教室ブリッジ（滋賀県彦根市稲枝町311-5）</p>
+</footer>
+</body>
+</html>

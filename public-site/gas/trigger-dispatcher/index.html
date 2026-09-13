@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GASのトリガー上限20本の壁——6本のディスパッチャーに集約し、失敗を必ず記録する｜一人塾のGAS自動化 実録｜田中力磨</title>
+<meta name="description" content="GAS自動化のトリガー20本上限を6本のディスパッチャーに集約し、失敗を握りつぶさず記録する設計を解説する実録。">
+<link rel="canonical" href="https://rikimat.github.io/bridge-site/gas/trigger-dispatcher/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="GASのトリガー上限20本の壁——6本のディスパッチャーに集約し、失敗を必ず記録する">
+<meta property="og:description" content="GAS自動化のトリガー20本上限を6本のディスパッチャーに集約し、失敗を握りつぶさず記録する設計を解説する実録。">
+<meta property="og:url" content="https://rikimat.github.io/bridge-site/gas/trigger-dispatcher/">
+<meta property="og:image" content="https://rikimat.github.io/bridge-site/og-rikima.jpg">
+<meta property="og:site_name" content="田中力磨｜総合学習教室ブリッジ">
+<meta property="og:locale" content="ja_JP">
+<meta name="twitter:card" content="summary_large_image">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "TechArticle",
+  "headline": "GASのトリガー上限20本の壁——6本のディスパッチャーに集約し、失敗を必ず記録する",
+  "description": "GAS自動化のトリガー20本上限を6本のディスパッチャーに集約し、失敗を握りつぶさず記録する設計を解説する実録。",
+  "inLanguage": "ja",
+  "datePublished": "2026-09-14",
+  "dateModified": "2026-09-14",
+  "author": { "@type": "Person", "name": "田中力磨", "url": "https://rikimat.github.io/bridge-site/" },
+  "publisher": { "@type": "Person", "name": "田中力磨" },
+  "mainEntityOfPage": "https://rikimat.github.io/bridge-site/gas/trigger-dispatcher/",
+  "isPartOf": { "@type": "Blog", "name": "一人塾のGAS自動化 実録", "url": "https://rikimat.github.io/bridge-site/gas/" }
+}
+</script>
+<style>
+:root{--ink:#1d2433;--paper:#f5f9fc;--white:#fff;--amber:#2b8fd0;--amber-dark:#1667a0;--line:#dde7ef;--sub:#5d6473;--muted:#949aa8;--code:#0f172a;}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:"Hiragino Kaku Gothic ProN","Noto Sans JP",sans-serif;background:var(--paper);color:var(--ink);line-height:1.95;font-size:16px;}
+.wrap{max-width:760px;margin:0 auto;padding:0 20px;}
+nav{position:sticky;top:0;z-index:50;background:rgba(245,249,252,.92);backdrop-filter:blur(10px);border-bottom:1px solid var(--line);}
+.nv{max-width:760px;margin:0 auto;padding:12px 20px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;}
+.nv .nm{font-weight:700;letter-spacing:2px;font-size:14px;}.nv .nm small{display:block;font-size:9px;letter-spacing:3px;color:var(--amber-dark);}
+.nv ul{display:flex;gap:14px;list-style:none;}.nv a{color:var(--sub);text-decoration:none;font-size:12.5px;white-space:nowrap;}.nv a:hover{color:var(--amber-dark);}
+header.art{padding:48px 0 24px;border-bottom:1px solid var(--line);}
+.crumb{font-size:12px;color:var(--muted);margin-bottom:12px;}.crumb a{color:var(--amber-dark);text-decoration:none;}
+h1{font-size:26px;line-height:1.5;letter-spacing:.5px;margin-bottom:12px;}
+.lead{color:var(--sub);font-size:15px;}
+.meta{font-size:12px;color:var(--muted);margin-top:10px;}
+article{padding:24px 0 40px;}
+article h2{font-size:20px;margin:40px 0 12px;padding-left:12px;border-left:4px solid var(--amber);line-height:1.5;}
+article h3{font-size:16.5px;margin:26px 0 8px;color:var(--amber-dark);}
+article p{margin:0 0 14px;}
+article ul,article ol{margin:0 0 14px 22px;}article li{margin-bottom:4px;}
+article table{border-collapse:collapse;width:100%;margin:0 0 16px;font-size:14px;}
+article th,article td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top;background:var(--white);}
+article th{background:#e8f3fb;}
+pre{background:var(--code);color:#e2e8f0;padding:16px 18px;border-radius:8px;overflow-x:auto;font-size:13px;line-height:1.6;margin:0 0 16px;}
+code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;}
+p code,li code,td code{background:#e8f3fb;padding:1px 6px;border-radius:4px;font-size:.92em;color:var(--amber-dark);}
+.note{background:var(--white);border:1px solid var(--line);border-left:4px solid var(--amber);padding:12px 16px;border-radius:6px;margin:0 0 16px;font-size:14.5px;}
+.box{background:var(--white);border:1px solid var(--line);border-radius:10px;padding:20px 22px;margin:36px 0 0;}
+.box h2{border:0;padding:0;margin:0 0 10px;font-size:18px;}
+.box a{color:var(--amber-dark);font-weight:700;text-decoration:none;}
+.box ul{list-style:none;margin:0;}.box li{margin-bottom:8px;}
+.box small{color:var(--muted);display:block;font-size:12px;}
+.series{margin:32px 0 0;font-size:14px;}.series a{color:var(--amber-dark);text-decoration:none;}.series li{margin-bottom:4px;}
+footer{border-top:1px solid var(--line);padding:32px 0 48px;text-align:center;color:var(--muted);font-size:12.5px;}
+footer a{color:var(--amber-dark);text-decoration:none;}
+@media (max-width:480px){h1{font-size:22px;}article h2{font-size:18px;}}
+</style>
+</head>
+<body>
+<nav><div class="nv">
+  <div class="nm"><a href="../../" style="color:inherit;text-decoration:none">田中力磨<small>RIKIMA TANAKA</small></a></div>
+  <ul>
+    <li><a href="../">実録シリーズ一覧</a></li>
+    <li><a href="../../#book">著書</a></li>
+    <li><a href="../../#school">教室</a></li>
+    <li><a href="https://note.com/rikima81" target="_blank" rel="noopener">note</a></li>
+  </ul>
+</div></nav>
+
+<header class="art"><div class="wrap">
+  <div class="crumb"><a href="../../">田中力磨</a> › <a href="../">一人塾のGAS自動化 実録</a> › トリガー集約</div>
+  <h1>GASのトリガー上限20本の壁——6本のディスパッチャーに集約し、失敗を必ず記録する</h1>
+  <p class="lead">トリガー上限20本に当たらないよう、定期処理を6本のディスパッチャーへ集約した設計の記録。</p>
+  <p class="meta">2026-09-14 公開 ／ 滋賀県彦根市の一人塾「総合学習教室ブリッジ」で実際に動いている仕組みの記録 ／ Google Apps Script（GAS）</p>
+</div></header>
+
+<article><div class="wrap">
+<h2>何を自動化したか</h2>
+<p>Google Apps Script（GAS）には1プロジェクトあたりトリガー20本という上限がある。個人塾の運営を自動化しようとすると、体験生フォロー・未納督促・SNS投稿・月謝同期・週次レポート・月次レポート——と処理はいくらでも増えていくが、その一つ一つに専用の時間トリガーを立てていけばあっという間に上限に当たる。今の仕組みは、時間トリガーそのものは6本の「ディスパッチャー」関数に固定し、新しい定期処理を追加するときは新しいトリガーを作らず、既存の6本のどれかに関数呼び出しを1行足すだけにしている。現在この6本の中に約40個の個別処理がぶら下がっており、それでもトリガー本数は増えていない。実測できる数字は「新しい定期処理を追加するたびに消費していたはずのトリガー本数」がゼロになったこと。20本の壁に当たって既存の仕組みを止めるかどうかを迫られる事態は、この構成にしてから一度も起きていない。</p>
+
+<h2>仕組み（データの流れ）</h2>
+<p>6本のディスパッチャーは、頻度ごとに役割を分けてある。</p>
+<table>
+<tr><th>ディスパッチャー</th><th>頻度</th><th>主な中身</th></tr>
+<tr><td><code>runAutomationQueue</code></td><td>10分ごと</td><td>依頼キュー処理・外部ハートビート記録・月謝同期の設定ファイル巡回・トリガー自己点検（1日1回）</td></tr>
+<tr><td><code>autoEvery4Hours</code></td><td>4時間ごと</td><td>OCR受信箱処理・整理受信箱処理・問い合わせメール収集・OneDrive月謝同期・広告メール仕分け</td></tr>
+<tr><td><code>autoDailyMorning</code></td><td>毎朝6時台</td><td>トレンド収集・競合分析・海外ニュース要約・書類整理・顧客情報同期・体験生フォロー・朝のブリーフィング送信</td></tr>
+<tr><td><code>autoDailyEvening</code></td><td>毎晩21時台</td><td>SNSエンゲージメント処理・フォロワー推移記録・投稿の日次学習・家計簿メール取込・データ整合性チェック・AI失敗のまとめ通知</td></tr>
+<tr><td><code>autoWeeklyMonday</code></td><td>毎週月曜7時台</td><td>トークン自動リフレッシュ・週報変換・バズ構造抽出・退会予兆スキャン・未納督促・週次ダイジェストメール</td></tr>
+<tr><td><code>autoMonthlyFirst</code></td><td>毎月1日8時台</td><td>月次レポート生成・休眠掘り起こし・アップセル提案・学年進級（4月のみ内部判定）</td></tr>
+</table>
+<p>各ディスパッチャーの中身は、1つの処理を1行の <code>autoRunSafely(ラベル, 関数)</code> 呼び出しとして並べているだけの単純な構造にしてある。ここが失敗の記録につながる要になっている。</p>
+
+<h2>コード（要点）</h2>
+<p>ディスパッチャー本体は、処理を順番に呼ぶだけの薄いラッパーになっている。</p>
+<pre><code>/** 毎晩21時台: SNSのエンゲージメント処理・フォロワー記録・投稿の学習 */
+function autoDailyEvening() {
+  autoRunSafely('コメント返信案・メンション・ネガ検知', snsDailyEngagement);
+  autoRunSafely('フォロワー推移の記録',                 snsRecordFollowers);
+  autoRunSafely('伸びる投稿の日次学習',                 snsDailyLearning);
+  autoRunSafely('家計簿メール自動取り込み',             budgetAutoImportMails);
+  autoRunSafely('データ整合性の夜間チェック',           dataIntegrityNightly);
+  autoRunSafely('AI失敗検知の通知',                     autoAiFailureAlert);
+}</code></pre>
+<p>肝心なのは <code>autoRunSafely</code> 側で、1つの処理が例外を投げても他の処理を巻き込んで止めないこと、そして失敗を握りつぶさず必ず記録に残すことの2点を担っている。</p>
+<pre><code>/** サブ処理を安全に実行（1つ失敗しても他を止めない） */
+function autoRunSafely(label, fn) {
+  try {
+    fn();
+    Logger.log('OK: ' + label);
+  } catch (e) {
+    Logger.log('NG: ' + label + ' -> ' + e.message);
+    // 失敗を実行ログだけに握りつぶさず記録に残し、毎晩のまとめ通知に載せる
+    autoAiRecordFailure('定期処理「' + label + '」', e.message);
+  }
+}</code></pre>
+<p>失敗の記録側は、直近5件を保持する設計にしている。最新1件だけを上書きすると「同じ原因が繰り返しているのか、毎回別の原因なのか」が判別できなくなるため（要点のみ。全文はnoteへ）。</p>
+<pre><code>function autoAiRecordFailure(where, message) {
+  try {
+    var props = PropertiesService.getScriptProperties();
+    var n = Number(props.getProperty('AUTO_AI_FAIL_COUNT') || 0) + 1;
+    props.setProperty('AUTO_AI_FAIL_COUNT', String(n));
+    var entry = new Date().toISOString() + ' ' + where + ': ' + String(message).slice(0, 300);
+    props.setProperty('AUTO_AI_FAIL_LAST', entry);
+    var recent = [];
+    try { recent = JSON.parse(props.getProperty('AUTO_AI_FAIL_RECENT') || '[]'); } catch (e2) { recent = []; }
+    recent.push(entry);
+    if (recent.length > 5) recent = recent.slice(-5);
+    props.setProperty('AUTO_AI_FAIL_RECENT', JSON.stringify(recent));
+  } catch (e) { /* 記録自体の失敗で本処理を巻き込まない */ }
+}</code></pre>
+<p>さらに、ディスパッチャーのトリガー自体が何らかの理由で消えていないかを自己点検する仕組みも同じ枠組みの中に相乗りさせてある。専用の点検トリガーを立てると「点検役自身が消えたら共倒れになる」ため、最も頻繁に実行される <code>runAutomationQueue</code>（10分ごと）の中で1日1回だけ点検する構成にした。</p>
+<pre><code>function autoSelfHealTriggers() {
+  var expectedDispatchers = ['runAutomationQueue', 'autoEvery4Hours', 'autoDailyMorning',
+                             'autoDailyEvening', 'autoWeeklyMonday', 'autoMonthlyFirst'];
+  var counts = {};
+  ScriptApp.getProjectTriggers().forEach(function(t) {
+    counts[t.getHandlerFunction()] = (counts[t.getHandlerFunction()] || 0) + 1;
+  });
+  var missing = expectedDispatchers.filter(function(f) { return !counts[f]; });
+  if (missing.length > 0) {
+    setupAutomationTriggers();  // 冪等: 再実行しても重複しない
+    autoNotify('【自己修復】ディスパッチャートリガーを再設定しました', '欠けていたトリガー: ' + missing.join(', '));
+  }
+}</code></pre>
+
+<h2>ハマった点と回避策</h2>
+<p>最初にハマったのは「点検役をどこに置くか」だった。トリガーの自己点検を専用の週次トリガーに乗せると、そのトリガー自体が何らかの理由で消えたときに誰も気づけなくなる。点検役は「絶対に消えてほしくないもの」であるほど、その消失自体を監視する仕組みが必要になり、無限後退に陥りやすい。実際に採用したのは、最も実行頻度が高い依頼キュー処理（10分ごと）に相乗りさせ、そのさらに外側は外部からのハートビート確認（毎朝、GAS側が最終実行時刻をプロパティに書き、それを外部のCIジョブが読みに来る）に任せる二段構えにする方法だった。GAS内部だけで完結する監視は、GAS自体が丸ごと死ぬと道連れになる。</p>
+<p>もう一つは、自動修復の範囲を線引きすることだった。ディスパッチャー本体のトリガーが消えていた場合は無条件に再作成して構わない（冪等な設定関数を呼ぶだけで、外部トークンには一切触れない）。しかしSNS投稿用のトリガー（Threads/X）は、投稿という対外出力に直結し、かつトークンの有効性確認が絡む。ここまで自動で再設定してしまうと、鍵が失効しているだけなのに投稿を試み続けて別の障害を重ねる恐れがあった。そのため、SNS系のトリガー不足は自動修復せず、通知だけして人間の判断に委ねる形に線を引いた。全部自動で直そうとしないことも、自己修復の設計のうちだと学んだ。</p>
+
+<h2>導入手順</h2>
+<ol>
+<li>今バラバラに立っている時間トリガーを棚卸しし、頻度ごと（10分・4時間・毎日朝・毎日晩・毎週・毎月）にグルーピングする</li>
+<li>頻度ごとに1つずつ、空のディスパッチャー関数（例: <code>autoDailyEvening</code>）を用意する</li>
+<li><code>autoRunSafely(ラベル, 関数)</code> のようなラッパー関数を作り、各処理をtry/catchで包んで例外が起きても後続処理を止めないようにする</li>
+<li>失敗を記録する仕組み（スクリプトプロパティに直近N件を保存するだけでよい）を用意し、<code>autoRunSafely</code> のcatch節から呼ぶ</li>
+<li>既存の個別トリガーを全て削除し、6本のディスパッチャー関数にだけ時間トリガーを設定し直す（<code>ScriptApp.newTrigger</code>。再実行しても重複しないよう、設定前に既存の同名トリガーを削除してから作り直す）</li>
+<li>記録された失敗を1日1回まとめて通知するバッチ処理を用意し、いずれかのディスパッチャーの末尾に足す</li>
+<li>新しい定期処理を追加したくなったら、新しいトリガーではなく該当する頻度のディスパッチャーに <code>autoRunSafely</code> の呼び出しを1行足すだけにする、という運用ルールをコード冒頭のコメントに明記しておく</li>
+</ol>
+
+<h2>よくある質問</h2>
+<h3>Q. 1つのディスパッチャーに処理を詰め込みすぎると実行時間の上限に当たりませんか</h3>
+<p>当たる。GASの実行時間には上限があるため、重い処理（多数の行を回すデータ整合性チェックなど)は時間のかかるAPI呼び出し部分にリトライの待ち時間を抑える工夫を入れたり、1回の実行で処理する件数に上限を設けたりして分散させている。詰め込みすぎたと感じたら、頻度を分けるより先に個々の処理の実行時間を削る方を先に検討している。</p>
+<h3>Q. 6本という数字に根拠はありますか</h3>
+<p>厳密な最適値ではなく「トリガー20本の上限に対して十分な余白を残せる頻度の粒度」として選んだ数。実際にはこの6本以外にSNS投稿用など少数の専用トリガーも別枠で存在するが、それらも数本にとどめている。</p>
+<h3>Q. 処理の順序は重要ですか</h3>
+<p>重要な依存関係がある処理だけは明示的に順序を守っている。例えば「フォロワー推移の記録」を「投稿の日次学習」より先に実行しているのは、その日の増減を学習データに含めるため。逆に依存のない処理同士は、どの順で失敗しても他に影響しないよう独立させてある。</p>
+
+
+<div class="box">
+  <h2>この仕組みの「全体像」と「コード全文」</h2>
+  <ul>
+    <li><a href="https://www.amazon.co.jp/dp/B0HCGTWG3J?ref=site-gas-trigger-dispatcher" target="_blank" rel="noopener">Kindle『個人塾長、AIを雇う。』（500円・Kindle Unlimited対応）</a><small>2年間の実録を1冊に。何をどの順で自動化したか、失敗も含めて</small></li>
+    <li><a href="https://note.com/rikima81/n/n32a261a6e064?ref=site-gas-trigger-dispatcher" target="_blank" rel="noopener">note『個人塾をGASで自動化した実録（実コード付き）』（1,800円）</a><small>この記事で省略したコード全文と、貼り付け手順</small></li>
+    <li><a href="https://www.amazon.com/dp/B0HBPFZXDQ?ref=site-gas-trigger-dispatcher" target="_blank" rel="noopener">English edition: How I Automated My One-Man Tutoring School with AI ($6.99)</a></li>
+  </ul>
+</div>
+
+<div class="series">
+  <strong>実録シリーズ（全8本）</strong>
+  <ol>
+    <li><a href="../line-auto-reply/">LINE公式アカウントの即時自動応答と申込フォーム</a></li>
+    <li><a href="../trial-follow/">体験生フォローの自動化（前日リマインド・退会予兆）</a></li>
+    <li><a href="../monthly-fee-sync/">OneDriveの月謝表をGoogleスプレッドシートへ毎日同期</a></li>
+    <li><a href="../unpaid-tracking/">未納の自動転記と回収済み更新</a></li>
+    <li><a href="../threads-auto-post/">Threads自動投稿（生成→採点→学習ループ）</a></li>
+    <li><a href="../trigger-dispatcher/">GASトリガー上限20本の壁と6本ディスパッチャー</a></li>
+    <li><a href="../receipt-ocr-budget/">レシート撮影で家計簿が埋まる（Gemini OCR）</a></li>
+    <li><a href="../grade-promotion/">毎年4月1日に学年を自動で進級させる</a></li>
+  </ol>
+</div>
+</div></article>
+
+<footer>
+  <p><a href="../../">田中力磨｜RIKIMA TANAKA</a></p>
+  <p>総合学習教室ブリッジ（滋賀県彦根市稲枝町311-5）</p>
+</footer>
+</body>
+</html>

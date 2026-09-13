@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>一人塾のGAS自動化 実録（全8本）｜田中力磨</title>
+<meta name="description" content="滋賀県彦根市の一人塾を Google Apps Script（GAS）とAIで自動化した実録。LINE自動応答・体験生フォロー・月謝表の同期・未納転記・Threads自動投稿・トリガー集約・レシートOCR・学年進級。コード付き。">
+<link rel="canonical" href="https://rikimat.github.io/bridge-site/gas/">
+<meta property="og:type" content="website">
+<meta property="og:title" content="一人塾のGAS自動化 実録（全8本）">
+<meta property="og:description" content="一人で回す学習塾を Google Apps Script とAIで自動化した記録。コード付き。">
+<meta property="og:url" content="https://rikimat.github.io/bridge-site/gas/">
+<meta property="og:image" content="https://rikimat.github.io/bridge-site/og-rikima.jpg">
+<meta property="og:site_name" content="田中力磨｜総合学習教室ブリッジ">
+<meta name="twitter:card" content="summary_large_image">
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"Blog","name":"一人塾のGAS自動化 実録","url":"https://rikimat.github.io/bridge-site/gas/","inLanguage":"ja","author":{"@type":"Person","name":"田中力磨","url":"https://rikimat.github.io/bridge-site/"}}
+</script>
+<style>
+:root{--ink:#1d2433;--paper:#f5f9fc;--white:#fff;--amber:#2b8fd0;--amber-dark:#1667a0;--line:#dde7ef;--sub:#5d6473;--muted:#949aa8;}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:"Hiragino Kaku Gothic ProN","Noto Sans JP",sans-serif;background:var(--paper);color:var(--ink);line-height:1.95;font-size:16px;}
+.wrap{max-width:760px;margin:0 auto;padding:0 20px;}
+nav{position:sticky;top:0;z-index:50;background:rgba(245,249,252,.92);backdrop-filter:blur(10px);border-bottom:1px solid var(--line);}
+.nv{max-width:760px;margin:0 auto;padding:12px 20px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;}
+.nv .nm{font-weight:700;letter-spacing:2px;font-size:14px;}.nv .nm small{display:block;font-size:9px;letter-spacing:3px;color:var(--amber-dark);}
+.nv ul{display:flex;gap:14px;list-style:none;}.nv a{color:var(--sub);text-decoration:none;font-size:12.5px;white-space:nowrap;}
+header{padding:52px 0 20px;}h1{font-size:26px;line-height:1.5;margin-bottom:10px;}
+.lead{color:var(--sub);font-size:15px;}
+.list{padding:16px 0 40px;}
+.card{display:block;background:var(--white);border:1px solid var(--line);border-radius:10px;padding:18px 20px;margin:0 0 12px;text-decoration:none;color:inherit;}
+.card:hover{border-color:var(--amber);}
+.card .n{font-size:11px;color:var(--amber-dark);letter-spacing:2px;font-weight:700;}
+.card h2{font-size:17px;line-height:1.5;margin:4px 0 6px;}
+.card p{font-size:13.5px;color:var(--sub);}
+.box{background:var(--white);border:1px solid var(--line);border-radius:10px;padding:20px 22px;margin:8px 0 0;font-size:14.5px;}
+.box a{color:var(--amber-dark);font-weight:700;text-decoration:none;}
+footer{border-top:1px solid var(--line);padding:32px 0 48px;text-align:center;color:var(--muted);font-size:12.5px;}
+footer a{color:var(--amber-dark);text-decoration:none;}
+</style>
+</head>
+<body>
+<nav><div class="nv">
+  <div class="nm"><a href="../" style="color:inherit;text-decoration:none">田中力磨<small>RIKIMA TANAKA</small></a></div>
+  <ul><li><a href="../#book">著書</a></li><li><a href="../#school">教室</a></li><li><a href="https://note.com/rikima81" target="_blank" rel="noopener">note</a></li></ul>
+</div></nav>
+<header><div class="wrap">
+  <h1>一人塾のGAS自動化 実録（全8本）</h1>
+  <p class="lead">人を雇うお金がなかったので、代わりに Google Apps Script とAIを雇いました。滋賀県彦根市の一人塾「総合学習教室ブリッジ」で実際に動いている仕組みを、コードと失敗つきで公開します。全部、無料の Google アカウントだけで動きます。</p>
+</div></header>
+<section class="list"><div class="wrap">
+  <a class="card" href="line-auto-reply/"><span class="n">01</span><h2>LINE公式アカウントの即時自動応答と申込フォームをGASだけで作る</h2><p>体験・入会・面談の申込フォームと、LINEでの一次対応を自動化。人が返すのは相談だけにする。</p></a>
+  <a class="card" href="trial-follow/"><span class="n">02</span><h2>体験生フォローを自動化する——前日リマインド・当日お礼・退会予兆の検知</h2><p>シートに1行書くだけで、前日・当日・翌週のフォローが下書きされる。送信ボタンは人が押す。</p></a>
+  <a class="card" href="monthly-fee-sync/"><span class="n">03</span><h2>OneDriveの月謝表（Excel）をGoogleスプレッドシートへ毎日同期する</h2><p>家族が管理するExcelを正本のまま、Microsoft Graph 経由で毎日取り込む。差分だけを反映し、バックアップを自動で残す。</p></a>
+  <a class="card" href="unpaid-tracking/"><span class="n">04</span><h2>未納を自動で転記し、入金されたら自動で消す</h2><p>赤字セル＝未入金という運用をそのまま機械に読ませる。督促文は人が確認してから送る。</p></a>
+  <a class="card" href="threads-auto-post/"><span class="n">05</span><h2>Threadsの自動投稿——Geminiで生成し、採点し、翌日の投稿に学習させる</h2><p>生成→禁止表現の検査→採点→投稿→翌晩に成績から学習。伸びなかった時間帯を切る判断まで含めて。</p></a>
+  <a class="card" href="trigger-dispatcher/"><span class="n">06</span><h2>GASのトリガー上限20本の壁——6本のディスパッチャーに集約し、失敗を必ず記録する</h2><p>定期処理が30を超えたときの設計。止まっても誰も気づかない「無音死」を防ぐ仕組み。</p></a>
+  <a class="card" href="receipt-ocr-budget/"><span class="n">07</span><h2>レシートを撮るだけで家計簿が埋まる——GeminiのOCRと楽天メール取込</h2><p>妻の代わりに作った全自動家計簿。月10時間の手入力をゼロにした実装。</p></a>
+  <a class="card" href="grade-promotion/"><span class="n">08</span><h2>毎年4月1日に生徒の学年を自動で進級させる（幼児・高3は人に確認）</h2><p>年に一度の手作業をなくす。機械が決めてはいけない境目だけ通知に回す設計。</p></a>
+  <div class="box">全体像と背景は Kindle『<a href="https://www.amazon.co.jp/dp/B0HCGTWG3J?ref=site-gas-index" target="_blank" rel="noopener">個人塾長、AIを雇う。</a>』（500円・Kindle Unlimited対応）、コード全文は note『<a href="https://note.com/rikima81/n/n32a261a6e064?ref=site-gas-index" target="_blank" rel="noopener">個人塾をGASで自動化した実録（実コード付き）</a>』にまとめています。</div>
+</div></section>
+<footer><p><a href="../">田中力磨｜RIKIMA TANAKA</a></p><p>総合学習教室ブリッジ（滋賀県彦根市稲枝町311-5）</p></footer>
+</body>
+</html>

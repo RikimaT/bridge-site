@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>体験生フォローを自動化する——前日リマインド・当日お礼・退会予兆の検知｜一人塾のGAS自動化 実録｜田中力磨</title>
+<meta name="description" content="GASで体験生の前日リマインダー・お礼・フォローメール下書きと退会予兆検知を自動化した実装記録。塾のGAS自動化・スプレッドシート連携の手順つき。">
+<link rel="canonical" href="https://rikimat.github.io/bridge-site/gas/trial-follow/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="体験生フォローを自動化する——前日リマインド・当日お礼・退会予兆の検知">
+<meta property="og:description" content="GASで体験生の前日リマインダー・お礼・フォローメール下書きと退会予兆検知を自動化した実装記録。塾のGAS自動化・スプレッドシート連携の手順つき。">
+<meta property="og:url" content="https://rikimat.github.io/bridge-site/gas/trial-follow/">
+<meta property="og:image" content="https://rikimat.github.io/bridge-site/og-rikima.jpg">
+<meta property="og:site_name" content="田中力磨｜総合学習教室ブリッジ">
+<meta property="og:locale" content="ja_JP">
+<meta name="twitter:card" content="summary_large_image">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "TechArticle",
+  "headline": "体験生フォローを自動化する——前日リマインド・当日お礼・退会予兆の検知",
+  "description": "GASで体験生の前日リマインダー・お礼・フォローメール下書きと退会予兆検知を自動化した実装記録。塾のGAS自動化・スプレッドシート連携の手順つき。",
+  "inLanguage": "ja",
+  "datePublished": "2026-09-14",
+  "dateModified": "2026-09-14",
+  "author": { "@type": "Person", "name": "田中力磨", "url": "https://rikimat.github.io/bridge-site/" },
+  "publisher": { "@type": "Person", "name": "田中力磨" },
+  "mainEntityOfPage": "https://rikimat.github.io/bridge-site/gas/trial-follow/",
+  "isPartOf": { "@type": "Blog", "name": "一人塾のGAS自動化 実録", "url": "https://rikimat.github.io/bridge-site/gas/" }
+}
+</script>
+<style>
+:root{--ink:#1d2433;--paper:#f5f9fc;--white:#fff;--amber:#2b8fd0;--amber-dark:#1667a0;--line:#dde7ef;--sub:#5d6473;--muted:#949aa8;--code:#0f172a;}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:"Hiragino Kaku Gothic ProN","Noto Sans JP",sans-serif;background:var(--paper);color:var(--ink);line-height:1.95;font-size:16px;}
+.wrap{max-width:760px;margin:0 auto;padding:0 20px;}
+nav{position:sticky;top:0;z-index:50;background:rgba(245,249,252,.92);backdrop-filter:blur(10px);border-bottom:1px solid var(--line);}
+.nv{max-width:760px;margin:0 auto;padding:12px 20px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;}
+.nv .nm{font-weight:700;letter-spacing:2px;font-size:14px;}.nv .nm small{display:block;font-size:9px;letter-spacing:3px;color:var(--amber-dark);}
+.nv ul{display:flex;gap:14px;list-style:none;}.nv a{color:var(--sub);text-decoration:none;font-size:12.5px;white-space:nowrap;}.nv a:hover{color:var(--amber-dark);}
+header.art{padding:48px 0 24px;border-bottom:1px solid var(--line);}
+.crumb{font-size:12px;color:var(--muted);margin-bottom:12px;}.crumb a{color:var(--amber-dark);text-decoration:none;}
+h1{font-size:26px;line-height:1.5;letter-spacing:.5px;margin-bottom:12px;}
+.lead{color:var(--sub);font-size:15px;}
+.meta{font-size:12px;color:var(--muted);margin-top:10px;}
+article{padding:24px 0 40px;}
+article h2{font-size:20px;margin:40px 0 12px;padding-left:12px;border-left:4px solid var(--amber);line-height:1.5;}
+article h3{font-size:16.5px;margin:26px 0 8px;color:var(--amber-dark);}
+article p{margin:0 0 14px;}
+article ul,article ol{margin:0 0 14px 22px;}article li{margin-bottom:4px;}
+article table{border-collapse:collapse;width:100%;margin:0 0 16px;font-size:14px;}
+article th,article td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top;background:var(--white);}
+article th{background:#e8f3fb;}
+pre{background:var(--code);color:#e2e8f0;padding:16px 18px;border-radius:8px;overflow-x:auto;font-size:13px;line-height:1.6;margin:0 0 16px;}
+code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;}
+p code,li code,td code{background:#e8f3fb;padding:1px 6px;border-radius:4px;font-size:.92em;color:var(--amber-dark);}
+.note{background:var(--white);border:1px solid var(--line);border-left:4px solid var(--amber);padding:12px 16px;border-radius:6px;margin:0 0 16px;font-size:14.5px;}
+.box{background:var(--white);border:1px solid var(--line);border-radius:10px;padding:20px 22px;margin:36px 0 0;}
+.box h2{border:0;padding:0;margin:0 0 10px;font-size:18px;}
+.box a{color:var(--amber-dark);font-weight:700;text-decoration:none;}
+.box ul{list-style:none;margin:0;}.box li{margin-bottom:8px;}
+.box small{color:var(--muted);display:block;font-size:12px;}
+.series{margin:32px 0 0;font-size:14px;}.series a{color:var(--amber-dark);text-decoration:none;}.series li{margin-bottom:4px;}
+footer{border-top:1px solid var(--line);padding:32px 0 48px;text-align:center;color:var(--muted);font-size:12.5px;}
+footer a{color:var(--amber-dark);text-decoration:none;}
+@media (max-width:480px){h1{font-size:22px;}article h2{font-size:18px;}}
+</style>
+</head>
+<body>
+<nav><div class="nv">
+  <div class="nm"><a href="../../" style="color:inherit;text-decoration:none">田中力磨<small>RIKIMA TANAKA</small></a></div>
+  <ul>
+    <li><a href="../">実録シリーズ一覧</a></li>
+    <li><a href="../../#book">著書</a></li>
+    <li><a href="../../#school">教室</a></li>
+    <li><a href="https://note.com/rikima81" target="_blank" rel="noopener">note</a></li>
+  </ul>
+</div></nav>
+
+<header class="art"><div class="wrap">
+  <div class="crumb"><a href="../../">田中力磨</a> › <a href="../">一人塾のGAS自動化 実録</a> › 体験フォロー</div>
+  <h1>体験生フォローを自動化する——前日リマインド・当日お礼・退会予兆の検知</h1>
+  <p class="lead">体験生への前日リマインダー・お礼・数日後フォローのメール下書きを毎朝自動生成し、出欠メモから退会予兆も検知する仕組みをGASで作った。</p>
+  <p class="meta">2026-09-14 公開 ／ 滋賀県彦根市の一人塾「総合学習教室ブリッジ」で実際に動いている仕組みの記録 ／ Google Apps Script（GAS）</p>
+</div></header>
+
+<article><div class="wrap">
+<h2>何を自動化したか</h2>
+<p>問い合わせは早く返すほど成約につながりやすく、体験の前日に一言リマインドすると無断キャンセルが減る。これは業界で広く言われている知見で、僕の教室でも体感として一致する。これをもとに、体験生への「前日リマインダー」「翌日お礼」「数日後フォロー」のメール下書きを毎朝自動生成する仕組みと、出欠メモから退会予兆を検知して声かけ文案を作る仕組みをGASで作った。</p>
+<p>件数としての実測値は取っていないため体感になるが、以前は体験の前日に「明日リマインドしなきゃ」と手作業で思い出す必要があり、うっかり抜けることがあった。いまは毎朝6時に自動で下書きができているので、僕がやることは内容を確認して送信ボタンを押すだけになった。メール自体は自動送信せず、必ず人が最後に見てから送る設計にしている。</p>
+
+<h2>仕組み（データの流れ）</h2>
+<p>起点は「体験生フォロー」シート（名前・保護者メール・体験日・ステータス・メモ・対応ログの6列）。ここに1行追加されるだけで、以後の下書き作成はすべて自動で回る。</p>
+<table>
+<tr><th>タイミング</th><th>条件</th><th>作られるもの</th></tr>
+<tr><td>体験日の前日・当日</td><td>対応ログに「リマインダー」の記録がまだない</td><td>持ち物・場所・時間確認のリマインダーメール下書き</td></tr>
+<tr><td>体験日の1〜2日後</td><td>対応ログに「お礼」の記録がまだない</td><td>体験時の様子に触れたお礼＋入会案内メール下書き</td></tr>
+<tr><td>体験日の3〜6日後</td><td>対応ログに「フォロー」の記録がまだない</td><td>検討状況を気遣うフォローメール下書き</td></tr>
+<tr><td>毎週月曜</td><td>「出欠・様子メモ」シートの直近4週間</td><td>退会予兆アラート＋声かけ文案（該当者がいる時だけ）</td></tr>
+</table>
+<p>日付のピンポイント一致ではなく「前日〜当日」「1〜2日後」のような幅で判定しているのがポイントで、トリガーが1日動かなくても次の実行で取りこぼさない。同じ段階の下書きを二度作らないように、対応ログに書いた文字列（「リマインダー」「お礼」「フォロー」）をチェックしてから実行する。</p>
+<p>この仕組みは体験生の予約フォームとも直結している。<a href="../line-auto-reply/">フォームからの体験予約</a>が入ると「体験生フォロー」シートに自動で行が追加され、翌朝からこのフォロー処理の対象に入る。</p>
+
+<h2>コード（要点）</h2>
+<p>本体は「体験日と今日の日数差」で3段階のどれに当たるかを判定し、Geminiにメール文を作らせてGmailの下書きに保存するだけの単純な構造になっている。</p>
+<pre><code>function successTrialFollowUps() {
+  var sheet = autoSheet('体験生フォロー', ['名前', '保護者メール', '体験日', 'ステータス', 'メモ', '対応ログ']);
+  var data = sheet.getDataRange().getValues();
+  var today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  for (var r = 1; r < data.length; r++) {
+    var name = String(data[r][0] || '').trim();
+    var email = String(data[r][1] || '').trim();
+    var trialDate = new Date(data[r][2]);
+    var status = String(data[r][3] || '').trim();
+    var log = String(data[r][5] || '');
+    if (!name || !email || isNaN(trialDate.getTime())) continue;
+    if (status === '入会' || status === '辞退') continue;
+
+    trialDate.setHours(0, 0, 0, 0);
+    var diffDays = Math.round((trialDate.getTime() - today.getTime()) / (24 * 3600 * 1000));
+
+    var step = null;
+    if ((diffDays === 1 || diffDays === 0) &amp;&amp; log.indexOf('リマインダー') &lt; 0) {
+      step = { tag: 'リマインダー', goal: '明日・本日の体験のリマインダー' };
+    } else if (diffDays &lt;= -1 &amp;&amp; diffDays &gt;= -2 &amp;&amp; log.indexOf('お礼') &lt; 0) {
+      step = { tag: 'お礼', goal: '体験のお礼と入会案内' };
+    } else if (diffDays &lt;= -3 &amp;&amp; diffDays &gt;= -6 &amp;&amp; log.indexOf('フォロー') &lt; 0) {
+      step = { tag: 'フォロー', goal: '検討状況を気遣うフォロー' };
+    }
+    if (!step) continue;
+
+    // ここでGeminiにメール文（件名・本文）をJSONで作らせ、GmailApp.createDraftで下書き保存
+    // 成功したら対応ログに「◯◯下書き 9/13」のように追記して二重生成を防ぐ
+  }
+}</code></pre>
+<p>退会予兆の検知は、直近4週間の出欠・様子メモをまとめてAIに渡し、危険サインのある生徒だけをJSONで返させる方式。1回の欠席だけでは挙げないよう、プロンプト側で明示的に「過剰反応しない」と釘を刺している。</p>
+<pre><code>var result = autoGeminiJson([
+  'あなたは学習塾の退会防止の専門家です。以下は直近4週間の出欠・様子メモです。',
+  rows.join('\n'),
+  '退会につながる危険サイン（連続欠席・欠席頻度の増加・遅刻増・ネガティブな様子）がある生徒を特定してください。',
+  '該当者がいなければ空配列。過剰反応しないこと（1回の欠席だけでは挙げない）。',
+  '各生徒に、塾長が保護者または本人にかける「具体的な声かけ文案」を1つ付けてください。',
+  'JSON形式: {"alerts":[{"name":"生徒名","sign":"検出した危険サイン","action":"声かけ文案"}]}',
+].join('\n'));</code></pre>
+<p>メール生成・保存部分の全文と、依頼キュー連携（学習レポート・口コミ依頼）の実装はnoteへ。</p>
+
+<h2>ハマった点と回避策</h2>
+<ul>
+<li><strong>日付のピンポイント一致で判定すると取りこぼす。</strong>トリガーの実行が1日ずれる、あるいは休日で発火しない、といったことがあり得るため、「前日〜当日」のような幅（範囲判定）にして、多少ずれても次回の実行で拾えるようにした。</li>
+<li><strong>同じ下書きを二重に作ってしまう。</strong>対応ログの文字列に「リマインダー」「お礼」「フォロー」が含まれているかをチェックしてから作成することで、同じ体験生に同じ段階のメールを何度も下書きしないようにした。</li>
+<li><strong>「お礼」メールの窓は1〜2日しかなく、失敗を翌日のダイジェスト通知にまとめると間に合わない。</strong>この処理だけは失敗時に即時通知する例外扱いにしている。お礼メールは温度が命で、翌朝の再試行を待たずに手動対応できるようにする必要があった。</li>
+<li><strong>退会予兆の検知は過剰反応との戦い。</strong>1回の欠席だけで警告を出すと通知が増えすぎて無視されるようになるため、プロンプトで明示的に閾値の考え方（連続欠席・頻度の増加）を指定し、単発の欠席では拾わないようにした。</li>
+<li><strong>面談・値引きなど家庭の個別事情には触れさせない。</strong>関連する面談ブリーフ生成でも同様だが、AIに生成させる文章には「家庭の個別事情や特別対応の理由には一切触れない」という制約を毎回プロンプトに入れている。生成AIは文脈があれば触れてしまうことがあるため、明示的な禁止事項として書く必要があった。</li>
+</ul>
+
+<h2>導入手順</h2>
+<ol>
+<li>スプレッドシートに「体験生フォロー」シート（名前・保護者メール・体験日・ステータス・メモ・対応ログ）と「出欠・様子メモ」シート（日付・生徒名・出欠・メモ）を用意する。</li>
+<li>スクリプトプロパティに <code>GEMINI_API_KEY</code> を登録する（メール文・退会予兆の判定にGeminiを使うため）。</li>
+<li>体験生フォロー処理を、既存の「毎朝実行」の時間主導型トリガーに載せる（新規トリガーは作らず、既存のディスパッチャーに関数を1本足すだけにする）。</li>
+<li>退会予兆スキャンは「毎週月曜実行」のトリガーに載せる。</li>
+<li>日々の出欠と気づきを「出欠・様子メモ」シートに手入力する運用を決める（この入力がないと退会予兆は検知できない）。</li>
+<li>実行後はGmailの下書きフォルダを確認し、内容を見てから送信する。自動送信はしない設計のため、必ず人の目を通す。</li>
+<li>口コミ依頼・保護者向け進捗レポートなど、不定期に使う機能は依頼キュー方式にして、都度シートに1行入力する運用にする。</li>
+</ol>
+
+<h2>よくある質問</h2>
+<h3>Q. メールを自動送信しないのはなぜですか</h3>
+<p>AIが生成した文章にはまれに事実誤認や温度感のズレが起こり得るため、保護者に直接届くメールは必ず人が最終チェックしてから送る設計にしている。自動化するのは「下書きを作るところまで」と割り切っている。</p>
+<h3>Q. 退会予兆の検知はどのくらいの頻度で誤検知しますか</h3>
+<p>件数として計測はしていないが、「1回の欠席だけでは挙げない」という条件をプロンプトに入れてからは、明らかな見当違いのアラートは体感で減った。最終判断は必ず人が行う前提で運用している。</p>
+<h3>Q. 体験生フォロー以外の用途にも応用できますか</h3>
+<p>同じ仕組みは冬期講習修了者の入会検討フォローにも転用している。新しい仕組みを作るのではなく、「体験生フォロー」シートに体験日を過去の日付でずらして登録し、既存の「フォロー」ステップの判定窓に入るようにするだけで対応できた。</p>
+
+
+<div class="box">
+  <h2>この仕組みの「全体像」と「コード全文」</h2>
+  <ul>
+    <li><a href="https://www.amazon.co.jp/dp/B0HCGTWG3J?ref=site-gas-trial-follow" target="_blank" rel="noopener">Kindle『個人塾長、AIを雇う。』（500円・Kindle Unlimited対応）</a><small>2年間の実録を1冊に。何をどの順で自動化したか、失敗も含めて</small></li>
+    <li><a href="https://note.com/rikima81/n/n32a261a6e064?ref=site-gas-trial-follow" target="_blank" rel="noopener">note『個人塾をGASで自動化した実録（実コード付き）』（1,800円）</a><small>この記事で省略したコード全文と、貼り付け手順</small></li>
+    <li><a href="https://www.amazon.com/dp/B0HBPFZXDQ?ref=site-gas-trial-follow" target="_blank" rel="noopener">English edition: How I Automated My One-Man Tutoring School with AI ($6.99)</a></li>
+  </ul>
+</div>
+
+<div class="series">
+  <strong>実録シリーズ（全8本）</strong>
+  <ol>
+    <li><a href="../line-auto-reply/">LINE公式アカウントの即時自動応答と申込フォーム</a></li>
+    <li><a href="../trial-follow/">体験生フォローの自動化（前日リマインド・退会予兆）</a></li>
+    <li><a href="../monthly-fee-sync/">OneDriveの月謝表をGoogleスプレッドシートへ毎日同期</a></li>
+    <li><a href="../unpaid-tracking/">未納の自動転記と回収済み更新</a></li>
+    <li><a href="../threads-auto-post/">Threads自動投稿（生成→採点→学習ループ）</a></li>
+    <li><a href="../trigger-dispatcher/">GASトリガー上限20本の壁と6本ディスパッチャー</a></li>
+    <li><a href="../receipt-ocr-budget/">レシート撮影で家計簿が埋まる（Gemini OCR）</a></li>
+    <li><a href="../grade-promotion/">毎年4月1日に学年を自動で進級させる</a></li>
+  </ol>
+</div>
+</div></article>
+
+<footer>
+  <p><a href="../../">田中力磨｜RIKIMA TANAKA</a></p>
+  <p>総合学習教室ブリッジ（滋賀県彦根市稲枝町311-5）</p>
+</footer>
+</body>
+</html>

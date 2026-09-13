@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LINE公式アカウントの即時自動応答と申込フォームをGASだけで作る｜一人塾のGAS自動化 実録｜田中力磨</title>
+<meta name="description" content="GAS(Google Apps Script)でLINE公式アカウントに即時自動応答し、体験・入会・講習申込フォームまで運用した実装記録。塾のLINE自動応答・GAS導入手順つき。">
+<link rel="canonical" href="https://rikimat.github.io/bridge-site/gas/line-auto-reply/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="LINE公式アカウントの即時自動応答と申込フォームをGASだけで作る">
+<meta property="og:description" content="GAS(Google Apps Script)でLINE公式アカウントに即時自動応答し、体験・入会・講習申込フォームまで運用した実装記録。塾のLINE自動応答・GAS導入手順つき。">
+<meta property="og:url" content="https://rikimat.github.io/bridge-site/gas/line-auto-reply/">
+<meta property="og:image" content="https://rikimat.github.io/bridge-site/og-rikima.jpg">
+<meta property="og:site_name" content="田中力磨｜総合学習教室ブリッジ">
+<meta property="og:locale" content="ja_JP">
+<meta name="twitter:card" content="summary_large_image">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "TechArticle",
+  "headline": "LINE公式アカウントの即時自動応答と申込フォームをGASだけで作る",
+  "description": "GAS(Google Apps Script)でLINE公式アカウントに即時自動応答し、体験・入会・講習申込フォームまで運用した実装記録。塾のLINE自動応答・GAS導入手順つき。",
+  "inLanguage": "ja",
+  "datePublished": "2026-09-14",
+  "dateModified": "2026-09-14",
+  "author": { "@type": "Person", "name": "田中力磨", "url": "https://rikimat.github.io/bridge-site/" },
+  "publisher": { "@type": "Person", "name": "田中力磨" },
+  "mainEntityOfPage": "https://rikimat.github.io/bridge-site/gas/line-auto-reply/",
+  "isPartOf": { "@type": "Blog", "name": "一人塾のGAS自動化 実録", "url": "https://rikimat.github.io/bridge-site/gas/" }
+}
+</script>
+<style>
+:root{--ink:#1d2433;--paper:#f5f9fc;--white:#fff;--amber:#2b8fd0;--amber-dark:#1667a0;--line:#dde7ef;--sub:#5d6473;--muted:#949aa8;--code:#0f172a;}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:"Hiragino Kaku Gothic ProN","Noto Sans JP",sans-serif;background:var(--paper);color:var(--ink);line-height:1.95;font-size:16px;}
+.wrap{max-width:760px;margin:0 auto;padding:0 20px;}
+nav{position:sticky;top:0;z-index:50;background:rgba(245,249,252,.92);backdrop-filter:blur(10px);border-bottom:1px solid var(--line);}
+.nv{max-width:760px;margin:0 auto;padding:12px 20px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;}
+.nv .nm{font-weight:700;letter-spacing:2px;font-size:14px;}.nv .nm small{display:block;font-size:9px;letter-spacing:3px;color:var(--amber-dark);}
+.nv ul{display:flex;gap:14px;list-style:none;}.nv a{color:var(--sub);text-decoration:none;font-size:12.5px;white-space:nowrap;}.nv a:hover{color:var(--amber-dark);}
+header.art{padding:48px 0 24px;border-bottom:1px solid var(--line);}
+.crumb{font-size:12px;color:var(--muted);margin-bottom:12px;}.crumb a{color:var(--amber-dark);text-decoration:none;}
+h1{font-size:26px;line-height:1.5;letter-spacing:.5px;margin-bottom:12px;}
+.lead{color:var(--sub);font-size:15px;}
+.meta{font-size:12px;color:var(--muted);margin-top:10px;}
+article{padding:24px 0 40px;}
+article h2{font-size:20px;margin:40px 0 12px;padding-left:12px;border-left:4px solid var(--amber);line-height:1.5;}
+article h3{font-size:16.5px;margin:26px 0 8px;color:var(--amber-dark);}
+article p{margin:0 0 14px;}
+article ul,article ol{margin:0 0 14px 22px;}article li{margin-bottom:4px;}
+article table{border-collapse:collapse;width:100%;margin:0 0 16px;font-size:14px;}
+article th,article td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top;background:var(--white);}
+article th{background:#e8f3fb;}
+pre{background:var(--code);color:#e2e8f0;padding:16px 18px;border-radius:8px;overflow-x:auto;font-size:13px;line-height:1.6;margin:0 0 16px;}
+code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;}
+p code,li code,td code{background:#e8f3fb;padding:1px 6px;border-radius:4px;font-size:.92em;color:var(--amber-dark);}
+.note{background:var(--white);border:1px solid var(--line);border-left:4px solid var(--amber);padding:12px 16px;border-radius:6px;margin:0 0 16px;font-size:14.5px;}
+.box{background:var(--white);border:1px solid var(--line);border-radius:10px;padding:20px 22px;margin:36px 0 0;}
+.box h2{border:0;padding:0;margin:0 0 10px;font-size:18px;}
+.box a{color:var(--amber-dark);font-weight:700;text-decoration:none;}
+.box ul{list-style:none;margin:0;}.box li{margin-bottom:8px;}
+.box small{color:var(--muted);display:block;font-size:12px;}
+.series{margin:32px 0 0;font-size:14px;}.series a{color:var(--amber-dark);text-decoration:none;}.series li{margin-bottom:4px;}
+footer{border-top:1px solid var(--line);padding:32px 0 48px;text-align:center;color:var(--muted);font-size:12.5px;}
+footer a{color:var(--amber-dark);text-decoration:none;}
+@media (max-width:480px){h1{font-size:22px;}article h2{font-size:18px;}}
+</style>
+</head>
+<body>
+<nav><div class="nv">
+  <div class="nm"><a href="../../" style="color:inherit;text-decoration:none">田中力磨<small>RIKIMA TANAKA</small></a></div>
+  <ul>
+    <li><a href="../">実録シリーズ一覧</a></li>
+    <li><a href="../../#book">著書</a></li>
+    <li><a href="../../#school">教室</a></li>
+    <li><a href="https://note.com/rikima81" target="_blank" rel="noopener">note</a></li>
+  </ul>
+</div></nav>
+
+<header class="art"><div class="wrap">
+  <div class="crumb"><a href="../../">田中力磨</a> › <a href="../">一人塾のGAS自動化 実録</a> › LINE自動応答</div>
+  <h1>LINE公式アカウントの即時自動応答と申込フォームをGASだけで作る</h1>
+  <p class="lead">LINE公式アカウントに届いたメッセージに、確認する前に一次返信が返る仕組みをGASだけで作った。体験・入会・講習・面談のフォームもここに接続している。</p>
+  <p class="meta">2026-09-14 公開 ／ 滋賀県彦根市の一人塾「総合学習教室ブリッジ」で実際に動いている仕組みの記録 ／ Google Apps Script（GAS）</p>
+</div></header>
+
+<article><div class="wrap">
+<h2>何を自動化したか</h2>
+<p>LINE公式アカウントに届いたメッセージに、僕が確認するより先に一次返信が返る仕組みと、体験予約・入会・講習申込・面談予約をフォーム入力だけで完結させる仕組みを、Google Apps Script（GAS）だけで作った。塾のような対面ビジネスは「問い合わせから返信までの速さ」が成約率に直結する。深夜や指導中にLINEが来ても、キーワードに応じた案内文とフォームのリンクを1秒で返し、同時に自分のGmailに着信通知が届く。</p>
+<p>効果を秒単位で計測してはいないため数字は体感になるが、以前は「授業が終わってから折り返す」までの数時間〜半日の空白があったのに対し、いまはその空白がゼロになった。フォーム側も、電話・LINEでの聞き取りをやめてスマホ入力だけで完結するようにしたことで、こちらの対応漏れがなくなった。</p>
+
+<h2>仕組み（データの流れ）</h2>
+<p>入口は2つある。ひとつはLINEのテキストメッセージ、もうひとつは公開フォーム（体験・入会・講習・面談）。どちらも最終的に同じスプレッドシートのハブに集まる。</p>
+<table>
+<tr><th>入力</th><th>処理</th><th>出力</th></tr>
+<tr><td>LINEのテキスト</td><td>キーワード判定→定型文生成→LINE Reply API</td><td>ユーザーへ即時返信＋オーナーへ着信通知</td></tr>
+<tr><td>体験予約フォーム</td><td>「体験生フォロー」シートへ追記</td><td>カレンダー仮予定＋オーナー通知（このシートは<a href="../trial-follow/">体験生フォローの自動化</a>の入口にもなる）</td></tr>
+<tr><td>入会・講習・面談フォーム</td><td>それぞれの申込シートへ追記、講習は残席チェック</td><td>オーナー通知（満席なら申込自体を拒否）</td></tr>
+</table>
+<p>LINEのWebhookは1本のGASプロジェクトの<code>doPost</code>に届く。そこからテキストメッセージだけを自動応答の関数に振り分け、画像メッセージは別のOCR処理（生徒の宿題写真の読み取り）に振り分けている。1つのdoPostに複数の役割を持たせているのは、GASのWebアプリは1プロジェクトにつき1つの公開URLしか持てず、LINEのWebhook URLを複数用意するのが現実的でないためだ。</p>
+
+<h2>コード（要点）</h2>
+<p>Webhookの入口はこうなっている。テキストメッセージだけを自動応答関数へ渡し、それ以外（画像など）は既存のOCR処理を通す。</p>
+<pre><code>function doPost(e) {
+  if (e &amp;&amp; e.parameter &amp;&amp; e.parameter.app === 'pixi') return pixiApi(e);
+  try {
+    var events = JSON.parse(e.postData.contents).events;
+    events.forEach(function(event) {
+      if (event.type === "message" &amp;&amp; event.message.type === "image") handleImage(event);
+      else if (event.type === "message" &amp;&amp; event.message.type === "text") bridgeLineAutoReply(event);
+    });
+  } catch (err) {
+    // LINE webhookには常に200を返す必要があるため、エラーはログのみ
+    Logger.log('doPost エラー: ' + err.message);
+  }
+}</code></pre>
+<p>自動応答本体はキーワードの正規表現マッチだけで、AIは呼んでいない。返信は定型文＋フォームURLの組み合わせで、応答できなかった場合も含めてオーナーには必ず通知が飛ぶ。</p>
+<pre><code>function bridgeLineAutoReply(event) {
+  var text = (event.message &amp;&amp; event.message.text) || '';
+  if (!text) return;
+  var token = PropertiesService.getScriptProperties().getProperty('LINE_ACCESS_TOKEN');
+  var base = PropertiesService.getScriptProperties().getProperty('WEBAPP_URL') || '';
+
+  var reply = null;
+  if (/体験|見学|たいけん/.test(text)) {
+    reply = 'メッセージありがとうございます！\n無料体験は下のフォームから24時間いつでもご予約いただけます\n'
+          + (base ? base + '?app=trial' : '');
+  } else if (/料金|月謝|費用|いくら/.test(text)) {
+    reply = 'お問い合わせありがとうございます！料金は折り返しご案内します。\n' + (base ? base + '?app=trial' : '');
+  }
+  // ...入会・講習・面談も同様のパターンマッチで分岐
+
+  if (reply &amp;&amp; token &amp;&amp; event.replyToken) {
+    UrlFetchApp.fetch('https://api.line.me/v2/bot/message/reply', {
+      method: 'POST',
+      contentType: 'application/json',
+      headers: { Authorization: 'Bearer ' + token },
+      payload: JSON.stringify({ replyToken: event.replyToken, messages: [{ type: 'text', text: reply }] }),
+      muteHttpExceptions: true,
+    });
+  }
+  // 応答の有無に関わらず、問い合わせ着信をオーナーに即通知する
+}</code></pre>
+<p>フォーム側は、体験予約なら「体験生フォロー」シートへの追記とカレンダー登録をセットで行う。カレンダー登録が失敗しても申込自体は成立させたいので、try/catchで独立させている。</p>
+<pre><code>function bridgeCreateEvent(title, dateStr, timeStr, desc) {
+  try {
+    var start = new Date(dateStr);
+    if (isNaN(start.getTime())) return;
+    var hour = 17, minute = 0;
+    var m = String(timeStr || '').match(/(\d{1,2})[:時](\d{0,2})/);
+    if (m) { hour = Number(m[1]); minute = Number(m[2] || 0); }
+    start.setHours(hour, minute, 0, 0);
+    var end = new Date(start.getTime() + 60 * 60 * 1000);
+    CalendarApp.getDefaultCalendar().createEvent(title, start, end, { description: desc || '' });
+  } catch (e) {
+    Logger.log('カレンダー登録失敗: ' + e.message);
+  }
+}</code></pre>
+<p>フォーム送信の受け口は種別ごとに関数を分けたうえで、共通の入口関数でルーティングしている。長い分岐部分は省くが、考え方としては「1つのdoPost/1つの受け口関数に対して、種別ごとの処理関数を素直に並べる」だけで、フレームワークは使っていない。全文はnoteへ。</p>
+
+<h2>ハマった点と回避策</h2>
+<ul>
+<li><strong>LINE Webhookは何があっても200を返す。</strong>途中でエラーが起きても<code>doPost</code>全体をtry/catchで包み、ログにだけ残す設計にした。LINE側はエラーレスポンスが続くとWebhookを自動で無効化することがあるため、業務ロジックのエラーとWebhookの応答コードは完全に切り離す必要がある。</li>
+<li><strong>GASのWebアプリはiframe内に表示されるため、通常の<code>&lt;a href&gt;</code>によるページ遷移がブロックされることがある。</strong>初期セットアップ画面で「ボタンを押しても画面が変わらない」現象が起きたため、リンク遷移ではなく<code>google.script.run</code>でその場に結果を描画する方式に変更した。</li>
+<li><strong>カレンダー登録の失敗で申込全体を止めない。</strong>カレンダーAPIは権限エラーや日時パース失敗で例外を投げることがあるが、それで体験予約自体が失敗扱いになるのは本末転倒なので、独立した関数にしてtry/catchで包んだ。</li>
+<li><strong>自動返信できなかったメッセージほど埋もれやすい。</strong>キーワードにマッチせず定型文を返せなかった場合でも、必ずオーナー通知だけは飛ぶようにしている。自動応答は「一次対応」であって「全対応」ではないという前提で設計するのが安全だった。</li>
+</ul>
+
+<h2>導入手順</h2>
+<ol>
+<li>LINE DevelopersでMessaging APIのチャネルを作成し、チャネルアクセストークンを発行する。</li>
+<li>GASプロジェクトのスクリプトプロパティ（「プロジェクトの設定」→「スクリプトプロパティ」）に <code>LINE_ACCESS_TOKEN</code> を登録する。コードにトークンを直接書かない。</li>
+<li>GASを「ウェブアプリとして導入」し、発行されたURLをLINE Developersの「Webhook URL」に設定して有効化する。</li>
+<li>初回アクセス時に <code>WEBAPP_URL</code> がスクリプトプロパティへ自動保存されるようにしておくと、フォームURLの組み立てが以後は自動になる。</li>
+<li><code>doPost</code>でテキストメッセージを自動応答関数へ、画像メッセージを別処理へ振り分ける条件分岐を書く。</li>
+<li>体験・入会・講習・面談それぞれのフォーム送信の受け口を用意し、対応するスプレッドシートのシート名・列見出しを決めて追記処理を書く。</li>
+<li>LINE公式アカウントのリッチメニューに、ウェブアプリURLに<code>?app=trial</code>等のパラメータを付けたリンクを設定する。</li>
+<li>本番投入前に、自分のLINEアカウントから「体験」「料金」などのキーワードを実際に送って返信内容を確認する。</li>
+</ol>
+
+<h2>よくある質問</h2>
+<h3>Q. AIを使わずにキーワードマッチだけにしているのはなぜですか</h3>
+<p>一次応答は速さが命で、AI呼び出しのレイテンシと料金をかける必要がないと判断したため。定型文で対応できない込み入った相談は、返信の中で「教室から直接連絡する」旨を伝え、人が引き取る前提にしている。</p>
+<h3>Q. 1つのGASプロジェクトにWebhookとフォームを同居させて問題はないですか</h3>
+<p>Webhookの受け口である<code>doPost</code>に<code>e.parameter.app</code>の有無で処理を分けているだけなので、リクエストの種類が増えても分岐を足すだけで対応できている。プロジェクトが肥大化してきたら分割も検討するが、現時点ではトリガー数や実行時間の制約に達していない。</p>
+<h3>Q. フォームの入力データはどこに保存されますか</h3>
+<p>「体験生フォロー」「入会申込」「講習申込」「面談予約」といったシート名でスプレッドシートに保存している。IDそのものはスクリプトプロパティで管理し、コードには書いていない。</p>
+
+
+<div class="box">
+  <h2>この仕組みの「全体像」と「コード全文」</h2>
+  <ul>
+    <li><a href="https://www.amazon.co.jp/dp/B0HCGTWG3J?ref=site-gas-line-auto-reply" target="_blank" rel="noopener">Kindle『個人塾長、AIを雇う。』（500円・Kindle Unlimited対応）</a><small>2年間の実録を1冊に。何をどの順で自動化したか、失敗も含めて</small></li>
+    <li><a href="https://note.com/rikima81/n/n32a261a6e064?ref=site-gas-line-auto-reply" target="_blank" rel="noopener">note『個人塾をGASで自動化した実録（実コード付き）』（1,800円）</a><small>この記事で省略したコード全文と、貼り付け手順</small></li>
+    <li><a href="https://www.amazon.com/dp/B0HBPFZXDQ?ref=site-gas-line-auto-reply" target="_blank" rel="noopener">English edition: How I Automated My One-Man Tutoring School with AI ($6.99)</a></li>
+  </ul>
+</div>
+
+<div class="series">
+  <strong>実録シリーズ（全8本）</strong>
+  <ol>
+    <li><a href="../line-auto-reply/">LINE公式アカウントの即時自動応答と申込フォーム</a></li>
+    <li><a href="../trial-follow/">体験生フォローの自動化（前日リマインド・退会予兆）</a></li>
+    <li><a href="../monthly-fee-sync/">OneDriveの月謝表をGoogleスプレッドシートへ毎日同期</a></li>
+    <li><a href="../unpaid-tracking/">未納の自動転記と回収済み更新</a></li>
+    <li><a href="../threads-auto-post/">Threads自動投稿（生成→採点→学習ループ）</a></li>
+    <li><a href="../trigger-dispatcher/">GASトリガー上限20本の壁と6本ディスパッチャー</a></li>
+    <li><a href="../receipt-ocr-budget/">レシート撮影で家計簿が埋まる（Gemini OCR）</a></li>
+    <li><a href="../grade-promotion/">毎年4月1日に学年を自動で進級させる</a></li>
+  </ol>
+</div>
+</div></article>
+
+<footer>
+  <p><a href="../../">田中力磨｜RIKIMA TANAKA</a></p>
+  <p>総合学習教室ブリッジ（滋賀県彦根市稲枝町311-5）</p>
+</footer>
+</body>
+</html>

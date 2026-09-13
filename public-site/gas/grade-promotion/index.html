@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>毎年4月1日に生徒の学年を自動で進級させる｜一人塾のGAS自動化 実録｜田中力磨</title>
+<meta name="description" content="塾の生徒シートの学年を4月1日にGASで一括進級。幼児・高3は自動対象外にして人に確認を求める設計と実装を解説。">
+<link rel="canonical" href="https://rikimat.github.io/bridge-site/gas/grade-promotion/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="毎年4月1日に生徒の学年を自動で進級させる">
+<meta property="og:description" content="塾の生徒シートの学年を4月1日にGASで一括進級。幼児・高3は自動対象外にして人に確認を求める設計と実装を解説。">
+<meta property="og:url" content="https://rikimat.github.io/bridge-site/gas/grade-promotion/">
+<meta property="og:image" content="https://rikimat.github.io/bridge-site/og-rikima.jpg">
+<meta property="og:site_name" content="田中力磨｜総合学習教室ブリッジ">
+<meta property="og:locale" content="ja_JP">
+<meta name="twitter:card" content="summary_large_image">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "TechArticle",
+  "headline": "毎年4月1日に生徒の学年を自動で進級させる",
+  "description": "塾の生徒シートの学年を4月1日にGASで一括進級。幼児・高3は自動対象外にして人に確認を求める設計と実装を解説。",
+  "inLanguage": "ja",
+  "datePublished": "2026-09-14",
+  "dateModified": "2026-09-14",
+  "author": { "@type": "Person", "name": "田中力磨", "url": "https://rikimat.github.io/bridge-site/" },
+  "publisher": { "@type": "Person", "name": "田中力磨" },
+  "mainEntityOfPage": "https://rikimat.github.io/bridge-site/gas/grade-promotion/",
+  "isPartOf": { "@type": "Blog", "name": "一人塾のGAS自動化 実録", "url": "https://rikimat.github.io/bridge-site/gas/" }
+}
+</script>
+<style>
+:root{--ink:#1d2433;--paper:#f5f9fc;--white:#fff;--amber:#2b8fd0;--amber-dark:#1667a0;--line:#dde7ef;--sub:#5d6473;--muted:#949aa8;--code:#0f172a;}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:"Hiragino Kaku Gothic ProN","Noto Sans JP",sans-serif;background:var(--paper);color:var(--ink);line-height:1.95;font-size:16px;}
+.wrap{max-width:760px;margin:0 auto;padding:0 20px;}
+nav{position:sticky;top:0;z-index:50;background:rgba(245,249,252,.92);backdrop-filter:blur(10px);border-bottom:1px solid var(--line);}
+.nv{max-width:760px;margin:0 auto;padding:12px 20px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;}
+.nv .nm{font-weight:700;letter-spacing:2px;font-size:14px;}.nv .nm small{display:block;font-size:9px;letter-spacing:3px;color:var(--amber-dark);}
+.nv ul{display:flex;gap:14px;list-style:none;}.nv a{color:var(--sub);text-decoration:none;font-size:12.5px;white-space:nowrap;}.nv a:hover{color:var(--amber-dark);}
+header.art{padding:48px 0 24px;border-bottom:1px solid var(--line);}
+.crumb{font-size:12px;color:var(--muted);margin-bottom:12px;}.crumb a{color:var(--amber-dark);text-decoration:none;}
+h1{font-size:26px;line-height:1.5;letter-spacing:.5px;margin-bottom:12px;}
+.lead{color:var(--sub);font-size:15px;}
+.meta{font-size:12px;color:var(--muted);margin-top:10px;}
+article{padding:24px 0 40px;}
+article h2{font-size:20px;margin:40px 0 12px;padding-left:12px;border-left:4px solid var(--amber);line-height:1.5;}
+article h3{font-size:16.5px;margin:26px 0 8px;color:var(--amber-dark);}
+article p{margin:0 0 14px;}
+article ul,article ol{margin:0 0 14px 22px;}article li{margin-bottom:4px;}
+article table{border-collapse:collapse;width:100%;margin:0 0 16px;font-size:14px;}
+article th,article td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top;background:var(--white);}
+article th{background:#e8f3fb;}
+pre{background:var(--code);color:#e2e8f0;padding:16px 18px;border-radius:8px;overflow-x:auto;font-size:13px;line-height:1.6;margin:0 0 16px;}
+code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;}
+p code,li code,td code{background:#e8f3fb;padding:1px 6px;border-radius:4px;font-size:.92em;color:var(--amber-dark);}
+.note{background:var(--white);border:1px solid var(--line);border-left:4px solid var(--amber);padding:12px 16px;border-radius:6px;margin:0 0 16px;font-size:14.5px;}
+.box{background:var(--white);border:1px solid var(--line);border-radius:10px;padding:20px 22px;margin:36px 0 0;}
+.box h2{border:0;padding:0;margin:0 0 10px;font-size:18px;}
+.box a{color:var(--amber-dark);font-weight:700;text-decoration:none;}
+.box ul{list-style:none;margin:0;}.box li{margin-bottom:8px;}
+.box small{color:var(--muted);display:block;font-size:12px;}
+.series{margin:32px 0 0;font-size:14px;}.series a{color:var(--amber-dark);text-decoration:none;}.series li{margin-bottom:4px;}
+footer{border-top:1px solid var(--line);padding:32px 0 48px;text-align:center;color:var(--muted);font-size:12.5px;}
+footer a{color:var(--amber-dark);text-decoration:none;}
+@media (max-width:480px){h1{font-size:22px;}article h2{font-size:18px;}}
+</style>
+</head>
+<body>
+<nav><div class="nv">
+  <div class="nm"><a href="../../" style="color:inherit;text-decoration:none">田中力磨<small>RIKIMA TANAKA</small></a></div>
+  <ul>
+    <li><a href="../">実録シリーズ一覧</a></li>
+    <li><a href="../../#book">著書</a></li>
+    <li><a href="../../#school">教室</a></li>
+    <li><a href="https://note.com/rikima81" target="_blank" rel="noopener">note</a></li>
+  </ul>
+</div></nav>
+
+<header class="art"><div class="wrap">
+  <div class="crumb"><a href="../../">田中力磨</a> › <a href="../">一人塾のGAS自動化 実録</a> › 学年の自動進級</div>
+  <h1>毎年4月1日に生徒の学年を自動で進級させる</h1>
+  <p class="lead">年に1回しかやらない学年更新は、手作業だとやり方を忘れて事故りやすい。GASで4月1日に自動実行し、判断が要る幼児・高3だけは人に確認を求める設計にした。</p>
+  <p class="meta">2026-09-14 公開 ／ 滋賀県彦根市の一人塾「総合学習教室ブリッジ」で実際に動いている仕組みの記録 ／ Google Apps Script（GAS）</p>
+</div></header>
+
+<article><div class="wrap">
+<h2>何を自動化したか</h2>
+<p>一人塾の生徒管理では、4月1日になると生徒シートの「学年」列を一括で書き換える作業が毎年発生する。小1は小2に、中3は高1に、といった具合に全員分を手で直していくと、行を1つ飛ばして学年がずれる・去年の入力し忘れに気づかない、といった事故が起きやすい。年に1回しかやらない作業ほど手順を覚えていないので、毎年やり方を思い出すところから始まっていた。</p>
+<p>この作業をGoogle Apps Script（GAS）の関数1つに置き換え、4月1日の朝に自動実行するようにした。実測で「何分減った」という比較はしていない（年1回の作業のため計測しづらい）ので、ここは体感になるが、当日に何も操作しなくても学年が揃っている状態になり、進級忘れ・入力ミスの心配自体がなくなった。</p>
+
+<h2>仕組み（データの流れ）</h2>
+<p>生徒シートは「bridge生徒管理」という名前のGoogleスプレッドシートで管理している。学年の自動進級はこのシートを直接読み書きするだけのシンプルな仕組みで、外部サービスとの連携は無い。</p>
+<table>
+<tr><th>ステップ</th><th>やること</th></tr>
+<tr><td>1. 起動</td><td>毎月1日の朝に走る既存のディスパッチャー関数から、進級処理を呼び出す（4月以外の月は関数の内部で即リターンする）</td></tr>
+<tr><td>2. 二重実行ガード</td><td>スクリプトプロパティに「今年度は実行済み」の印が付いていないか確認する</td></tr>
+<tr><td>3. シート特定</td><td>「生徒」「生徒一覧」などいくつかの想定シート名を順に探し、見つからなければ先頭シートを使う</td></tr>
+<tr><td>4. 列特定</td><td>ヘッダー行の文言（日本語・英語どちらでも）から「学年」「氏名」「退会日」の列位置を割り出す</td></tr>
+<tr><td>5. 一括更新</td><td>退会済みでない行だけ、学年を1つ先に進める。幼児・高3は自動対象外とし、名前を集めておく</td></tr>
+<tr><td>6. 通知</td><td>進級した人数と、幼児・高3で手動確認が必要な人の名前をメールで通知する</td></tr>
+</table>
+<p>「塾 GAS 自動化」の文脈でよくある悩みが、生徒管理シートの列構成をあとから変えると自動化スクリプトが壊れることだが、ここでは列番号を直接指定せず、ヘッダー文言から探す方式にしている。列を1つ足しても並び替えても、ヘッダー名さえ変えなければ動き続ける。</p>
+
+<h2>コード（要点）</h2>
+<p>進級テーブルはオブジェクト1個で済む。キーが現在の学年、値が進級後の学年で、対応が無い学年（幼児・高3）は自動では動かさない。</p>
+<pre><code>var GRADE_NEXT = {
+  '小1': '小2', '小2': '小3', '小3': '小4', '小4': '小5', '小5': '小6', '小6': '中1',
+  '中1': '中2', '中2': '中3', '中3': '高1',
+  '高1': '高2', '高2': '高3',
+};
+
+function gradePromoteAnnual(force) {
+  var now = new Date();
+  if (!force &amp;&amp; (now.getMonth() + 1) !== 4) return '';
+
+  var props = PropertiesService.getScriptProperties();
+  var fiscalYear = String(now.getFullYear());
+  if (props.getProperty('GRADE_PROMOTED_YEAR') === fiscalYear) {
+    return '学年進級: ' + fiscalYear + '年度分は実行済みです';
+  }
+
+  var srcId = props.getProperty('BRIDGE_DATA_SHEET_ID');
+  var src = SpreadsheetApp.openById(srcId);
+  var sheet = null;
+  ['生徒', '生徒一覧', 'students', 'Students'].some(function(name) {
+    sheet = src.getSheetByName(name);
+    return !!sheet;
+  });
+  if (!sheet) sheet = src.getSheets()[0];
+  // ヘッダー文言から列位置を割り出す（列の並びが変わっても壊れない）
+  var headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0]
+    .map(function(h) { return String(h || '').trim().toLowerCase(); });
+  // ...gradeCol / nameCol / leaveCol を探す処理は省略（全文はnoteへ）...
+}</code></pre>
+<p>本体は、退会済みでない行だけを対象に <code>GRADE_NEXT</code> を引いて書き換え、該当が無い「幼児」「高3」は名前を配列にためて最後にまとめてメール本文へ入れる、という流れだけになっている。長くなるのは列探索まわりのガードで、進級のロジック自体は10行に満たない。</p>
+
+<h2>ハマった点と回避策</h2>
+<p>最初に決めておかないと事故につながった点が2つあった。</p>
+<ul>
+<li><strong>年1回しか動かない処理は「二重実行」に一番弱い。</strong> トリガーの再実行、依頼キューからの手動実行、翌年のテストなど、同じ年度に2回呼ばれる経路が複数あるため、実行のたびにスクリプトプロパティへ「今年度は実行済み」を記録して、2回目以降は即座に何もせず終わるようにした。これが無いと、同じ年に2回動いた場合に小1が一気に小3まで進むという事故になる。</li>
+<li><strong>「進級できない学年」を無視せず、必ず人に確認を求める。</strong> 幼児は年少・年中・年長の区別がシート上に無いため、どのタイミングで「小1」に上げるべきか機械的に判断できない。高3も、進級ではなく卒業（退会処理）が必要なので自動で進めてはいけない。ここを黙って何もしないままにすると「あの子の学年、直し忘れてないか」と毎年不安になるので、対象者の名前を通知メールに列挙し、人が見て手で直す運用にした。自動化を「全部自動でやる」ことと勘違いすると、判断が要る境界を握りつぶしてしまう。</li>
+</ul>
+
+<h2>導入手順</h2>
+<ol>
+<li>スプレッドシートのIDをスクリプトプロパティ <code>BRIDGE_DATA_SHEET_ID</code> に保存する（コードに直接書かない）。</li>
+<li>通知先メールを使いたい場合はスクリプトプロパティ <code>NOTIFY_EMAIL</code> を設定する（未設定なら実行アカウントのメールが使われる）。</li>
+<li>生徒シートに「学年」「氏名」（できれば「退会日」）の見出しがある列を用意する。列の並び順は問わない。</li>
+<li><code>GRADE_NEXT</code> の対応表を、自分の教室の学年区分（学年制・級制など）に合わせて書き換える。</li>
+<li>4月1日の朝に自動実行したい場合は、月初に走る既存のトリガー（無ければ<code>onMonthDay(1)</code>の時間主導型トリガー）から <code>gradePromoteAnnual()</code> を呼ぶ1行を足す。新しいトリガーをむやみに増やさず、既存のトリガーに相乗りするのがGASのトリガー上限（20本）対策になる。</li>
+<li>年度の途中で強制的に再実行したい場合は <code>gradePromoteAnnual(true)</code> のように引数へ真値を渡す（月チェックを飛ばして即実行される。二重実行ガードは効いたままなので、同じ年度で連発しても安全）。</li>
+</ol>
+
+<h2>よくある質問</h2>
+<h3>Q. 学年ではなく「級」や「コース」で管理している場合も使える？</h3>
+<p>使える。<code>GRADE_NEXT</code> はただの文字列対応表なので、キーと値を自分の教室の呼び方に置き換えるだけでよい。対応が無い区分（自動で進められない区分）は自動的にスキップされ、通知に名前が挙がる。</p>
+<h3>Q. シートの列を後から並び替えても大丈夫？</h3>
+<p>大丈夫。列番号ではなくヘッダーの文言で列を探しているため、列を追加・並び替えても、見出しの文言さえ変わらなければ動き続ける。</p>
+<h3>Q. 実行に失敗したことに気づけますか？</h3>
+<p>この処理自体はメール通知を送るだけなので単体では失敗検知は無いが、トリガー集約の仕組み（6本のディスパッチャーに相乗りする方式）に載せている場合は、失敗を握りつぶさず記録して毎晩まとめて通知する共通のしくみに乗る。詳しくはシリーズの「GASトリガー上限20本の壁」を参照。</p>
+
+
+<div class="box">
+  <h2>この仕組みの「全体像」と「コード全文」</h2>
+  <ul>
+    <li><a href="https://www.amazon.co.jp/dp/B0HCGTWG3J?ref=site-gas-grade-promotion" target="_blank" rel="noopener">Kindle『個人塾長、AIを雇う。』（500円・Kindle Unlimited対応）</a><small>2年間の実録を1冊に。何をどの順で自動化したか、失敗も含めて</small></li>
+    <li><a href="https://note.com/rikima81/n/n32a261a6e064?ref=site-gas-grade-promotion" target="_blank" rel="noopener">note『個人塾をGASで自動化した実録（実コード付き）』（1,800円）</a><small>この記事で省略したコード全文と、貼り付け手順</small></li>
+    <li><a href="https://www.amazon.com/dp/B0HBPFZXDQ?ref=site-gas-grade-promotion" target="_blank" rel="noopener">English edition: How I Automated My One-Man Tutoring School with AI ($6.99)</a></li>
+  </ul>
+</div>
+
+<div class="series">
+  <strong>実録シリーズ（全8本）</strong>
+  <ol>
+    <li><a href="../line-auto-reply/">LINE公式アカウントの即時自動応答と申込フォーム</a></li>
+    <li><a href="../trial-follow/">体験生フォローの自動化（前日リマインド・退会予兆）</a></li>
+    <li><a href="../monthly-fee-sync/">OneDriveの月謝表をGoogleスプレッドシートへ毎日同期</a></li>
+    <li><a href="../unpaid-tracking/">未納の自動転記と回収済み更新</a></li>
+    <li><a href="../threads-auto-post/">Threads自動投稿（生成→採点→学習ループ）</a></li>
+    <li><a href="../trigger-dispatcher/">GASトリガー上限20本の壁と6本ディスパッチャー</a></li>
+    <li><a href="../receipt-ocr-budget/">レシート撮影で家計簿が埋まる（Gemini OCR）</a></li>
+    <li><a href="../grade-promotion/">毎年4月1日に学年を自動で進級させる</a></li>
+  </ol>
+</div>
+</div></article>
+
+<footer>
+  <p><a href="../../">田中力磨｜RIKIMA TANAKA</a></p>
+  <p>総合学習教室ブリッジ（滋賀県彦根市稲枝町311-5）</p>
+</footer>
+</body>
+</html>
