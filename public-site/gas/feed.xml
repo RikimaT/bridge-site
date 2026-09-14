@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+<channel>
+  <title>一人塾のGAS自動化 実録</title>
+  <link>https://rikimat.github.io/bridge-site/gas/</link>
+  <atom:link href="https://rikimat.github.io/bridge-site/gas/feed.xml" rel="self" type="application/rss+xml"/>
+  <description>滋賀県彦根市の一人塾「総合学習教室ブリッジ」を Google Apps Script（GAS）とAIで自動化した実録。コード付き。</description>
+  <language>ja</language>
+  <lastBuildDate>Mon, 14 Sep 2026 09:00:00 +0900</lastBuildDate>
+
+  <item>
+    <title>LINE公式アカウントの即時自動応答と申込フォームをGASだけで作る</title>
+    <link>https://rikimat.github.io/bridge-site/gas/line-auto-reply/</link>
+    <guid isPermaLink="true">https://rikimat.github.io/bridge-site/gas/line-auto-reply/</guid>
+    <description>GAS(Google Apps Script)でLINE公式アカウントに即時自動応答し、体験・入会・講習申込フォームまで運用した実装記録。塾のLINE自動応答・GAS導入手順つき。</description>
+    <pubDate>Mon, 14 Sep 2026 08:08:00 +0900</pubDate>
+  </item>
+  <item>
+    <title>体験生フォローを自動化する——前日リマインド・当日お礼・退会予兆の検知</title>
+    <link>https://rikimat.github.io/bridge-site/gas/trial-follow/</link>
+    <guid isPermaLink="true">https://rikimat.github.io/bridge-site/gas/trial-follow/</guid>
+    <description>GASで体験生の前日リマインダー・お礼・フォローメール下書きと退会予兆検知を自動化した実装記録。塾のGAS自動化・スプレッドシート連携の手順つき。</description>
+    <pubDate>Mon, 14 Sep 2026 08:07:00 +0900</pubDate>
+  </item>
+  <item>
+    <title>OneDriveの月謝表をGoogleスプレッドシートへ毎日同期する</title>
+    <link>https://rikimat.github.io/bridge-site/gas/monthly-fee-sync/</link>
+    <guid isPermaLink="true">https://rikimat.github.io/bridge-site/gas/monthly-fee-sync/</guid>
+    <description>OneDriveのExcel月謝表とGoogleスプレッドシートの二重管理をGASで解消した記録。月ブロック解析・位置/氏名照合・安全な3段階反映の実装。</description>
+    <pubDate>Mon, 14 Sep 2026 08:06:00 +0900</pubDate>
+  </item>
+  <item>
+    <title>未納を自動で転記し、入金されたら自動で消す</title>
+    <link>https://rikimat.github.io/bridge-site/gas/unpaid-tracking/</link>
+    <guid isPermaLink="true">https://rikimat.github.io/bridge-site/gas/unpaid-tracking/</guid>
+    <description>塾の月謝未納者を毎週自動で転記し、入金確認後は自動で回収済みにするGAS実装。段階的な督促下書き生成も含めて解説。</description>
+    <pubDate>Mon, 14 Sep 2026 08:05:00 +0900</pubDate>
+  </item>
+  <item>
+    <title>Threadsの自動投稿——Geminiで生成し、採点し、翌日の投稿に学習させる</title>
+    <link>https://rikimat.github.io/bridge-site/gas/threads-auto-post/</link>
+    <guid isPermaLink="true">https://rikimat.github.io/bridge-site/gas/threads-auto-post/</guid>
+    <description>GASでThreads自動投稿をGeminiに生成・採点・学習させ続けている塾の実録。禁止表現検出と字数調整の設計を解説。</description>
+    <pubDate>Mon, 14 Sep 2026 08:04:00 +0900</pubDate>
+  </item>
+  <item>
+    <title>GASのトリガー上限20本の壁——6本のディスパッチャーに集約し、失敗を必ず記録する</title>
+    <link>https://rikimat.github.io/bridge-site/gas/trigger-dispatcher/</link>
+    <guid isPermaLink="true">https://rikimat.github.io/bridge-site/gas/trigger-dispatcher/</guid>
+    <description>GAS自動化のトリガー20本上限を6本のディスパッチャーに集約し、失敗を握りつぶさず記録する設計を解説する実録。</description>
+    <pubDate>Mon, 14 Sep 2026 08:03:00 +0900</pubDate>
+  </item>
+  <item>
+    <title>レシートを撮るだけで家計簿が埋まる——GeminiのOCRと楽天メール取込</title>
+    <link>https://rikimat.github.io/bridge-site/gas/receipt-ocr-budget/</link>
+    <guid isPermaLink="true">https://rikimat.github.io/bridge-site/gas/receipt-ocr-budget/</guid>
+    <description>レシート撮影をGemini APIで自動読取し、楽天カード・楽天ペイの明細メールも自動取込む。GAS家計簿アプリの実装と重複排除の工夫。</description>
+    <pubDate>Mon, 14 Sep 2026 08:02:00 +0900</pubDate>
+  </item>
+  <item>
+    <title>毎年4月1日に生徒の学年を自動で進級させる</title>
+    <link>https://rikimat.github.io/bridge-site/gas/grade-promotion/</link>
+    <guid isPermaLink="true">https://rikimat.github.io/bridge-site/gas/grade-promotion/</guid>
+    <description>塾の生徒シートの学年を4月1日にGASで一括進級。幼児・高3は自動対象外にして人に確認を求める設計と実装を解説。</description>
+    <pubDate>Mon, 14 Sep 2026 08:01:00 +0900</pubDate>
+  </item>
+</channel>
+</rss>
