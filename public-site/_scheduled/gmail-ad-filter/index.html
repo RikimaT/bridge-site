@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gmailの広告メールをGASとAI（Gemini）で自動振り分け——自信があるものだけ受信箱から外す｜一人塾のGAS自動化 実録｜田中力磨</title>
+<meta name="description" content="Gmailに届く広告・プロモーションメールをGASからGeminiで判定し、自信のある広告だけラベルを付けて自動アーカイブ。迷うものは「メール要確認」ラベルと通知で人に回し、判定はシートに記録して二重処理しない。">
+<link rel="canonical" href="https://rikimat.github.io/bridge-site/gas/gmail-ad-filter/">
+<link rel="alternate" type="application/rss+xml" title="一人塾のGAS自動化 実録" href="https://rikimat.github.io/bridge-site/gas/feed.xml">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Gmailの広告メールをGASとAI（Gemini）で自動振り分け——自信があるものだけ受信箱から外す">
+<meta property="og:description" content="Gmailに届く広告・プロモーションメールをGASからGeminiで判定し、自信のある広告だけラベルを付けて自動アーカイブ。迷うものは「メール要確認」ラベルと通知で人に回し、判定はシートに記録して二重処理しない。">
+<meta property="og:url" content="https://rikimat.github.io/bridge-site/gas/gmail-ad-filter/">
+<meta property="og:image" content="https://rikimat.github.io/bridge-site/og-rikima.jpg">
+<meta property="og:site_name" content="田中力磨｜総合学習教室ブリッジ">
+<meta property="og:locale" content="ja_JP">
+<meta name="twitter:card" content="summary_large_image">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "TechArticle",
+  "headline": "Gmailの広告メールをGASとAI（Gemini）で自動振り分け——自信があるものだけ受信箱から外す",
+  "description": "Gmailに届く広告・プロモーションメールをGASからGeminiで判定し、自信のある広告だけラベルを付けて自動アーカイブ。迷うものは「メール要確認」ラベルと通知で人に回し、判定はシートに記録して二重処理しない。",
+  "inLanguage": "ja",
+  "datePublished": "2026-10-05",
+  "dateModified": "2026-10-05",
+  "keywords": "GAS,Gmail,広告メール,自動振り分け,ラベル,Gemini,AI,自動化",
+  "author": {
+    "@type": "Person",
+    "name": "田中力磨",
+    "url": "https://rikimat.github.io/bridge-site/"
+  },
+  "publisher": {
+    "@type": "Person",
+    "name": "田中力磨"
+  },
+  "mainEntityOfPage": "https://rikimat.github.io/bridge-site/gas/gmail-ad-filter/",
+  "isPartOf": {
+    "@type": "Blog",
+    "name": "一人塾のGAS自動化 実録",
+    "url": "https://rikimat.github.io/bridge-site/gas/"
+  }
+}
+</script>
+<style>
+:root{--ink:#1d2433;--paper:#f5f9fc;--white:#fff;--amber:#2b8fd0;--amber-dark:#1667a0;--line:#dde7ef;--sub:#5d6473;--muted:#949aa8;--code:#0f172a;}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:"Hiragino Kaku Gothic ProN","Noto Sans JP",sans-serif;background:var(--paper);color:var(--ink);line-height:1.95;font-size:16px;}
+.wrap{max-width:760px;margin:0 auto;padding:0 20px;}
+nav{position:sticky;top:0;z-index:50;background:rgba(245,249,252,.92);backdrop-filter:blur(10px);border-bottom:1px solid var(--line);}
+.nv{max-width:760px;margin:0 auto;padding:12px 20px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;}
+.nv .nm{font-weight:700;letter-spacing:2px;font-size:14px;}.nv .nm small{display:block;font-size:9px;letter-spacing:3px;color:var(--amber-dark);}
+.nv ul{display:flex;gap:14px;list-style:none;}.nv a{color:var(--sub);text-decoration:none;font-size:12.5px;white-space:nowrap;}.nv a:hover{color:var(--amber-dark);}
+header.art{padding:48px 0 24px;border-bottom:1px solid var(--line);}
+.crumb{font-size:12px;color:var(--muted);margin-bottom:12px;}.crumb a{color:var(--amber-dark);text-decoration:none;}
+h1{font-size:26px;line-height:1.5;letter-spacing:.5px;margin-bottom:12px;}
+.lead{color:var(--sub);font-size:15px;}
+.meta{font-size:12px;color:var(--muted);margin-top:10px;}
+article{padding:24px 0 40px;}
+article h2{font-size:20px;margin:40px 0 12px;padding-left:12px;border-left:4px solid var(--amber);line-height:1.5;}
+article h3{font-size:16.5px;margin:26px 0 8px;color:var(--amber-dark);}
+article p{margin:0 0 14px;}
+article ul,article ol{margin:0 0 14px 22px;}article li{margin-bottom:4px;}
+article table{border-collapse:collapse;width:100%;margin:0 0 16px;font-size:14px;display:block;overflow-x:auto;}
+article th,article td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top;background:var(--white);}
+article th{background:#e8f3fb;}
+pre{background:var(--code);color:#e2e8f0;padding:16px 18px;border-radius:8px;overflow-x:auto;font-size:13px;line-height:1.6;margin:0 0 16px;}
+code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;}
+p code,li code,td code{background:#e8f3fb;padding:1px 6px;border-radius:4px;font-size:.92em;color:var(--amber-dark);word-break:break-all;}
+.note{background:var(--white);border:1px solid var(--line);border-left:4px solid var(--amber);padding:12px 16px;border-radius:6px;margin:0 0 16px;font-size:14.5px;}
+.box{background:var(--white);border:1px solid var(--line);border-radius:10px;padding:20px 22px;margin:36px 0 0;}
+.box h2{border:0;padding:0;margin:0 0 10px;font-size:18px;}
+.box a{color:var(--amber-dark);font-weight:700;text-decoration:none;}
+.box ul{list-style:none;margin:0;}.box li{margin-bottom:8px;}
+.box small{color:var(--muted);display:block;font-size:12px;}
+.series{margin:32px 0 0;font-size:14px;}.series a{color:var(--amber-dark);text-decoration:none;}.series li{margin-bottom:4px;}
+footer{border-top:1px solid var(--line);padding:32px 0 48px;text-align:center;color:var(--muted);font-size:12.5px;}
+footer a{color:var(--amber-dark);text-decoration:none;}
+footer .privacy{max-width:560px;margin:10px auto 0;font-size:11px;line-height:1.7;}
+@media (max-width:480px){h1{font-size:22px;}article h2{font-size:18px;}}
+</style>
+</head>
+<body>
+<nav><div class="nv">
+  <div class="nm"><a href="../../" style="color:inherit;text-decoration:none">田中力磨<small>RIKIMA TANAKA</small></a></div>
+  <ul>
+    <li><a href="../">実録シリーズ一覧</a></li>
+    <li><a href="../../#book">著書</a></li>
+    <li><a href="../../#school">教室</a></li>
+    <li><a href="https://note.com/rikima81" target="_blank" rel="noopener">note</a></li>
+  </ul>
+</div></nav>
+
+<header class="art"><div class="wrap">
+  <div class="crumb"><a href="../../">田中力磨</a> › <a href="../">一人塾のGAS自動化 実録</a> › 広告メール仕分け</div>
+  <h1>Gmailの広告メールをGASとAI（Gemini）で自動振り分け——自信があるものだけ受信箱から外す</h1>
+  <p class="lead">受信箱の新着を4時間ごとにAIで判定し、広告と言い切れるものだけ受信箱から外す。結果はシートに残し、同じメールを二度判定しない。</p>
+  <p class="meta">2026-10-05 公開 ／ 滋賀県彦根市の一人塾「総合学習教室ブリッジ」で実際に動いている仕組みの記録 ／ Google Apps Script（GAS）</p>
+  <p class="meta">この記事は、教室で動いているコードと運用の記録をもとに、AI（Claude）が書きました。</p>
+</div></header>
+
+<article><div class="wrap">
+<h2>何を自動化したか</h2>
+<p>個人経営の塾では、保護者や取引先とのやり取り、決済の確認、仕事で使うツールからの通知と、ネットショップのセール告知や他社の営業メールが、塾長ひとりの受信箱に並ぶ。広告と大事な連絡が混ざっていると、受信箱を開くたびに選り分けから始めることになる。</p>
+<p>今は4時間ごとにGoogle Apps Script（GAS）が受信箱の新着を読み、Gemini（GoogleのAI）に広告かどうかを判定させている。自信を持って広告と言えるものだけ「広告・プロモ」ラベルを付けて受信箱から外し（削除ではなくアーカイブ）、広告らしいが自信が無いものは「メール要確認」ラベルを付けて受信箱に残したまま、一覧を通知メールで知らせる。判定の結果はスプレッドシートに1行ずつ残し、同じスレッドを二度判定しない。</p>
+<p>仕分けの正解率や減った手間を測った記録は無いので、数字は出さない。書くのは設計と、その設計がどこで安全側に倒れるかである。</p>
+<h2>仕組み（データの流れ）</h2>
+<p>定期実行は、4時間ごとに動くディスパッチャー <code>autoEvery4Hours</code> に <code>autoRunSafely('広告メール自動仕分け', gmailAdFilterScan);</code> の1行で相乗りしていて、専用のトリガーは作っていない（<a href="../trigger-dispatcher/">トリガー上限20本の壁</a>参照）。</p>
+<p>1回の実行では、受信箱から直近3日のスレッドを最大30件取り出し、自動化用のスプレッドシート（ハブ）にある「メール仕訳ログ」シートに記録済みのものを飛ばす。残ったスレッドは、最後のメールの差出人・件名・本文の先頭800文字をGeminiに渡し、<code>isAd</code>（広告か）・<code>confidence</code>（自信の高さ）・<code>reason</code>（理由）をJSONで返させる。応答による扱いは次のとおり。</p>
+<table>
+<tr><th>Geminiの応答</th><th>Gmailでの扱い</th><th>ログの「判定」欄</th><th>人への知らせ</th></tr>
+<tr><td><code>isAd</code> が <code>true</code>、<code>confidence</code> が <code>"high"</code></td><td>「広告・プロモ」ラベルを付けてアーカイブ</td><td>広告として自動仕分け</td><td>なし</td></tr>
+<tr><td><code>isAd</code> が <code>true</code>、<code>confidence</code> が <code>"high"</code> 以外</td><td>「メール要確認」ラベルだけ付ける（受信箱に残る）</td><td>要確認（広告の可能性）</td><td>通知メールの一覧に載る</td></tr>
+<tr><td><code>isAd</code> が <code>true</code> 以外</td><td>何もしない</td><td>広告ではないと判定</td><td>なし</td></tr>
+<tr><td>Gemini呼び出しやJSON解析の失敗</td><td>何もしない</td><td>書かない（次の回に判定し直す）</td><td>実行ログ（応答エラーは毎晩のまとめ通知にも。同じ種類の失敗の繰り返しは間を空けて通知される）</td></tr>
+</table>
+<p>検索条件では差出人も件名も絞らず、どこからが広告かの線引きはプロンプトの基準でGeminiに任せる。Googleビジネスプロフィールの月次の実績メールを拾う処理も、コードのコメントにあるとおり同じ「検索は広く・判定はAIで絞る」作りだ。</p>
+<h2>コード（要点）</h2>
+<p>入口では、ログのシートと2つのラベルを用意し（無ければ作る）、受信箱を検索する。2つのラベルか既存の「領収書」ラベルが付いたスレッドと、自分だけが送ったスレッドは、検索の段階で外している。</p>
+<pre><code>var GMAIL_AD_LABEL_NAME     = '広告・プロモ';
+var GMAIL_AD_REVIEW_LABEL   = 'メール要確認';
+var GMAIL_AD_LOG_SHEET      = 'メール仕訳ログ';
+
+function gmailAdFilterScan() {
+  var sheet = autoSheet(GMAIL_AD_LOG_SHEET, ['判定日時', 'スレッドID', '差出人', '件名', '判定', '理由']);
+  var seen = autoSeenSet(sheet, 1);  // スレッドIDで処理済み判定
+
+  var adLabel = GmailApp.getUserLabelByName(GMAIL_AD_LABEL_NAME) || GmailApp.createLabel(GMAIL_AD_LABEL_NAME);
+  var reviewLabel = GmailApp.getUserLabelByName(GMAIL_AD_REVIEW_LABEL) || GmailApp.createLabel(GMAIL_AD_REVIEW_LABEL);
+
+  // 自分発信・領収書等は既存ラベルで除外。すでに仕分け済みのスレッドも対象外。
+  var threads = GmailApp.search(
+    'in:inbox newer_than:3d -label:' + GMAIL_AD_LABEL_NAME + ' -label:' + GMAIL_AD_REVIEW_LABEL
+    + ' -label:領収書 -from:me', 0, 30);
+
+  var needsReview = [];
+  var archived = 0;
+
+  threads.forEach(function(thread) {
+    var id = thread.getId();
+    if (seen[id]) return;
+    // …（省略）…</code></pre>
+<p>検索結果のうち、ログにスレッドIDがあるものはGeminiに送らずに飛ばす。判定済みのまま受信箱に残っているメールも30件の枠を使うため、受信の多い日は3日の範囲のうち前に届いたメールまで手が回らないことがある（その場合も受信箱に残るだけだ）。</p>
+<p><code>autoSheet</code> はハブのシートを取り出し、無ければヘッダー行付きで作る共通関数だ。処理済みの判定は、問い合わせメールの収集などでも使っている <code>autoSeenSet</code> が担う。</p>
+<pre><code>/** シートの指定列（0始まり）の値の集合を返す（処理済み判定用） */
+function autoSeenSet(sheet, colIndex) {
+  var seen = {};
+  sheet.getDataRange().getValues().forEach(function(row, i) {
+    if (i &gt; 0 &amp;&amp; row[colIndex]) seen[String(row[colIndex])] = true;
+  });
+  return seen;
+}</code></pre>
+<p>ラベルでの除外に加えてログを持つのは、「広告ではない」と判定したメールのためだ。印を付けずに受信箱へ残すので検索条件では判定済みかどうか区別できず、ログが無ければ3日のあいだ4時間ごとにGeminiへ送り直すことになる。ログは結果にかかわらずスレッドIDを残すので、人がラベルを外したり受信箱に戻したりしたスレッドを、判定し直して上書きすることもない。記録はスレッド単位なので、同じスレッドに後から届いたメールは判定し直さない。</p>
+<p>スレッドごとの判定では、プロンプトに広告と広告でないものの基準を並べ、応答の形をJSONで指定している。</p>
+<pre><code>    var msg = thread.getMessages()[thread.getMessages().length - 1];
+    try {
+      var judged = autoGeminiJson([
+        '個人経営の学習塾を運営する田中力磨さんに届いたメールです。以下の基準で仕分けてください。',
+        '',
+        '「広告」＝ネットショッピングのセール告知・メルマガ、ポイント・クーポン案内、他社からの営業・売り込みメール、',
+        '　サブスクサービスの新機能紹介など、今すぐ対応不要で読まなくても業務に支障がないもの。',
+        '「広告ではない」＝生徒・保護者・取引先とのやり取り、決済確認・領収書、セキュリティ通知、',
+        '　仕事で使っているツール（GitHub, Claude, Google等）からの重要な通知、自分宛の自動配信レポートなど。',
+        '判断に自信が持てない場合は confidence を "low" にしてください（広告らしいが確信がないなら isAd は true、',
+        '　広告ではなさそうなら false）。confidence が "high" のときだけ自動で受信箱から外します。',
+        '',
+        '差出人: ' + msg.getFrom(),
+        '件名: ' + msg.getSubject(),
+        '本文冒頭: ' + msg.getPlainBody().slice(0, 800),
+        '',
+        'JSON形式で回答: {"isAd": true/false, "confidence": "high"/"low", "reason": "一言（20文字以内）"}',
+      ].join('\n'));
+
+      var verdict, reason = judged.reason || '';
+      if (judged.isAd === true &amp;&amp; judged.confidence === 'high') {
+        thread.addLabel(adLabel);
+        thread.moveToArchive();
+        verdict = '広告として自動仕分け';
+        archived++;
+      } else if (judged.isAd === true &amp;&amp; judged.confidence !== 'high') {
+        thread.addLabel(reviewLabel);
+        verdict = '要確認（広告の可能性）';
+        needsReview.push('・' + msg.getFrom() + '\n  件名: ' + msg.getSubject() + '\n  理由: ' + reason);
+      } else {
+        verdict = '広告ではないと判定';
+      }
+      sheet.appendRow([new Date(), id, msg.getFrom(), msg.getSubject(), verdict, reason]);
+      seen[id] = true;
+    } catch (e) {
+      Logger.log('メール仕分け失敗: ' + e.message);
+    }
+  });
+  // …（省略）…</code></pre>
+<p><code>autoGeminiJson</code> は、プロンプトの末尾に「出力はJSONのみ」と足して温度0.2で呼び、応答の <code>{</code> 〜 <code>}</code> をパースする共通ヘルパーだ。分岐は <code>=== true</code> で比べているので、<code>isAd</code> が文字列の "true" のように崩れて返ってきても広告扱いにはならない。ログへの追記と <code>seen[id] = true</code> は処理が終わってから行うため、Geminiの呼び出しなどで例外が出たスレッドは、3日の検索範囲にあるうちは次の回に判定し直される。</p>
+<p><code>needsReview</code> にためた一覧は、要確認が1件以上あった回だけ、最後に共通関数 <code>autoNotify</code> で1通の通知メールにまとめて送る（宛先はスクリプトプロパティ <code>NOTIFY_EMAIL</code>、未設定なら自分宛）。本文には、広告なら「広告・プロモ」ラベルに付け替えるよう頼む一文が付く。</p>
+<h2>ハマった点と回避策</h2>
+<h3>失敗がスレッドごとの try/catch に吸われる</h3>
+<p>スレッドごとの <code>try/catch</code> は1通の失敗で残りの仕分けを止めないためのものだが、catch の中は <code>Logger.log</code> だけで、ディスパッチャーから見ればこの処理は成功で終わる。この教室が2026-07-16にまとめたエラー監視の計画書は「無音は許すが、無記録は許さない」を原則に掲げ、共通ヘルパーを通さずにGeminiを呼んでいたThreads投稿の生成が、失敗を記録に残さないまま投稿を落とす構造だったことも指摘している。</p>
+<p>広告仕分けは共通ヘルパーを通しているので、Geminiが候補を返さなかった失敗（HTTPエラーなど）はヘルパーの側で記録され、毎晩のまとめ通知に載る（同じ種類の失敗の繰り返しは間を空けて通知される）。一方、応答からJSONを取り出せなかった失敗は実行ログにしか残らない。どちらの失敗でもメールは受信箱に残り、次の回に判定し直されるので、失敗は安全側に倒れる。JSONを取り出せなかった失敗もまとめ通知に載せたいなら、catch の中で <code>autoAiRecordFailure</code> を呼ぶ（この教室ではまだ入れていない。HTTPエラーはヘルパーの側でも記録されるので、その分は二重に数えられる）。</p>
+<h3>「迷ったら」の指示と、分岐の条件がずれていた</h3>
+<p>この記事のためにコードを読み返したところ、食い違いが見つかった。プロンプトは2026-07-13に作ったときから「自信が持てない場合は <code>isAd</code> を <code>false</code> にしたうえで <code>confidence</code> を <code>"low"</code> に」と頼んでいたのに、分岐で「メール要確認」に回すのは <code>isAd</code> が <code>true</code> で <code>confidence</code> が <code>"high"</code> 以外のときだけだった。Geminiが指示どおりに返すほど、判断のつかないメールは「広告ではないと判定」に入り、ラベルも通知も無いまま受信箱に残る。コード冒頭のコメントには、迷うメールは「メール要確認」ラベルを付けて一覧で確認してもらうと書いてあったが、その一覧にはほとんど載らない作りになっていた。</p>
+<p>どちらに転んでも受信箱から外れることはないので、実害は「迷ったメールが知らされない」ことにとどまる。直し方は2つ考えられた。分岐を広げて <code>confidence</code> が <code>"low"</code> なら全部を要確認に回すか、プロンプトを分岐に合わせるか。前者は、保護者や取引先からの普通のメールでも迷えば通知が来るので、通知が増えすぎると考えた。2026-09-27に、分岐はそのままにして、プロンプトのほうを分岐に合わせた。自信が持てないときに <code>confidence</code> を <code>"low"</code> にする指示は残し、広告らしいが確信がないなら <code>isAd</code> は <code>true</code>、広告ではなさそうなら <code>false</code> と書き分けたうえで、<code>confidence</code> が <code>"high"</code> のときだけ自動で受信箱から外すことも書き添えた（上に載せたのが直した後のプロンプトだ）。AIへの指示と、その応答を受け取る分岐は、同じ表を見ながら書かないとずれる。なお、ログには今も <code>confidence</code> を書いていないので、「自信を持って広告ではない」と「広告ではなさそうだが迷った」はシートの上では見分けられない。</p>
+<h2>導入手順</h2>
+<ol>
+<li>スクリプトプロパティに <code>GEMINI_API_KEY</code> を登録する（通知先を変えるなら <code>NOTIFY_EMAIL</code>、モデルを変えるなら <code>AUTO_GEMINI_TEXT_MODEL</code> も）。このキーは課金を有効にした有料枠で使う。規約（<a href="https://ai.google.dev/gemini-api/terms" target="_blank" rel="noopener">Gemini API 追加利用規約</a>）には、無料枠では送った内容がGoogleの製品やサービスの改善に使われ、人が読むこともあると書かれており、無料枠には個人情報を送らないよう求めている。保護者や取引先のメールを読ませるこの処理は、有料枠にしてから動かす。この教室も有料枠で使っている。</li>
+<li>記録用のスプレッドシートを用意し、<code>autoSheet</code>・<code>autoSeenSet</code> にあたる関数を置く（この教室ではハブを初回に自動で作り、IDをスクリプトプロパティ <code>AUTOMATION_HUB_ID</code> に保存している）。</li>
+<li>Geminiの呼び出し（<code>autoGeminiJson</code> にあたるもの）と通知メールの送信（<code>autoNotify</code> にあたるもの）を用意する。Geminiへの送り方は<a href="../gmail-attachment-drive/">Gmail添付の記事</a>の <code>autoGeminiVision</code> と同じ形で、<code>inline_data</code> を付けずに文字だけを送る。</li>
+<li><code>gmailAdFilterScan</code> を置き、検索条件の <code>-label:領収書</code> を、判定から外したいメールに付けている自分のラベル名に直す（無ければ消す）。</li>
+<li>プロンプト冒頭の宛名の行と、「広告」「広告ではない」の基準を、自分の仕事に合わせて書き換える。</li>
+<li>GASエディタで <code>gmailAdFilterScan</code> を一度手動で実行し、権限を承認する。初回は直近3日の受信箱（最大30スレッド）が対象になり、自信ありと判定された広告はその場でアーカイブされる。</li>
+<li>「メール仕訳ログ」シートと「広告・プロモ」ラベルの中身を見て、必要なメールが紛れていないか確かめる。紛れていたら受信箱に戻し、プロンプトの基準を直す。</li>
+<li>4時間ごとの時間主導型トリガーに載せる（この教室ではトリガーを増やさず、既存の <code>autoEvery4Hours</code> に1行足している）。</li>
+</ol>
+<h2>よくある質問</h2>
+<h3>Q. 広告と判定されたメールは消えてしまいますか</h3>
+<p>消えない。ラベルを付けてアーカイブするだけで、削除も迷惑メールへの移動もしないので、「広告・プロモ」ラベルを開けばいつでも読める。受信箱に戻したスレッドもログにIDが残っているため、次の回にまた外されることはない。</p>
+<h3>Q. 迷ったメールの一覧はいつ届きますか</h3>
+<p>仕分けを実行した回（4時間ごと）のうち、要確認が1件以上あった回だけ、通知メールが1通届く。0件の回は何も届かないので、動いているかどうかは「メール仕訳ログ」シートの判定日時で確かめる。</p>
+<h3>Q. 記録用のシートは増え続けませんか</h3>
+<p>増え続ける。古い行を消す処理は無く、毎回全行を読んで処理済みの集合を作っている。ほかのログで使っている共通関数 <code>autoTrimOldRows(sheet, days)</code>（1列目の日付で古い行を消す）を足すなら、消す日数は検索範囲の3日より十分長くとる。</p>
+
+<div class="box">
+  <h2>筆者の本とnote（有料）で、まとめて読む</h2>
+  <ul>
+    <li><a href="https://www.amazon.co.jp/dp/B0HCGTWG3J?ref=site-gas-gmail-ad-filter" target="_blank" rel="noopener">Kindle『個人塾長、AIを雇う。』（500円・Kindle Unlimited対応）</a><small>一人塾の自動化を、何をどの順で進めたか・失敗も含めて1冊にまとめた実録</small></li>
+    <li><a href="https://note.com/rikima81/n/n32a261a6e064?ref=site-gas-gmail-ad-filter" target="_blank" rel="noopener">note『個人塾をGASで自動化した実録（実コード付き）』（1,800円）</a><small>教室で動かしているGAS×AIの仕組みを、手順とコードつきでまとめた有料記事</small></li>
+    <li><a href="https://www.amazon.com/dp/B0HBPFZXDQ?ref=site-gas-gmail-ad-filter" target="_blank" rel="noopener">English edition: How I Automated My One-Man Tutoring School with AI ($6.99)</a></li>
+  </ul>
+</div>
+
+<div class="series"></div>
+</div></article>
+
+<footer>
+  <p><a href="../../">田中力磨｜RIKIMA TANAKA</a></p>
+  <p>総合学習教室ブリッジ（滋賀県彦根市稲枝町311-5）</p>
+  <p class="privacy">このサイトでは、よく読まれている記事を知るために、ページが表示されたときとリンクが押されたときに、日時・ページ・リンク先・どのサイトから来たか（ドメイン名とURLの ref などの値）を、筆者の Google Apps Script（Googleのサーバー）へ送って記録しています。Cookie は使わず、IPアドレスなど個人を特定できる情報は記録しません。ブラウザでトラッキング拒否（Do Not Track／GPC）を有効にしていると送りません。</p>
+</footer>
+<script src="../../assets/beacon.js" defer></script>
+</body>
+</html>

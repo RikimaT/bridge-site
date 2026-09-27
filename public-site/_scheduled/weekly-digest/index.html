@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GASで週次レポートを自動メール送信——スプレッドシートの集計を毎週月曜に1通で届ける｜一人塾のGAS自動化 実録｜田中力磨</title>
+<meta name="description" content="毎週日曜の夜にシートを見て回る点検をやめ、GASで集計した週次ダイジェストを毎週月曜の朝にメールで自動送信している。異常が無くても毎週1行出して、仕組みの生存確認を兼ねる設計の記録。">
+<link rel="canonical" href="https://rikimat.github.io/bridge-site/gas/weekly-digest/">
+<link rel="alternate" type="application/rss+xml" title="一人塾のGAS自動化 実録" href="https://rikimat.github.io/bridge-site/gas/feed.xml">
+<meta property="og:type" content="article">
+<meta property="og:title" content="GASで週次レポートを自動メール送信——スプレッドシートの集計を毎週月曜に1通で届ける">
+<meta property="og:description" content="毎週日曜の夜にシートを見て回る点検をやめ、GASで集計した週次ダイジェストを毎週月曜の朝にメールで自動送信している。異常が無くても毎週1行出して、仕組みの生存確認を兼ねる設計の記録。">
+<meta property="og:url" content="https://rikimat.github.io/bridge-site/gas/weekly-digest/">
+<meta property="og:image" content="https://rikimat.github.io/bridge-site/og-rikima.jpg">
+<meta property="og:site_name" content="田中力磨｜総合学習教室ブリッジ">
+<meta property="og:locale" content="ja_JP">
+<meta name="twitter:card" content="summary_large_image">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "TechArticle",
+  "headline": "GASで週次レポートを自動メール送信——スプレッドシートの集計を毎週月曜に1通で届ける",
+  "description": "毎週日曜の夜にシートを見て回る点検をやめ、GASで集計した週次ダイジェストを毎週月曜の朝にメールで自動送信している。異常が無くても毎週1行出して、仕組みの生存確認を兼ねる設計の記録。",
+  "inLanguage": "ja",
+  "datePublished": "2026-10-26",
+  "dateModified": "2026-10-26",
+  "keywords": "GAS 週次レポート メール, スプレッドシート 集計 メール 自動送信, GAS 定期 メール 送信, MailApp, 時間主導型トリガー, 生存確認",
+  "author": {
+    "@type": "Person",
+    "name": "田中力磨",
+    "url": "https://rikimat.github.io/bridge-site/"
+  },
+  "publisher": {
+    "@type": "Person",
+    "name": "田中力磨"
+  },
+  "mainEntityOfPage": "https://rikimat.github.io/bridge-site/gas/weekly-digest/",
+  "isPartOf": {
+    "@type": "Blog",
+    "name": "一人塾のGAS自動化 実録",
+    "url": "https://rikimat.github.io/bridge-site/gas/"
+  }
+}
+</script>
+<style>
+:root{--ink:#1d2433;--paper:#f5f9fc;--white:#fff;--amber:#2b8fd0;--amber-dark:#1667a0;--line:#dde7ef;--sub:#5d6473;--muted:#949aa8;--code:#0f172a;}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:"Hiragino Kaku Gothic ProN","Noto Sans JP",sans-serif;background:var(--paper);color:var(--ink);line-height:1.95;font-size:16px;}
+.wrap{max-width:760px;margin:0 auto;padding:0 20px;}
+nav{position:sticky;top:0;z-index:50;background:rgba(245,249,252,.92);backdrop-filter:blur(10px);border-bottom:1px solid var(--line);}
+.nv{max-width:760px;margin:0 auto;padding:12px 20px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;}
+.nv .nm{font-weight:700;letter-spacing:2px;font-size:14px;}.nv .nm small{display:block;font-size:9px;letter-spacing:3px;color:var(--amber-dark);}
+.nv ul{display:flex;gap:14px;list-style:none;}.nv a{color:var(--sub);text-decoration:none;font-size:12.5px;white-space:nowrap;}.nv a:hover{color:var(--amber-dark);}
+header.art{padding:48px 0 24px;border-bottom:1px solid var(--line);}
+.crumb{font-size:12px;color:var(--muted);margin-bottom:12px;}.crumb a{color:var(--amber-dark);text-decoration:none;}
+h1{font-size:26px;line-height:1.5;letter-spacing:.5px;margin-bottom:12px;}
+.lead{color:var(--sub);font-size:15px;}
+.meta{font-size:12px;color:var(--muted);margin-top:10px;}
+article{padding:24px 0 40px;}
+article h2{font-size:20px;margin:40px 0 12px;padding-left:12px;border-left:4px solid var(--amber);line-height:1.5;}
+article h3{font-size:16.5px;margin:26px 0 8px;color:var(--amber-dark);}
+article p{margin:0 0 14px;}
+article ul,article ol{margin:0 0 14px 22px;}article li{margin-bottom:4px;}
+article table{border-collapse:collapse;width:100%;margin:0 0 16px;font-size:14px;display:block;overflow-x:auto;}
+article th,article td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top;background:var(--white);}
+article th{background:#e8f3fb;}
+pre{background:var(--code);color:#e2e8f0;padding:16px 18px;border-radius:8px;overflow-x:auto;font-size:13px;line-height:1.6;margin:0 0 16px;}
+code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;}
+p code,li code,td code{background:#e8f3fb;padding:1px 6px;border-radius:4px;font-size:.92em;color:var(--amber-dark);word-break:break-all;}
+.note{background:var(--white);border:1px solid var(--line);border-left:4px solid var(--amber);padding:12px 16px;border-radius:6px;margin:0 0 16px;font-size:14.5px;}
+.box{background:var(--white);border:1px solid var(--line);border-radius:10px;padding:20px 22px;margin:36px 0 0;}
+.box h2{border:0;padding:0;margin:0 0 10px;font-size:18px;}
+.box a{color:var(--amber-dark);font-weight:700;text-decoration:none;}
+.box ul{list-style:none;margin:0;}.box li{margin-bottom:8px;}
+.box small{color:var(--muted);display:block;font-size:12px;}
+.series{margin:32px 0 0;font-size:14px;}.series a{color:var(--amber-dark);text-decoration:none;}.series li{margin-bottom:4px;}
+footer{border-top:1px solid var(--line);padding:32px 0 48px;text-align:center;color:var(--muted);font-size:12.5px;}
+footer a{color:var(--amber-dark);text-decoration:none;}
+footer .privacy{max-width:560px;margin:10px auto 0;font-size:11px;line-height:1.7;}
+@media (max-width:480px){h1{font-size:22px;}article h2{font-size:18px;}}
+</style>
+</head>
+<body>
+<nav><div class="nv">
+  <div class="nm"><a href="../../" style="color:inherit;text-decoration:none">田中力磨<small>RIKIMA TANAKA</small></a></div>
+  <ul>
+    <li><a href="../">実録シリーズ一覧</a></li>
+    <li><a href="../../#book">著書</a></li>
+    <li><a href="../../#school">教室</a></li>
+    <li><a href="https://note.com/rikima81" target="_blank" rel="noopener">note</a></li>
+  </ul>
+</div></nav>
+
+<header class="art"><div class="wrap">
+  <div class="crumb"><a href="../../">田中力磨</a> › <a href="../">一人塾のGAS自動化 実録</a> › 週次ダイジェスト</div>
+  <h1>GASで週次レポートを自動メール送信——スプレッドシートの集計を毎週月曜に1通で届ける</h1>
+  <p class="lead">日曜夜のシート巡回をやめ、月曜の朝に届くメールだけを読む形にした。集計と仕組みの生存確認を1通にまとめたGASの記録。</p>
+  <p class="meta">2026-10-26 公開 ／ 滋賀県彦根市の一人塾「総合学習教室ブリッジ」で実際に動いている仕組みの記録 ／ Google Apps Script（GAS）</p>
+  <p class="meta">この記事は、教室で動いているコードと運用の記録をもとに、AI（Claude）が書きました。</p>
+</div></header>
+
+<article><div class="wrap">
+<h2>何を自動化したか</h2>
+<p>この教室では、自動化が実際に動いているかを点検するため、毎週日曜の夜に30〜45分かけてシートや画面を見て回るチェックリストを作った。GASエディタでトリガーの本数と直近7日のエラーを確かめ、自動化用のスプレッドシートで各シートの最終行の日付を見て、SNSに投稿が出ているかも目で追う内容だ。</p>
+<p>2026-07-06に、負担を減らす見直しの一つとしてこの巡回を廃止し、毎週月曜の朝にGASが件名に「📊 週次ダイジェスト（これ1通でOK）」と入ったメールを1通送る形に置き換えた。最初に最小の計器盤として決めたのは3つ——体験申込とそのきっかけ、講習の申込と未入金、仕組みの健康状態（今はSNS自動投稿の欠け・データ整合性など）——で、設計目標は「このメールを読めば、シートは開かなくていい」。コードのコメントに書いた見積もりは「読むだけ（2〜3分）」で、実測値ではない。</p>
+<p>要点は、健康状態の行を、異常が無くても毎週必ず出すことだ。正常なら✅や件数を、異常なら⚠と対処の手がかりを書く。毎週届く1通に同じ行が並ぶので、メールそのものが仕組みの生存確認を兼ねる。チェックリストは⚠が出たときのトラブルシュート用に残してある。</p>
+<h2>仕組み（データの流れ）</h2>
+<p>送信は毎週月曜の7時台。週次のディスパッチャー <code>autoWeeklyMonday</code> の最後の1行で <code>autoWeeklyDigest</code> を呼ぶ（<a href="../trigger-dispatcher/">トリガー上限20本の壁</a>参照）。最後に置くのは、同じ月曜に動く他の処理が書いた結果（この記事では省いた面談リストの行など）まで読むためだ。</p>
+<table>
+<tr><th>行</th><th>読むもの</th><th>数え方</th></tr>
+<tr><td>体験生</td><td>「体験生フォロー」シート</td><td>「予約」の行数と累計。メモ欄の「きっかけ: 」を種類別に数える</td></tr>
+<tr><td>講習申込</td><td>「講習申込」シート</td><td>直近7日の行数、累計、生徒名があって入金欄が空の行数</td></tr>
+<tr><td>SNS自動投稿</td><td>Threads・Xの投稿ログ</td><td>直近7日の行数と必要な枠数</td></tr>
+<tr><td>データ整合性</td><td>スクリプトプロパティ</td><td>毎晩のチェックが残した直近1回分の件数</td></tr>
+</table>
+<p>体験生と講習申込のシートには公開の申込フォームが書き込み（<a href="../line-auto-reply/">LINE自動応答と申込フォーム</a>）、選択式の質問「何をご覧になって教室を知りましたか」の答えはメモ欄（講習申込は備考欄）に「きっかけ: 〇〇」の形で残る。このほかにも、講習の種類別の内訳など教室の事情に合わせた行を同じ1通に載せている（この記事では省く）。本文は次の形になる（数字は伏せ字、一部の行は省略）。</p>
+<pre><code>■ 体験生: 現在「予約」ステータス n人（累計 N人）
+  きっかけ内訳（フォーム計測開始 2026-07-05〜）: 選択肢A a件 / 選択肢B b件
+■ 講習申込: 今週 m件（累計 M件・未入金 u件）
+…（中略）…
+■ 仕組みの状態:
+  ✅ SNS自動投稿（直近7日）: Threads t/14・X 定時停止中（手動・告知分 x本）
+  データ整合性: 異常i件（うち自動修復j件）
+
+――このメールを読めば週次の確認は終わりです。シートを開いて回る必要はありません。</code></pre>
+<div class="note">本文には件数や状態を載せ、生徒の名前や連絡先は入れない。個人情報を含むシートを集計するなら、本文に載せる範囲を先に決めておく。</div>
+<h2>コード（要点）</h2>
+<p>通知メールは共通の関数1つから送っている。宛先はスクリプトプロパティ <code>NOTIFY_EMAIL</code>、未設定なら実行ユーザーのアドレスだ。</p>
+<pre><code>/** 通知メール（NOTIFY_EMAIL プロパティ宛。未設定なら自分宛） */
+function autoNotify(subject, body) {
+  var to = PropertiesService.getScriptProperties().getProperty('NOTIFY_EMAIL')
+        || Session.getActiveUser().getEmail();
+  if (!to) { Logger.log('通知先が不明のためスキップ: ' + subject); return; }
+  MailApp.sendEmail(to, '【ブリッジ自動化】' + subject, body);
+}</code></pre>
+<p><code>Session.getActiveUser().getEmail()</code> はセキュリティの設定によっては空文字を返す。空なら送らずログに残すだけなので、宛先は <code>NOTIFY_EMAIL</code> で明示する方が確実だ。</p>
+<p>集計の本体は、体験生・講習申込のまとまりを try/catch で囲み、例外が出ても <code>L.push('■ 体験生: 集計失敗（' + e.message + '）')</code> のように失敗したこと自体を1行書く。健康状態は正常でも1行出す。</p>
+<pre><code>function autoWeeklyDigest() {
+  var now = new Date();
+  var weekAgo = new Date(now.getTime() - 7 * 24 * 3600 * 1000);
+  var twoWeeksAgo = new Date(now.getTime() - 14 * 24 * 3600 * 1000);
+  var L = [];
+  // …（省略）…
+  // ⑤ 仕組みの健康状態
+  var health = [];
+  // …（省略）…
+  try {
+    // SNS自動投稿の充足（直近7日）。「無音で欠けた回」を毎週必ず可視化する計器盤（計画書M2）
+    health.push(autoSnsPostFillLine());
+  } catch (e) { /* 投稿ログ未作成なら黙ってスキップ */ }
+  try {
+    // データ整合性の夜間チェック（integration/DataRepair.gs の dataIntegrityNightly）。
+    // 直近の夜間実行1回分のスナップショット。異常ゼロの日はメール単体では沈黙するが、
+    // ここでは週次に必ず1行載せて「仕組みが動いているか」自体を可視化する
+    var diProps = PropertiesService.getScriptProperties();
+    var diCount = diProps.getProperty('DATA_INTEGRITY_LAST_COUNT');
+    if (diCount !== null) {
+      var diFixed = diProps.getProperty('DATA_INTEGRITY_LAST_FIXED') || '0';
+      health.push('データ整合性: 異常' + diCount + '件（うち自動修復' + diFixed + '件）');
+    } else {
+      health.push('⚠ データ整合性チェックが未実行です（dataIntegrityNightlyが一度も走っていません）');
+    }
+  } catch (e) { /* プロパティ未設定等なら黙ってスキップ */ }
+  L.push('■ 仕組みの状態:');
+  L.push(health.length ? health.map(function(h) { return '  ' + h; }).join('\n') : '  ✅ 特記事項なし');
+  // …（省略）…
+  autoNotify('📊 週次ダイジェスト（これ1通でOK）', L.join('\n'));
+}</code></pre>
+<p>毎晩のデータ整合性チェックは、異常ゼロの日は何も送らない。それでは「正常だから静か」と「止まっているから静か」を見分けにくいので、週1回ここで直近の実行が残した件数を出し、一度も記録が無ければ「未実行」と警告する。ただし載せるのは最後に動いた回の件数だけで、その日時は出していない。途中で止まると古い件数が出続けるため、止まったこと自体は失敗の記録とトリガーの自己点検（<a href="../trigger-dispatcher/">トリガー上限20本の壁</a>）で拾っている。また、健康状態の行は例外が出ると黙って飛ばすため、全部が飛ぶと「✅ 特記事項なし」になる点も弱点として残っている。</p>
+<p>SNS自動投稿の行は、失敗の記録ではなく、投稿ログに残った成功の行数を枠と比べる。</p>
+<pre><code>/** 直近7日のThreads/X投稿の充足数を1行で返す（週次ダイジェスト用。2026-09-13以降: Threads 2回×7日=14枠が正、Xの定時投稿は停止） */
+function autoSnsPostFillLine() {
+  var since = new Date(new Date().getTime() - 7 * 24 * 3600 * 1000);
+  function countRows(sheet) {
+    // …（省略）…
+  }
+  var th = countRows(getLogSheet());   // marketing/ThreadsMarketing.gs
+  var x  = countRows(getXLogSheet());  // marketing/XMarketing.gs
+  var props  = PropertiesService.getScriptProperties();
+  var thNeed = props.getProperty('THREADS_NIGHT_SLOT') === 'on' ? 21 : 14;  // 08/12時のみ（告知期間の20時は加算されるだけ）
+  var xOn    = props.getProperty('X_AUTOPOST') === 'on';
+  var line = 'SNS自動投稿（直近7日）: Threads ' + th + '/' + thNeed
+           + '・X ' + (xOn ? (x + '/21') : ('定時停止中（手動・告知分 ' + x + '本）'));
+  return (th &gt;= thNeed &amp;&amp; (!xOn || x &gt;= 21)) ? ('✅ ' + line)
+       : ('⚠ ' + line + ' — 欠けた枠は生成失敗かAPI失敗です。失敗通知メールと投稿ログを確認してください');
+}</code></pre>
+<p>投稿ログには成功した回だけが書かれる。成功を数えるので、失敗の記録そのものが漏れた回（トリガーが消えて走らなかった回など）も「欠け」として表に出る。</p>
+<h2>ハマった点と回避策</h2>
+<h3>「条件がそろわなければ静かにスキップ」が、故障に見えた</h3>
+<p>毎週月曜には、様子メモを材料にして筆者へ提案を届ける処理も動く。当初は直近2週間のメモが無いと何もせず終わる作りで、安全側のつもりだったが、受け取る側には故障にしか見えなかった（実際に「何も届いていない」と言われて発覚した）。メモが無い週も汎用の文面を筆者に届けるように直し、週次ダイジェストにはメモの件数の行を足した。</p>
+<h3>投稿が欠けても、誰も気づけなかった</h3>
+<p>Threads・Xの自動投稿には、生成がすべて失敗した回や投稿APIが失敗した回に、実行ログへ1行残すだけで投稿が消える経路があった。実行ログは誰も見ないので、欠けた回は無かったことになる。そこで失敗した回は必ず記録して毎晩のまとめ通知に載せ（同じ種類の失敗が続くときは、前回の通知から7日ごとにだけ通知する。詳しくは<a href="../gemini-api-gas/">Gemini APIの記事</a>）、週次ダイジェストでは投稿数を枠と比べる2段構えにした。</p>
+<h3>運用を変えたら、計器の「正解」も同じ変更で直す</h3>
+<p>2026-09-13に、反応がほとんど無かったXの定時投稿を止め、Threadsも1日3回から2回に減らした。必要枠が21のままだと、正常なのに毎週⚠が出る。誤警報が続くと⚠が読まれなくなるので、同じ変更で計器を「Threads 14枠／X 定時停止中」に直した。必要枠は投稿を切り替えるのと同じスクリプトプロパティで決まるため、20時の回を戻せば枠も21に戻る。週次生成を止めたPR動画の未投稿警告を外したのも同じ理由だ。</p>
+<h2>導入手順</h2>
+<ol>
+<li>集計したいシートを1つのスプレッドシートにまとめ、1行目を見出しにする。シートは「無ければ見出し付きで作る」関数で取る</li>
+<li>スクリプトプロパティ <code>NOTIFY_EMAIL</code> に送信先（例 <code>example@example.com</code>）を入れる</li>
+<li>送信用の関数を1つ作り、<code>MailApp.sendEmail(宛先, 件名, 本文)</code> で送る</li>
+<li>集計関数を書く。まとまりごとに try/catch で囲み、失敗したら「集計失敗（理由）」をその行に書いて次へ進む</li>
+<li>健康状態の行は、正常なら✅、異常なら⚠と直し方を書き、どちらでも必ず1行出す</li>
+<li>GASエディタから集計関数を一度手動で実行し、権限を承認して1通届くことを確かめる。appsscript.json で <code>oauthScopes</code> を明示しているなら <code>https://www.googleapis.com/auth/script.send_mail</code> を含める</li>
+<li>週1回の時間主導型トリガーを作る（この教室では <code>ScriptApp.newTrigger('autoWeeklyMonday').timeBased().onWeekDay(ScriptApp.WeekDay.MONDAY).atHour(7).create()</code>）。この1行は1回だけ実行する（実行するたびに同じトリガーが1本ずつ増え、毎週同じメールが何通も届く）。ディスパッチャーがあるなら、トリガーは作らずその最後に1行足す。<code>atHour(7)</code> はスクリプトのタイムゾーンで7時台のどこかで動く</li>
+<li>数週間使ったら、読まない行を削り、止めた仕組みの行や警告を外す</li>
+</ol>
+<h2>よくある質問</h2>
+<h3>Q. 異常が無い週までメールが来るのは、うるさくないですか</h3>
+<p>送るのは週1通に固定しているので、通知は増え続けない。「異常が無ければ送らない」にすると、届かないのが正常なのか止まっているのかを見分けられない。毎晩の失敗通知は異常があった日だけ、週次ダイジェストは毎週必ず、と役割を分けている。</p>
+<h3>Q. MailApp と GmailApp のどちらを使えばよいですか</h3>
+<p>送るだけなら <code>MailApp</code> で足りる。送信専用で受信箱を読めず、権限も送信用のスコープだけで済む（<a href="https://developers.google.com/apps-script/reference/mail/mail-app" target="_blank" rel="noopener">MailApp リファレンス</a>）。下書きの作成や受信メールの検索が要るなら <code>GmailApp</code> を使う。</p>
+<h3>Q. ダイジェスト自体が止まったら、どう気づきますか</h3>
+<p>例外で落ちればその晩のまとめ通知に載り、GASごと止まれば外部のハートビート確認で気づく（<a href="../trigger-dispatcher/">トリガー上限20本の壁</a>参照）。月曜の朝にこの1通が届かないこと自体も異変の合図になる。</p>
+
+<div class="box">
+  <h2>筆者の本とnote（有料）で、まとめて読む</h2>
+  <ul>
+    <li><a href="https://www.amazon.co.jp/dp/B0HCGTWG3J?ref=site-gas-weekly-digest" target="_blank" rel="noopener">Kindle『個人塾長、AIを雇う。』（500円・Kindle Unlimited対応）</a><small>一人塾の自動化を、何をどの順で進めたか・失敗も含めて1冊にまとめた実録</small></li>
+    <li><a href="https://note.com/rikima81/n/n32a261a6e064?ref=site-gas-weekly-digest" target="_blank" rel="noopener">note『個人塾をGASで自動化した実録（実コード付き）』（1,800円）</a><small>教室で動かしているGAS×AIの仕組みを、手順とコードつきでまとめた有料記事</small></li>
+    <li><a href="https://www.amazon.com/dp/B0HBPFZXDQ?ref=site-gas-weekly-digest" target="_blank" rel="noopener">English edition: How I Automated My One-Man Tutoring School with AI ($6.99)</a></li>
+  </ul>
+</div>
+
+<div class="series"></div>
+</div></article>
+
+<footer>
+  <p><a href="../../">田中力磨｜RIKIMA TANAKA</a></p>
+  <p>総合学習教室ブリッジ（滋賀県彦根市稲枝町311-5）</p>
+  <p class="privacy">このサイトでは、よく読まれている記事を知るために、ページが表示されたときとリンクが押されたときに、日時・ページ・リンク先・どのサイトから来たか（ドメイン名とURLの ref などの値）を、筆者の Google Apps Script（Googleのサーバー）へ送って記録しています。Cookie は使わず、IPアドレスなど個人を特定できる情報は記録しません。ブラウザでトラッキング拒否（Do Not Track／GPC）を有効にしていると送りません。</p>
+</footer>
+<script src="../../assets/beacon.js" defer></script>
+</body>
+</html>

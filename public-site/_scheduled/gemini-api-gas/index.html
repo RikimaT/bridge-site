@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GASからGemini APIを呼ぶ処理が静かに止まるのを防ぐ——モデル廃止404・503再試行・エラー通知の間引き｜一人塾のGAS自動化 実録｜田中力磨</title>
+<meta name="description" content="GASからGemini APIを呼ぶ共通関数の実録。モデル名をスクリプトプロパティに逃がして廃止の404をスマホから直せるようにし、503は数回だけ再試行、JSONは安全に取り出し、同じ失敗の通知は間引く。">
+<link rel="canonical" href="https://rikimat.github.io/bridge-site/gas/gemini-api-gas/">
+<link rel="alternate" type="application/rss+xml" title="一人塾のGAS自動化 実録" href="https://rikimat.github.io/bridge-site/gas/feed.xml">
+<meta property="og:type" content="article">
+<meta property="og:title" content="GASからGemini APIを呼ぶ処理が静かに止まるのを防ぐ——モデル廃止404・503再試行・エラー通知の間引き">
+<meta property="og:description" content="GASからGemini APIを呼ぶ共通関数の実録。モデル名をスクリプトプロパティに逃がして廃止の404をスマホから直せるようにし、503は数回だけ再試行、JSONは安全に取り出し、同じ失敗の通知は間引く。">
+<meta property="og:url" content="https://rikimat.github.io/bridge-site/gas/gemini-api-gas/">
+<meta property="og:image" content="https://rikimat.github.io/bridge-site/og-rikima.jpg">
+<meta property="og:site_name" content="田中力磨｜総合学習教室ブリッジ">
+<meta property="og:locale" content="ja_JP">
+<meta name="twitter:card" content="summary_large_image">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "TechArticle",
+  "headline": "GASからGemini APIを呼ぶ処理が静かに止まるのを防ぐ——モデル廃止404・503再試行・エラー通知の間引き",
+  "description": "GASからGemini APIを呼ぶ共通関数の実録。モデル名をスクリプトプロパティに逃がして廃止の404をスマホから直せるようにし、503は数回だけ再試行、JSONは安全に取り出し、同じ失敗の通知は間引く。",
+  "inLanguage": "ja",
+  "datePublished": "2026-10-12",
+  "dateModified": "2026-10-12",
+  "keywords": "GAS, Gemini API, Google Apps Script, モデル廃止 404, 503 リトライ, JSON, エラー通知, スクリプトプロパティ",
+  "author": {
+    "@type": "Person",
+    "name": "田中力磨",
+    "url": "https://rikimat.github.io/bridge-site/"
+  },
+  "publisher": {
+    "@type": "Person",
+    "name": "田中力磨"
+  },
+  "mainEntityOfPage": "https://rikimat.github.io/bridge-site/gas/gemini-api-gas/",
+  "isPartOf": {
+    "@type": "Blog",
+    "name": "一人塾のGAS自動化 実録",
+    "url": "https://rikimat.github.io/bridge-site/gas/"
+  }
+}
+</script>
+<style>
+:root{--ink:#1d2433;--paper:#f5f9fc;--white:#fff;--amber:#2b8fd0;--amber-dark:#1667a0;--line:#dde7ef;--sub:#5d6473;--muted:#949aa8;--code:#0f172a;}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:"Hiragino Kaku Gothic ProN","Noto Sans JP",sans-serif;background:var(--paper);color:var(--ink);line-height:1.95;font-size:16px;}
+.wrap{max-width:760px;margin:0 auto;padding:0 20px;}
+nav{position:sticky;top:0;z-index:50;background:rgba(245,249,252,.92);backdrop-filter:blur(10px);border-bottom:1px solid var(--line);}
+.nv{max-width:760px;margin:0 auto;padding:12px 20px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;}
+.nv .nm{font-weight:700;letter-spacing:2px;font-size:14px;}.nv .nm small{display:block;font-size:9px;letter-spacing:3px;color:var(--amber-dark);}
+.nv ul{display:flex;gap:14px;list-style:none;}.nv a{color:var(--sub);text-decoration:none;font-size:12.5px;white-space:nowrap;}.nv a:hover{color:var(--amber-dark);}
+header.art{padding:48px 0 24px;border-bottom:1px solid var(--line);}
+.crumb{font-size:12px;color:var(--muted);margin-bottom:12px;}.crumb a{color:var(--amber-dark);text-decoration:none;}
+h1{font-size:26px;line-height:1.5;letter-spacing:.5px;margin-bottom:12px;}
+.lead{color:var(--sub);font-size:15px;}
+.meta{font-size:12px;color:var(--muted);margin-top:10px;}
+article{padding:24px 0 40px;}
+article h2{font-size:20px;margin:40px 0 12px;padding-left:12px;border-left:4px solid var(--amber);line-height:1.5;}
+article h3{font-size:16.5px;margin:26px 0 8px;color:var(--amber-dark);}
+article p{margin:0 0 14px;}
+article ul,article ol{margin:0 0 14px 22px;}article li{margin-bottom:4px;}
+article table{border-collapse:collapse;width:100%;margin:0 0 16px;font-size:14px;display:block;overflow-x:auto;}
+article th,article td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top;background:var(--white);}
+article th{background:#e8f3fb;}
+pre{background:var(--code);color:#e2e8f0;padding:16px 18px;border-radius:8px;overflow-x:auto;font-size:13px;line-height:1.6;margin:0 0 16px;}
+code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;}
+p code,li code,td code{background:#e8f3fb;padding:1px 6px;border-radius:4px;font-size:.92em;color:var(--amber-dark);word-break:break-all;}
+.note{background:var(--white);border:1px solid var(--line);border-left:4px solid var(--amber);padding:12px 16px;border-radius:6px;margin:0 0 16px;font-size:14.5px;}
+.box{background:var(--white);border:1px solid var(--line);border-radius:10px;padding:20px 22px;margin:36px 0 0;}
+.box h2{border:0;padding:0;margin:0 0 10px;font-size:18px;}
+.box a{color:var(--amber-dark);font-weight:700;text-decoration:none;}
+.box ul{list-style:none;margin:0;}.box li{margin-bottom:8px;}
+.box small{color:var(--muted);display:block;font-size:12px;}
+.series{margin:32px 0 0;font-size:14px;}.series a{color:var(--amber-dark);text-decoration:none;}.series li{margin-bottom:4px;}
+footer{border-top:1px solid var(--line);padding:32px 0 48px;text-align:center;color:var(--muted);font-size:12.5px;}
+footer a{color:var(--amber-dark);text-decoration:none;}
+footer .privacy{max-width:560px;margin:10px auto 0;font-size:11px;line-height:1.7;}
+@media (max-width:480px){h1{font-size:22px;}article h2{font-size:18px;}}
+</style>
+</head>
+<body>
+<nav><div class="nv">
+  <div class="nm"><a href="../../" style="color:inherit;text-decoration:none">田中力磨<small>RIKIMA TANAKA</small></a></div>
+  <ul>
+    <li><a href="../">実録シリーズ一覧</a></li>
+    <li><a href="../../#book">著書</a></li>
+    <li><a href="../../#school">教室</a></li>
+    <li><a href="https://note.com/rikima81" target="_blank" rel="noopener">note</a></li>
+  </ul>
+</div></nav>
+
+<header class="art"><div class="wrap">
+  <div class="crumb"><a href="../../">田中力磨</a> › <a href="../">一人塾のGAS自動化 実録</a> › Gemini API呼び出し</div>
+  <h1>GASからGemini APIを呼ぶ処理が静かに止まるのを防ぐ——モデル廃止404・503再試行・エラー通知の間引き</h1>
+  <p class="lead">モデル廃止の404、混雑の503、毎晩届く同じ失敗の通知。Gemini APIを呼ぶGASで実際に起きたことと、共通関数に入れた対策の記録。</p>
+  <p class="meta">2026-10-12 公開 ／ 滋賀県彦根市の一人塾「総合学習教室ブリッジ」で実際に動いている仕組みの記録 ／ Google Apps Script（GAS）</p>
+  <p class="meta">この記事は、教室で動いているコードと運用の記録をもとに、AI（Claude）が書きました。</p>
+</div></header>
+
+<article><div class="wrap">
+<h2>何を自動化したか</h2>
+<p>この教室のGoogle Apps Script（GAS）は、SNS投稿の文章づくり、保護者へのメールの下書き、書類やレシートの読み取り、画像の生成などでGemini APIを呼んでいる。JSONで答えを受け取る共通関数 <code>autoGeminiJson</code> だけで20か所以上から呼ばれる。どれも同じAPIキーと、共通のモデル名の設定に頼るので、モデルの提供終了や一時的な混雑、月の利用上限に当たると、関係する処理がまとめて失敗する。しかも多くは夜や早朝に時間トリガーで動き、失敗しても誰も画面を見ていない。以前は gemini-1.5-flash の提供終了で呼び出しが404になった。</p>
+<p>今は、定期処理から使う呼び出しを <code>automation/Common.gs</code> の共通関数に集めている。モデル名はスマホからでも差し替えられ、失敗は毎晩1通のメールで届く。2026-08-20からは、同じ種類の失敗が続くときの通知を間引いている。</p>
+<h2>仕組み（データの流れ）</h2>
+<p>呼び出しは次の順に共通関数を通る。失敗の記録と <code>autoRunSafely</code> は<a href="../trigger-dispatcher/">トリガー集約の記事</a>で説明済みなので省く。</p>
+<table>
+<tr><th>段階</th><th>関数・設定</th><th>中身</th></tr>
+<tr><td>モデル名を決める</td><td><code>AUTO_GEMINI_TEXT_MODEL</code> / <code>AUTO_GEMINI_IMAGE_MODEL</code></td><td>実行のたびにスクリプトプロパティを読む。未設定なら既定値</td></tr>
+<tr><td>送る</td><td><code>autoGeminiFetch_</code></td><td>429・500・502・503・504 のときだけ、1.5秒→3秒→6秒と待って最大4回送る</td></tr>
+<tr><td>答えを確かめる</td><td><code>autoGeminiText</code> / <code>autoGeminiVision</code> / <code>autoGeminiImageFile</code></td><td>答え（文章や画像）が無ければ失敗を記録し、例外を投げる</td></tr>
+<tr><td>JSONを読む</td><td><code>autoGeminiJson</code> → <code>autoParseJson</code></td><td>応答からJSONの部分を切り出して読む。読めなければ例外</td></tr>
+<tr><td>失敗を数える</td><td><code>autoAiRecordFailure</code>（<code>zz-QuietAlerts.gs</code> で上書き）</td><td>同じ種類の失敗は、前回の通知から7日より3時間短い時間がたつまで件数に数えない（1.5倍を超える悪化は即数える）。記録はシートに毎回残す</td></tr>
+<tr><td>知らせる</td><td><code>autoAiFailureAlert</code>（毎晩21時台）</td><td>3日より古い記録を外し、残りを1通のメールにまとめる</td></tr>
+</table>
+<h2>コード（要点）</h2>
+<p>モデル名は <code>Common.gs</code> の先頭で決め、URLの組み立てに使う。</p>
+<pre><code>// モデル名はスクリプトプロパティ AUTO_GEMINI_TEXT_MODEL / AUTO_GEMINI_IMAGE_MODEL で上書き可能。
+// Googleのモデル廃止（過去にgemini-1.5-flash廃止で404になった前歴あり）の際に、
+// コード変更・デプロイなしにスマホからでも差し替えられるようにするための逃げ道。
+var AUTO_GEMINI_TEXT_MODEL  = PropertiesService.getScriptProperties().getProperty('AUTO_GEMINI_TEXT_MODEL')  || 'gemini-2.5-flash';
+var AUTO_GEMINI_IMAGE_MODEL = PropertiesService.getScriptProperties().getProperty('AUTO_GEMINI_IMAGE_MODEL') || 'gemini-2.5-flash-image';
+// …（省略）…
+  var url = 'https://generativelanguage.googleapis.com/v1beta/models/'
+          + AUTO_GEMINI_TEXT_MODEL + ':generateContent?key=' + autoGeminiKey();</code></pre>
+<p>関数の外に書いた処理は実行のたびに読み直されるので、プロパティを書き換えれば次の実行から新しいモデル名が使われる。同じプロジェクトのThreads投稿やLINEで届いたレシートの読み取りも同じキーを読むので、まとめて切り替わる。</p>
+<p>なお、画像用の既定値 <code>gemini-2.5-flash-image</code> は、公式の<a href="https://ai.google.dev/gemini-api/docs/deprecations" target="_blank" rel="noopener">廃止予定の一覧</a>で提供終了日が2026-10-02とされている（一覧の日付は、早ければその日に止まるという最短の予定日だ）。一覧はその後継に <code>gemini-3.1-flash-image-preview</code> を挙げているが、このプレビュー版も同じ一覧で提供終了日が2026-06-25とされ、後継は正式版の <code>gemini-3.1-flash-image</code> になっている。後継の後継まで確かめてから選びたい。既定値は書いた時点のもので、切り替えはプロパティ <code>AUTO_GEMINI_IMAGE_MODEL</code> で行う。</p>
+<p><code>Common.gs</code> の共通関数とThreads投稿の文章生成は、<code>UrlFetchApp.fetch</code> を直接呼ばずに次の関数を通す（投稿の採点やWebアプリ側など、まだ直接呼んでいる所もある）。</p>
+<pre><code>function autoGeminiFetch_(url, options) {
+  var RETRY_CODES = [429, 500, 502, 503, 504];
+  var waits = [1500, 3000, 6000];   // 最大4回（初回＋3リトライ）
+  var res = null;
+  for (var attempt = 0; attempt &lt;= waits.length; attempt++) {
+    res = UrlFetchApp.fetch(url, options);
+    var code = res.getResponseCode();
+    if (RETRY_CODES.indexOf(code) &lt; 0) return res;           // 成功、または待っても直らない失敗
+    if (code === 429 &amp;&amp; res.getContentText().indexOf('spending cap') &gt;= 0) return res; // 月次上限超過は待っても直らない
+    if (attempt === waits.length) break;                      // 打ち止め（最後の応答を返す）
+    // …（省略）…
+    Utilities.sleep(waits[attempt]);
+  }
+  return res;
+}</code></pre>
+<p>400（プロンプトの不備）・403（鍵の問題）・404（モデルの提供終了）は待っても直らないので、最初の応答をそのまま返す。待ち時間は、GASの実行時間の上限（6分）を圧迫しないよう合計10.5秒に抑えた。呼び出し側は <code>muteHttpExceptions: true</code> を付け、HTTPのエラーでも例外にせず応答を受け取る。状態コードを見るのは <code>autoGeminiFetch_</code>、答えの有無を見るのは呼び出し側だ。</p>
+<p>答えは、入っているかを確かめてから取り出す。JSONは <code>autoGeminiJson</code> で受け取る。</p>
+<pre><code>function autoGeminiText(prompt, opts) {
+  // …（省略）…
+  var json = JSON.parse(res.getContentText());
+  if (!json.candidates || !json.candidates[0] || !json.candidates[0].content) {
+    autoAiRecordFailure('autoGeminiText', 'HTTP ' + res.getResponseCode() + ' ' + res.getContentText().slice(0, 200));
+    throw new Error('Gemini応答エラー（HTTP ' + res.getResponseCode() + '）: ' + res.getContentText().slice(0, 300));
+  }
+  return json.candidates[0].content.parts.map(function(p) { return p.text || ''; }).join('').trim();
+}
+
+/** JSONを返させて安全にパースする */
+function autoGeminiJson(prompt) {
+  var raw = autoGeminiText(prompt + '\n\n出力はJSONのみ。コードブロックや説明文は不要。', { temperature: 0.2 });
+  return autoParseJson(raw);
+}
+
+/** Gemini応答テキストからJSONを取り出してパースする */
+function autoParseJson(raw) {
+  var match = String(raw).match(/\{[\s\S]*\}|\[[\s\S]*\]/);
+  if (!match) throw new Error('GeminiからJSONを抽出できませんでした: ' + String(raw).slice(0, 200));
+  try {
+    return JSON.parse(match[0]);
+  } catch (e) {
+    throw new Error('GeminiのJSONを解析できませんでした: ' + match[0].slice(0, 200));
+  }
+}</code></pre>
+<p>答えが無いときに空文字を返して先へ進ませず、記録してから例外を投げるのが要点だ。JSONは前置きの文やコードブロックの印が付いても読めるよう、最初の <code>{</code> から最後の <code>}</code> まで（配列なら <code>[</code> から <code>]</code> まで）を切り出す。読めなければ例外になるので、呼び出し側で代わりの値を決められる。</p>
+<p>同じ失敗の通知を間引くのが <code>automation/zz-QuietAlerts.gs</code> だ。失敗の文の数字を <code>#</code> に置き換えたものを「指紋」にして、同じ種類の失敗かどうかを見分ける。</p>
+<pre><code>function quietSignature_(where, message) {
+  return (String(where) + '|' + String(message)).replace(/\d+/g, '#').slice(0, 180);
+}
+// …（省略）…
+function autoAiRecordFailure(where, message) {
+  try {
+    // …（省略）…
+    // 比べる相手は「最後に通知したとき」（n・nm）。旧形式（t・m だけ）の記録は t・m をそれとみなす
+    var prev = (seen[sig] &amp;&amp; typeof seen[sig] === 'object') ? seen[sig] : null;
+    var notifiedAt = prev ? (prev.n || prev.t || '') : '';
+    var notifiedT = Date.parse(notifiedAt) || 0;
+    var notifiedM = prev ? (Number(prev.nm !== undefined ? prev.nm : prev.m) || 0) : 0;
+
+    var windowMs = (QUIET_REPEAT_SUPPRESS_DAYS * 24 - QUIET_REPEAT_SLACK_HOURS) * 3600000;
+    var withinWindow = notifiedT &gt; 0 &amp;&amp; (now - notifiedT) &lt; windowMs;
+    var worsened = notifiedM &gt; 0 &amp;&amp; mag &gt; notifiedM * QUIET_ESCALATE_RATIO;
+    var suppress = withinWindow &amp;&amp; !worsened;
+
+    var nowIso = new Date(now).toISOString();
+    seen[sig] = suppress
+      ? { t: nowIso, m: mag, n: notifiedAt, nm: notifiedM }   // 通知しない回は「最後に起きた」だけ更新
+      : { t: nowIso, m: mag, n: nowIso, nm: mag };            // 通知する回は両方を更新
+    // …（省略）…
+    quietAppendLog_(entry, suppress);
+    if (suppress) return;
+    // …（省略）…
+  } catch (e) { /* 記録自体の失敗で本処理を巻き込まない */ }
+}</code></pre>
+<p>指紋ごとに、最後に起きた時刻と数字の合計（<code>t</code>・<code>m</code>）と、最後に通知した時刻と数字の合計（<code>n</code>・<code>nm</code>）を分けて持つ。前回の通知から、7日（<code>QUIET_REPEAT_SUPPRESS_DAYS</code>）より3時間（<code>QUIET_REPEAT_SLACK_HOURS</code>）短い時間がたつまでの再発は件数に数えず、合計が前回通知したときの1.5倍を超えたときだけ悪化とみなして数える。3時間を引くのは、毎晩の実行時刻が数分前後するからだ。ちょうど7日で区切ると、7日目の実行が前回より数分早いだけで数えられず、通知が8日目にずれる。抑制した回も自動化用のスプレッドシート（ハブ）の「通知抑制ログ」シートに残し、60日起きていない指紋は捨て、毎晩のメールには3日以内の失敗だけを載せる。</p>
+<h2>ハマった点と回避策</h2>
+<h3>503で生成の回が消え、429では待つ意味が無い場合があった</h3>
+<p>2026-08-04、Threads投稿の文章を作る呼び出しが503で2回失敗し、その回の生成がむだに消えた。503は一時的な混雑なので、<code>autoGeminiFetch_</code> を作り、Threads投稿の生成もこれに通した。一方、2026-08-27には月の利用上限（monthly spending cap）を超えた429が返った。429はふつう待てば通るが、上限超過は翌月まで直らない。そこで spending cap を含む429だけはすぐ返し、夜のメールには「コード修正では直りません」と添えた。</p>
+<h3>思考にトークンを取られて、答えが途中で切れる</h3>
+<p>gemini-2.5系は既定で答える前の「思考」にトークンを使い、出力が途中で途切れることがあった。JSONは途中で切れると読めない。<code>generationConfig</code> に <code>thinkingConfig: { thinkingBudget: 0 }</code> を入れて思考を止め、Threads投稿やPR動画の文字起こしなど、共通関数を通らない呼び出しにも同じ指定を入れた。</p>
+<h3>人が直すまで消えない検出で、毎晩同じメールが届いた</h3>
+<p>夜のデータ整合性チェックは、検出が1件でもあれば失敗として記録する。入会日の欠落や氏名の重複の疑いは自動修復の対象外なので、人が直すまで同じ内容が記録され、「【要確認】自動処理の失敗が1件」のメールが毎晩届いた。直近5件の一覧は古いものを消さないため、対策済みの2026-08-04の503も本文に残り続けた。2026-08-20に足した <code>zz-QuietAlerts.gs</code> は、名前を zz- で始めて <code>Common.gs</code> より後に読み込ませる。GASは全ファイルが1つのグローバル空間を共有し、同じ名前の関数は後に読み込まれた方が使われるので、<code>Common.gs</code> を変えずに2つの関数を差し替えられ、ファイルを消せば元に戻る。</p>
+<p>ただ、最初の版には穴があった。抑制した回にも「前回の時刻と数字」を上書きしていたため、比べる相手が「前回通知したとき」ではなく「前の晩」になっていた。毎晩続く失敗は最初の1回のあと二度と数えられず、毎晩1割ずつ増える悪化も、前の晩と比べるので1.5倍を超えない。メールの末尾には「7日に1回だけ通知」と書いてあったので、読む側はそれを信じてしまう。2026-09-27に、日付を進めながらコードを動かして確かめたところ見つかり（同じ失敗を20日続けると通知は初日だけだった）、最後に通知した時刻と数字を別に持つように直した。直したあとは同じ条件で0・7・14日目に通知され、1割ずつの悪化も1.5倍を超えた日に通知される。この確かめ方は、時計とプロパティを差し替えて実物のファイルを何日分も回すテストとして残してある。</p>
+<div class="note"><code>zz-</code> のファイルで関数を差し替えるやり方は、読み込み順に頼っている。まねるなら、差し替えた側が動いているかを一度確かめたい。</div>
+<h2>導入手順</h2>
+<ol>
+<li>Gemini APIのキーを Google AI Studio で取得し（<a href="https://ai.google.dev/gemini-api/docs/api-key" target="_blank" rel="noopener">APIキーの説明</a>）、GASのスクリプトプロパティ <code>GEMINI_API_KEY</code> に入れる（コードには書かない）。このキーは課金を有効にした有料枠で使う。規約（<a href="https://ai.google.dev/gemini-api/terms" target="_blank" rel="noopener">Gemini API 追加利用規約</a>）には、無料枠では送った内容がGoogleの製品やサービスの改善に使われ、人が読むこともあると書かれており、無料枠には個人情報を送らないよう求めている。この教室も有料枠で使っている</li>
+<li>ファイルの先頭でモデル名をスクリプトプロパティ（例 <code>AUTO_GEMINI_TEXT_MODEL</code>）から読み、空なら既定値を使う。Geminiを呼ぶほかのファイルも同じプロパティを読む</li>
+<li><code>muteHttpExceptions: true</code> を付けた送信を再試行つきの関数に通す。送り直すのは 429・500・502・503・504 だけにし（月の利用上限を超えた429は除く）、待ち時間は短くとどめる</li>
+<li>gemini-2.5系なら <code>generationConfig</code> に <code>thinkingConfig: { thinkingBudget: 0 }</code> を入れる</li>
+<li>応答に答え（candidates）が無ければ、失敗を記録してから例外を投げる</li>
+<li>JSONがほしいときは、プロンプトの最後に「JSONのみ」と書き、応答から <code>{</code> 〜 <code>}</code>（または <code>[</code> 〜 <code>]</code>）を切り出して読む</li>
+<li>失敗の記録と毎晩のまとめ通知を用意する（<a href="../trigger-dispatcher/">トリガー集約の記事</a>参照）。モデル名のプロパティに存在しない名前を入れてGeminiを呼ぶ関数を手動実行し（初回は外部への接続とメール送信の権限を承認する）、続けて <code>autoAiFailureAlert</code> を手動実行して、404の記録とメールを確かめたら元に戻す。上の間引きを入れていると、前回の通知から7日（正確には7日より3時間短い時間）たつ前に試し直した分はメールにならないので、そのときは「通知抑制ログ」シートで確かめる</li>
+</ol>
+<h2>よくある質問</h2>
+<h3>Q. 毎晩続く失敗は、7日ごとに通知し直されますか</h3>
+<p>される。2026-09-27の修正で、前回通知してから7日目の晩に、また数えて通知するようにした（毎晩の実行時刻は数分前後するので、7日ちょうどより3時間早くても数える）。その間の晩の記録は、ハブの「通知抑制ログ」シートで確かめられる。</p>
+<h3>Q. responseMimeType を指定すれば、JSONの切り出しは要りませんか</h3>
+<p>この教室では残している。PR動画の文字起こしでは <code>responseMimeType: 'application/json'</code> を指定しているが、そこでも <code>autoParseJson</code> を通し、配列かどうかと各項目の値を確かめてから使っている。</p>
+<h3>Q. モデル名には何を入れればよいですか</h3>
+<p>Google公式の<a href="https://ai.google.dev/gemini-api/docs/models" target="_blank" rel="noopener">モデル一覧</a>にある現行のモデル名を入れ、提供終了の予定は<a href="https://ai.google.dev/gemini-api/docs/deprecations" target="_blank" rel="noopener">廃止予定の一覧</a>で確かめる。世代が変わると、思考の止め方などの設定の受け付け方が変わることがあるので、差し替えたら一度手動で実行して確かめる。プロパティを消せば、コードに書いた既定値に戻る。</p>
+
+<div class="box">
+  <h2>筆者の本とnote（有料）で、まとめて読む</h2>
+  <ul>
+    <li><a href="https://www.amazon.co.jp/dp/B0HCGTWG3J?ref=site-gas-gemini-api-gas" target="_blank" rel="noopener">Kindle『個人塾長、AIを雇う。』（500円・Kindle Unlimited対応）</a><small>一人塾の自動化を、何をどの順で進めたか・失敗も含めて1冊にまとめた実録</small></li>
+    <li><a href="https://note.com/rikima81/n/n32a261a6e064?ref=site-gas-gemini-api-gas" target="_blank" rel="noopener">note『個人塾をGASで自動化した実録（実コード付き）』（1,800円）</a><small>教室で動かしているGAS×AIの仕組みを、手順とコードつきでまとめた有料記事</small></li>
+    <li><a href="https://www.amazon.com/dp/B0HBPFZXDQ?ref=site-gas-gemini-api-gas" target="_blank" rel="noopener">English edition: How I Automated My One-Man Tutoring School with AI ($6.99)</a></li>
+  </ul>
+</div>
+
+<div class="series"></div>
+</div></article>
+
+<footer>
+  <p><a href="../../">田中力磨｜RIKIMA TANAKA</a></p>
+  <p>総合学習教室ブリッジ（滋賀県彦根市稲枝町311-5）</p>
+  <p class="privacy">このサイトでは、よく読まれている記事を知るために、ページが表示されたときとリンクが押されたときに、日時・ページ・リンク先・どのサイトから来たか（ドメイン名とURLの ref などの値）を、筆者の Google Apps Script（Googleのサーバー）へ送って記録しています。Cookie は使わず、IPアドレスなど個人を特定できる情報は記録しません。ブラウザでトラッキング拒否（Do Not Track／GPC）を有効にしていると送りません。</p>
+</footer>
+<script src="../../assets/beacon.js" defer></script>
+</body>
+</html>
