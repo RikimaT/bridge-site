@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Googleビジネスプロフィールの月次レポートをGASでスプレッドシートに自動記録する——APIを使わずメールを読む｜一人塾のGAS自動化 実録｜田中力磨</title>
+<meta name="description" content="Googleビジネスプロフィール（GBP）の月次実績メールをGASとGeminiで読み、通話やルート検索の数をスプレッドシートに毎月残す実録。APIを使わない理由と、Googleマップ投稿文の週次生成も扱う。">
+<link rel="canonical" href="https://rikimat.github.io/bridge-site/gas/gbp-report-import/">
+<link rel="alternate" type="application/rss+xml" title="一人塾のGAS自動化 実録" href="https://rikimat.github.io/bridge-site/gas/feed.xml">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Googleビジネスプロフィールの月次レポートをGASでスプレッドシートに自動記録する——APIを使わずメールを読む">
+<meta property="og:description" content="Googleビジネスプロフィール（GBP）の月次実績メールをGASとGeminiで読み、通話やルート検索の数をスプレッドシートに毎月残す実録。APIを使わない理由と、Googleマップ投稿文の週次生成も扱う。">
+<meta property="og:url" content="https://rikimat.github.io/bridge-site/gas/gbp-report-import/">
+<meta property="og:image" content="https://rikimat.github.io/bridge-site/og-rikima.jpg">
+<meta property="og:site_name" content="田中力磨｜総合学習教室ブリッジ">
+<meta property="og:locale" content="ja_JP">
+<meta name="twitter:card" content="summary_large_image">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "TechArticle",
+  "headline": "Googleビジネスプロフィールの月次レポートをGASでスプレッドシートに自動記録する——APIを使わずメールを読む",
+  "description": "Googleビジネスプロフィール（GBP）の月次実績メールをGASとGeminiで読み、通話やルート検索の数をスプレッドシートに毎月残す実録。APIを使わない理由と、Googleマップ投稿文の週次生成も扱う。",
+  "inLanguage": "ja",
+  "datePublished": "2026-11-02",
+  "dateModified": "2026-11-02",
+  "keywords": "Googleビジネスプロフィール, GBP, GAS, Gmail, スプレッドシート, Gemini, Googleマップ投稿",
+  "author": {
+    "@type": "Person",
+    "name": "田中力磨",
+    "url": "https://rikimat.github.io/bridge-site/"
+  },
+  "publisher": {
+    "@type": "Person",
+    "name": "田中力磨"
+  },
+  "mainEntityOfPage": "https://rikimat.github.io/bridge-site/gas/gbp-report-import/",
+  "isPartOf": {
+    "@type": "Blog",
+    "name": "一人塾のGAS自動化 実録",
+    "url": "https://rikimat.github.io/bridge-site/gas/"
+  }
+}
+</script>
+<style>
+:root{--ink:#1d2433;--paper:#f5f9fc;--white:#fff;--amber:#2b8fd0;--amber-dark:#1667a0;--line:#dde7ef;--sub:#5d6473;--muted:#949aa8;--code:#0f172a;}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:"Hiragino Kaku Gothic ProN","Noto Sans JP",sans-serif;background:var(--paper);color:var(--ink);line-height:1.95;font-size:16px;}
+.wrap{max-width:760px;margin:0 auto;padding:0 20px;}
+nav{position:sticky;top:0;z-index:50;background:rgba(245,249,252,.92);backdrop-filter:blur(10px);border-bottom:1px solid var(--line);}
+.nv{max-width:760px;margin:0 auto;padding:12px 20px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;}
+.nv .nm{font-weight:700;letter-spacing:2px;font-size:14px;}.nv .nm small{display:block;font-size:9px;letter-spacing:3px;color:var(--amber-dark);}
+.nv ul{display:flex;gap:14px;list-style:none;}.nv a{color:var(--sub);text-decoration:none;font-size:12.5px;white-space:nowrap;}.nv a:hover{color:var(--amber-dark);}
+header.art{padding:48px 0 24px;border-bottom:1px solid var(--line);}
+.crumb{font-size:12px;color:var(--muted);margin-bottom:12px;}.crumb a{color:var(--amber-dark);text-decoration:none;}
+h1{font-size:26px;line-height:1.5;letter-spacing:.5px;margin-bottom:12px;}
+.lead{color:var(--sub);font-size:15px;}
+.meta{font-size:12px;color:var(--muted);margin-top:10px;}
+article{padding:24px 0 40px;}
+article h2{font-size:20px;margin:40px 0 12px;padding-left:12px;border-left:4px solid var(--amber);line-height:1.5;}
+article h3{font-size:16.5px;margin:26px 0 8px;color:var(--amber-dark);}
+article p{margin:0 0 14px;}
+article ul,article ol{margin:0 0 14px 22px;}article li{margin-bottom:4px;}
+article table{border-collapse:collapse;width:100%;margin:0 0 16px;font-size:14px;display:block;overflow-x:auto;}
+article th,article td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top;background:var(--white);}
+article th{background:#e8f3fb;}
+pre{background:var(--code);color:#e2e8f0;padding:16px 18px;border-radius:8px;overflow-x:auto;font-size:13px;line-height:1.6;margin:0 0 16px;}
+code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;}
+p code,li code,td code{background:#e8f3fb;padding:1px 6px;border-radius:4px;font-size:.92em;color:var(--amber-dark);word-break:break-all;}
+.note{background:var(--white);border:1px solid var(--line);border-left:4px solid var(--amber);padding:12px 16px;border-radius:6px;margin:0 0 16px;font-size:14.5px;}
+.box{background:var(--white);border:1px solid var(--line);border-radius:10px;padding:20px 22px;margin:36px 0 0;}
+.box h2{border:0;padding:0;margin:0 0 10px;font-size:18px;}
+.box a{color:var(--amber-dark);font-weight:700;text-decoration:none;}
+.box ul{list-style:none;margin:0;}.box li{margin-bottom:8px;}
+.box small{color:var(--muted);display:block;font-size:12px;}
+.series{margin:32px 0 0;font-size:14px;}.series a{color:var(--amber-dark);text-decoration:none;}.series li{margin-bottom:4px;}
+footer{border-top:1px solid var(--line);padding:32px 0 48px;text-align:center;color:var(--muted);font-size:12.5px;}
+footer a{color:var(--amber-dark);text-decoration:none;}
+footer .privacy{max-width:560px;margin:10px auto 0;font-size:11px;line-height:1.7;}
+@media (max-width:480px){h1{font-size:22px;}article h2{font-size:18px;}}
+</style>
+</head>
+<body>
+<nav><div class="nv">
+  <div class="nm"><a href="../../" style="color:inherit;text-decoration:none">田中力磨<small>RIKIMA TANAKA</small></a></div>
+  <ul>
+    <li><a href="../">実録シリーズ一覧</a></li>
+    <li><a href="../../#book">著書</a></li>
+    <li><a href="../../#school">教室</a></li>
+    <li><a href="https://note.com/rikima81" target="_blank" rel="noopener">note</a></li>
+  </ul>
+</div></nav>
+
+<header class="art"><div class="wrap">
+  <div class="crumb"><a href="../../">田中力磨</a> › <a href="../">一人塾のGAS自動化 実録</a> › GBP実績の自動記録</div>
+  <h1>Googleビジネスプロフィールの月次レポートをGASでスプレッドシートに自動記録する——APIを使わずメールを読む</h1>
+  <p class="lead">Googleから毎月届くGBPの実績メールを、前の月の分が入るまでGASが毎朝探し、Geminiで数値化して「GBP実績」シートに1か月1行で残している。</p>
+  <p class="meta">2026-11-02 公開 ／ 滋賀県彦根市の一人塾「総合学習教室ブリッジ」で実際に動いている仕組みの記録 ／ Google Apps Script（GAS）</p>
+  <p class="meta">この記事は、教室で動いているコードと運用の記録をもとに、AI（Claude）が書きました。</p>
+</div></header>
+
+<article><div class="wrap">
+<h2>何を自動化したか</h2>
+<p>Googleビジネスプロフィール（以下GBP。Googleマップや検索結果に出る店舗情報）を持っていると、Googleから毎月、前の月の実績をまとめたメール（GBPの月次レポート。以下「実績メール」）が届く。通話数やルート検索数などが並ぶが、毎月開いて数字を控えるのは手作業になる。2026年8月の見直しで、実績メールを毎月人の手で読む運用は非効率だという結論になり、自動化した。</p>
+<p>今は毎朝6時台に、前の月の行がまだ無ければ、Google Apps Script（GAS）がGmailからこのメールを探し、実績メールかどうかの判定と数字の抜き出しをGeminiに任せて、スプレッドシートの「GBP実績」シートに1か月1行で書き込んでいる。前の月の行が入った月は、その日から月末まで探さない。あわせて、毎週月曜にはGoogleマップの「最新情報」に載せる投稿文も自動で作っている（公開は人が貼り付ける）。</p>
+<p>どちらもGBPのAPIは使っていない。GBPのAPIは、利用申請のフォームを出してGoogleの承認を受けるまで呼び出せない（<a href="https://developers.google.com/my-business/content/prereqs" target="_blank" rel="noopener">公式ドキュメント</a>）。一方、実績メールは申請しなくても毎月届いていて、GASなら <code>GmailApp</code> で読める。残したいのは月ごとの数字なので、申請と承認を待たずに、届いているメールを読むことにした。そのかわり、取れるのはメールに書かれている数字だけになる。</p>
+<h2>仕組み（データの流れ）</h2>
+<p>扱う処理は次の3つで、どれも既存の定期実行（ディスパッチャー）の中で動く。GBPのための新しいトリガーは作っていない（理由は<a href="../trigger-dispatcher/">トリガー集約の記事</a>）。</p>
+<table>
+<tr><th>いつ</th><th>処理</th><th>読むもの</th><th>書く先</th></tr>
+<tr><td>毎朝 6時台（前の月の行が入るまで）</td><td><code>growthGbpMonthlyImport</code>（月次の取り込み）</td><td>Gmailの直近35日分のメール</td><td>「GBP実績」シートに1か月1行</td></tr>
+<tr><td>毎月1日 8時台</td><td><code>officeMonthlyReport</code>（教室の月次レポート）</td><td>「GBP実績」シートの対象月と前月の行（対象月がまだ無ければ最新の月）</td><td>教室の月次レポートの材料（前月の行があれば前月比も）</td></tr>
+<tr><td>毎週月曜 7時台</td><td><code>growthGbpWeeklyPost</code>（週次の投稿文）</td><td>Threadsの投稿ログの直近7日分</td><td>通知メール（投稿文と貼り方）</td></tr>
+</table>
+<p>毎月1日の8時台は、教室の月次レポートを作る直前にも取り込みを念のため1回呼んでいる（前の月の行があればすぐ終わる）。「GBP実績」シートは、月・インタラクション数・通話数・チャットクリック数・ルート検索数・ウェブサイト訪問数・プロフィール閲覧数・検索数・取込日時・メッセージIDの10列。メッセージIDは同じメールを二度取り込まないための目印だ。失敗時の通知も独自には作らず、例外はディスパッチャーの <code>autoRunSafely</code> が記録して毎晩のまとめ通知に載せる（同じ種類の失敗が続くときは、前回の通知から7日ごとにだけ通知する。詳しくは<a href="../gemini-api-gas/">Gemini APIの記事</a>）。</p>
+<h2>コード（要点）</h2>
+<p>検索は件名や差出人を1つに決め打ちしていない。Google側の仕様変更で件名や送信元の表記が揺れることがあるためだ（コードのコメントより）。関係しそうなメールを2つの検索式で広めに拾い（1式につき15スレッドまで、失敗した式は飛ばす）、実績メールかどうかはGeminiに判定させる。<a href="../gmail-ad-filter/">広告メールの仕分け</a>と同じ「検索は広く・判定はAIで絞る」作りだ。</p>
+<pre><code>function growthGbpSearchCandidates_() {
+  var queries = [
+    '(from:google.com OR from:business.google.com OR from:mybusiness.google.com) '
+      + '(ビジネスプロフィール OR "Business Profile" OR パフォーマンス OR performance OR インサイト OR insights) newer_than:35d',
+    'subject:(ビジネスプロフィール OR "Business Profile") (パフォーマンス OR performance OR 月次 OR monthly OR インサイト OR insights) newer_than:35d',
+  ];
+  var seenIds = {};
+  var out = [];
+  queries.forEach(function(q) {
+    var threads;
+    try { threads = GmailApp.search(q, 0, 15); } catch (e) { return; }
+    // …（省略）…
+  });
+  return out;
+}</code></pre>
+<p>省略した部分では、スレッドの中のメールを1通ずつ取り出し、両方の式に引っかかったメールはメッセージIDで1通にまとめている。</p>
+<p>取り込みの本体は、まず前の月の行がもうあるかを見て、あればGmailもGeminiも使わずに終わる。無ければ、取り込み済みのメッセージID（シートのJ列）と、取り込まないと判定済みのメールID（スクリプトプロパティ <code>GBP_JUDGED_IDS</code>）を除いたメールを、1通ずつGeminiに渡す。本文に無い項目は0でなくnullで返させ、憶測で埋めさせないのが要点だ。</p>
+<pre><code>    // …（省略）…
+    var subject = msg.getSubject() || '';
+    var from = msg.getFrom() || '';
+    var body = (msg.getPlainBody() || '').slice(0, 8000);
+
+    var result = autoGeminiJson([
+      'これはGmailのメールです。総合学習教室ブリッジ（学習塾）のGoogleビジネスプロフィール（GBP）宛に',
+      'Googleから自動配信される「月次パフォーマンスレポート」（インタラクション数・通話数・チャットクリック数・',
+      'ルート検索数・ウェブサイト訪問数・プロフィール閲覧数・検索数などの指標を含むメール）かどうかを判定し、',
+      'そうであれば本文から数値を抽出してください。',
+      '',
+      '差出人: ' + from,
+      '件名: ' + subject,
+      '本文:\n' + body,
+      '',
+      '注意: 数値が本文に無い項目は0ではなくnullにする（憶測で埋めない）。対象月がわかれば "yyyy-MM" 形式で。',
+      'JSON形式で回答: {"isGbpMonthlyReport": true/false, "targetMonth": "yyyy-MM"またはnull, '
+        + '"interactions": 数値またはnull, "calls": 数値またはnull, "chatClicks": 数値またはnull, '
+        + '"directionRequests": 数値またはnull, "websiteVisits": 数値またはnull, '
+        + '"profileViews": 数値またはnull, "searches": 数値またはnull}',
+    ].join('\n'));
+
+    seen[id] = true;  // 判定できた時点で処理済み扱い（GBPレポートでなくても再判定を繰り返さない）
+    if (!result || result.isGbpMonthlyReport !== true) {
+      judged[id] = new Date().toISOString();  // 次の朝からはこのメールをGeminiへ送らない
+      continue;
+    }</code></pre>
+<p><code>autoGeminiJson</code> は、GeminiにJSONだけを返させて取り出す共通の関数だ（<a href="../gemini-api-gas/">Gemini APIの記事</a>も参照）。実績メールではないと判定したメールと、下に出てくる「取り込み済みの月の再送」のメールは、IDを判定した日時と一緒にプロパティへ残し、60日たったら捨てる。検索は直近35日分なので、そのメールが検索に引っかかる間はずっと除かれ、毎朝Geminiへ送り直さずに済む。プロパティへの保存はループを <code>try</code> で囲んだ <code>finally</code> の中で行うので、途中でGeminiの呼び出しが失敗して例外で抜けても、それまでの判定は残る。</p>
+<p>判定を通ったメールは対象月を決めて1行追記する。<code>growthGbpNormalizeMonth_</code> は「2026-7」も「2026年7月」も <code>2026-07</code> の形にそろえ、読めなければnullを返す。そのときは受信日の前月を使う。</p>
+<pre><code>    // …（省略）…
+    // 対象月をGeminiの抽出結果から。取れなければメール受信月の前月を仮定
+    // （GBPの月次レポートは対象月の翌月に届く。2026年3〜8月分は翌月の7〜24日だった）
+    var month = growthGbpNormalizeMonth_(result.targetMonth);
+    if (!month) {
+      var d = new Date(msg.getDate());
+      d.setDate(1);
+      d.setMonth(d.getMonth() - 1);
+      month = Utilities.formatDate(d, 'Asia/Tokyo', 'yyyy-MM');
+    }
+
+    // 同じ月をすでに取り込んでいれば重複記帳しない（メールが再送・転送された場合の保険）。
+    // 月の列は日付として保存されていることがあるので、yyyy-MM にそろえてから比べる
+    if (growthGbpHasMonth_(sheet.getDataRange().getValues(), month)) {
+      judged[id] = new Date().toISOString();  // 前月分が入るまでの毎朝、同じ再送メールをGeminiへ送り直さない
+      continue;
+    }
+
+    // 数値が無い項目は空のセルにする（0 と区別するため。読む側は growthGbpNum_ で「データなし」扱い）
+    var row = [month].concat(['interactions', 'calls', 'chatClicks', 'directionRequests', 'websiteVisits',
+      'profileViews', 'searches'].map(function(k) {
+        var n = growthGbpNum_(result[k]);
+        return n === null ? '' : n;
+      })).concat([new Date(), id]);
+    var at = sheet.getLastRow() + 1;
+    sheet.getRange(at, 1).setNumberFormat('@');  // 「2026-07」を日付に変換させない（書式なしテキスト）
+    sheet.getRange(at, 1, 1, row.length).setValues([row]);</code></pre>
+<p>月を戻す前に日を1日にしているので、31日に受け取ったメールでも月がずれない。<code>setMonth</code> だけで戻すと、3月31日が「2月31日」扱いになって3月に繰り越される。書き込む前に月のセルだけ書式なしテキスト（<code>@</code>）にしているのは、「2026-07」という文字をスプレッドシートが日付として保存しないようにするためだ（理由は下の「ハマった点」）。</p>
+<p>週次の投稿文は、Threadsの投稿ログから直近7日で閲覧数がいちばん多い投稿を選び、GBPの「最新情報」向けにGeminiで書き直させる。できた文章は投稿せず、貼り方を付けてメールで送る。</p>
+<pre><code>  // …（省略）…
+  var formUrl = PropertiesService.getScriptProperties().getProperty('WEBAPP_URL');
+  var post = autoGeminiText([
+    RIKIMA_PROFILE,
+    '',
+    '以下のThreads投稿を、Googleビジネスプロフィール（Googleマップ）の「最新情報」投稿用に書き直してください。',
+    '読者は「彦根市 塾」などで検索している地域の保護者です。',
+    // …（省略）…
+    '【条件】',
+    '・150〜300字。地域の保護者に語りかける丁寧な標準語。',
+    '・最後に「無料体験受付中」と一言入れる。',
+    '・ハッシュタグなし。投稿文のみ出力。',
+  ].join('\n'), { temperature: 0.5 });
+
+  autoNotify('📍 今週のGoogleマップ投稿（コピペ用）',
+    post
+    + '\n\n--- 貼り方（スマホで2分） ---'
+    + '\n1. Googleマップアプリで「ビジネス」→「投稿」'
+    + '\n2. 上の文章を貼り付け、教室の写真を1枚添えて公開'
+    + (formUrl ? '\n3. ボタンは「予約」→ ' + formUrl + '?app=trial を設定' : ''));
+}</code></pre>
+<p>投稿ログは<a href="../threads-auto-post/">Threads自動投稿</a>が書いているもので、<code>RIKIMA_PROFILE</code> は文体をそろえる人物像の定数だ。<code>WEBAPP_URL</code> が設定されていれば、体験予約フォーム（<code>?app=trial</code>）を予約ボタンの飛び先として添える。</p>
+<h2>ハマった点と回避策</h2>
+<h3>1日の朝には、前の月のメールがまだ届いていなかった</h3>
+<p>最初は取り込みを毎月1日の朝8時台に1回だけ走らせ、その直後に教室の月次レポートを作っていた。ところが、届いた実績メールの受信日は、2026年3月分から8月分までの6通とも、翌月の7日から24日のあいだだった。1日の朝の時点で前の月のメールが届いていた月は一度も無い。1日に1回だけ取り込む作りでは、前の月の行はさらに次の月の1日まで入らない。教室の月次レポートも、対象月の行が無ければ何も書かない作りだったので、GBPの数字は一度も載らなかった。取り込みは毎朝の処理に足し、実績メールが届いた次の朝にはシートに入るようにした（1日の8時台の呼び出しも念のため残してある）。それでも1日の時点では前の月の分はまだ届いていないので、教室の月次レポートのほうは、対象月の行がまだ無ければ「○月分はGoogleからのメール待ち。最新の取り込み △月分」と書いて、いちばん新しい月の数字を載せるようにした。</p>
+<h3>空欄が「0」になり、「2026-07」が日付になっていた</h3>
+<p>数字の無い項目はnullのまま書いていたので、セルは空になる。ところが読む側が <code>Number(セルの値)</code> で数値にしていて、JavaScriptでは <code>Number('')</code> が0になる。空欄が「0」と表示され、インタラクション数が空の月は「前月比 -100%」とまで出る作りだった。もう1つ、GASから「2026-07」という文字を書くと、スプレッドシートはそれを日付として保存することがある。日付として読まれると <code>String(セルの値) === '2026-07'</code> は一致しない。空欄と数値でない値は <code>growthGbpNum_</code> でnull（表示は「データなし」か「-」）にそろえ、月は <code>growthGbpMonthKey_</code> で日付も文字も「yyyy-MM」にしてから比べ、新しく書く行は月のセルを書式なしテキストにしてから書くようにした。</p>
+<h3>メール本文は思ったより長い</h3>
+<p>届いたメールから数字を抜く方式で、この教室は一度つまずいている。noteの売上通知メールの金額を読む処理で本文を先頭2000字に切っていたら、長い計測用URLの並びに阻まれて金額まで届かず、金額不明のまま記帳されていた。上限を20000字に広げて直し、事故と教訓を書き留めている記録には、外部サービスの本文を解析する処理は「思ったより長い」前提で書く、と残した。GBPの取り込みは先頭8000字を渡している。取り込んだ行が空欄ばかりになったら、まずこの上限を疑う。</p>
+<h3>材料が無い週、メールが見つからない月は黙って終わる</h3>
+<p>事故と教訓を書き留めている記録には、「条件を満たさなければ静かにスキップ」する安全設計は、受け取る側から見ると「何も届かない故障」になる、という教訓もある（2026-07-06に直した、様子メモを読む週次の提案が黙って止まっていた件。詳しくは<a href="../weekly-digest/">週次ダイジェスト</a>の記事）。週次の投稿文は今もこの形で、直近7日のThreads投稿が無ければログに1行書いて終わる。月次の取り込みも、メールが見つからない朝は「0件取込」で終わって通知は出ない。材料のThreadsも、2026-07-21にアクセストークンの期限切れで全投稿が止まったことがある（以後は毎週自動で更新）。今は、毎週月曜の週次ダイジェストに直近7日のThreads投稿数が載ることと、教室の月次レポートの「最新の取り込み」の月が古いまま進まないことで気づく、という間接的な手当てにとどまる。</p>
+<h2>導入手順</h2>
+<ol>
+<li>GBPを管理しているGoogleアカウントのGmailに、Googleから実績メールが届いているかを確かめる。<code>GmailApp</code> は実行したアカウントの受信箱しか読めないので、GASもそのアカウントで作る</li>
+<li>記録先を決める。この教室の <code>autoSheet(シート名, 見出し)</code> は、スクリプトプロパティ <code>AUTOMATION_HUB_ID</code> で指定したスプレッドシートにそのシートが無ければ、見出し付きで作る。プロパティが未設定だと新しいスプレッドシートを作ってそのIDを保存するので、手元で用意したスプレッドシートは、先にそのIDを入れておかないと使われない</li>
+<li>Gemini APIのキーを取得し、スクリプトプロパティ <code>GEMINI_API_KEY</code> に入れる（コードには書かない）。メールの本文をGeminiに送るので、キーは課金を有効にした有料枠で使う（無料枠の扱いは<a href="../gemini-api-gas/">Gemini APIの記事</a>の導入手順を参照）</li>
+<li>取り込みの関数と定数を.gsファイルに置く。関数は、検索の <code>growthGbpSearchCandidates_</code>、本体の <code>growthGbpMonthlyImport</code>、月を「yyyy-MM」にそろえて比べる <code>growthGbpNormalizeMonth_</code>・<code>growthGbpMonthKey_</code>・<code>growthGbpIsDate_</code>・<code>growthGbpHasMonth_</code>、数値にする <code>growthGbpNum_</code>。定数は、シート名の <code>GBP_MONTHLY_SHEET</code>、上の10列の見出しの <code>GBP_MONTHLY_HEADERS</code>、判定済みのIDを残すプロパティ名の <code>GBP_JUDGED_PROP</code>。検索式のキーワードは、届いているメールの件名に合わせて足し引きする</li>
+<li>それが使う共通の関数も置く。シートまわりの <code>autoHub</code>・<code>autoSheet</code>・<code>autoSeenSet</code>、Geminiまわりの <code>autoGeminiJson</code> とその下で使う <code>autoGeminiText</code>・<code>autoParseJson</code>・<code>autoGeminiFetch_</code> など（<a href="../gemini-api-gas/">Gemini APIの記事</a>参照）、通知の <code>autoNotify</code>（手順8の週次の投稿文で使う）</li>
+<li>メールが届いてから35日以内に、GASエディタから <code>growthGbpMonthlyImport</code> を一度手動で実行して権限を許可し、シートに入った数字がメール本文と合っているかを目で確かめる</li>
+<li>毎朝動く時間トリガーに登録する。この教室は毎朝のディスパッチャー <code>autoDailyMorning</code> に <code>autoRunSafely('GBP月次レポートの取り込み（前月分が入るまで毎朝）', growthGbpMonthlyImport);</code> を1行足した。前の月の行が入った月はすぐ終わり、それまでの朝も、取り込み済みのメールと、取り込まないと判定済みのメール（実績メールではないもの・取り込み済みの月の再送）はGeminiへ送らない</li>
+<li>週次の投稿文も作るなら、<code>growthGbpWeeklyPost</code> を週1回の処理（この教室は <code>autoWeeklyMonday</code>）に足す。投稿ログは列の位置で読む（A列が日時、G列が閲覧数、J列が本文）ので、自分のログに合わせて番号を直す。ログのシートを返す関数（この教室は <code>getLogSheet</code>）と文体の定数 <code>RIKIMA_PROFILE</code> も要る。通知先はスクリプトプロパティ <code>NOTIFY_EMAIL</code>（未設定なら実行ユーザーのアドレス）</li>
+</ol>
+<h2>よくある質問</h2>
+<h3>Q. 実績メールが遅く届いたらどうなりますか</h3>
+<p>前の月の分なら、その行が入るまで毎朝探しているので、届いた次の朝に取り込まれる。行の「月」はまず本文から決め、読めないときだけ受信日の前月を使うので、本文に対象月が書いてあれば、遅れて届いてもずれない。毎月1日の教室の月次レポートの時点で前の月の行がまだ無ければ、「メール待ち」と書いたうえで最新の月の数字を載せる。2026年3〜8月分の実績メールは翌月の7〜24日に届いていたので、1日の時点ではこれがふつうだ。</p>
+<h3>Q. Googleマップへの投稿まで自動にできませんか</h3>
+<p>この教室ではしていない。投稿の自動化にもGBPのAPIが要り、利用申請と承認が前提になるためだ。GASは文章を作るところまでで、公開は届いたメールの手順どおり人がスマホで貼り付ける。</p>
+
+<div class="box">
+  <h2>筆者の本とnote（有料）で、まとめて読む</h2>
+  <ul>
+    <li><a href="https://www.amazon.co.jp/dp/B0HCGTWG3J?ref=site-gas-gbp-report-import" target="_blank" rel="noopener">Kindle『個人塾長、AIを雇う。』（500円・Kindle Unlimited対応）</a><small>一人塾の自動化を、何をどの順で進めたか・失敗も含めて1冊にまとめた実録</small></li>
+    <li><a href="https://note.com/rikima81/n/n32a261a6e064?ref=site-gas-gbp-report-import" target="_blank" rel="noopener">note『個人塾をGASで自動化した実録（実コード付き）』（1,800円）</a><small>教室で動かしているGAS×AIの仕組みを、手順とコードつきでまとめた有料記事</small></li>
+    <li><a href="https://www.amazon.com/dp/B0HBPFZXDQ?ref=site-gas-gbp-report-import" target="_blank" rel="noopener">English edition: How I Automated My One-Man Tutoring School with AI ($6.99)</a></li>
+  </ul>
+</div>
+
+<div class="series"></div>
+</div></article>
+
+<footer>
+  <p><a href="../../">田中力磨｜RIKIMA TANAKA</a></p>
+  <p>総合学習教室ブリッジ（滋賀県彦根市稲枝町311-5）</p>
+  <p class="privacy">このサイトでは、よく読まれている記事を知るために、ページが表示されたときとリンクが押されたときに、日時・ページ・リンク先・どのサイトから来たか（ドメイン名とURLの ref などの値）を、筆者の Google Apps Script（Googleのサーバー）へ送って記録しています。Cookie は使わず、IPアドレスなど個人を特定できる情報は記録しません。ブラウザでトラッキング拒否（Do Not Track／GPC）を有効にしていると送りません。</p>
+</footer>
+<script src="../../assets/beacon.js" defer></script>
+</body>
+</html>

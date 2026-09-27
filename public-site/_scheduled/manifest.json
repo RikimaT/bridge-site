@@ -1,0 +1,54 @@
+{
+  "series": "一人塾のGAS自動化 実録",
+  "base_url": "https://rikimat.github.io/bridge-site/",
+  "posts": [
+    {
+      "slug": "gmail-attachment-drive",
+      "date": "2026-09-28",
+      "title": "GASでGmailの添付ファイルをドライブへ自動保存——請求書・領収書の整理とGemini OCRの書類台帳",
+      "description": "Gmailに届いた請求書・領収書の添付ファイルを、GASで毎朝Googleドライブの年/月フォルダへ自動保存して台帳に記録。「OCR受信箱」フォルダに置いた画像・PDFはGeminiで読み取り、スプレッドシートに書く。",
+      "card": "Gmailの請求書・領収書の添付をドライブへ自動保存。「OCR受信箱」フォルダの書類はGeminiで読んで台帳に。",
+      "series_title": "Gmail添付のドライブ自動保存とGemini OCR"
+    },
+    {
+      "slug": "gmail-ad-filter",
+      "date": "2026-10-05",
+      "title": "Gmailの広告メールをGASとAI（Gemini）で自動振り分け——自信があるものだけ受信箱から外す",
+      "description": "Gmailに届く広告・プロモーションメールをGASからGeminiで判定し、自信のある広告だけラベルを付けて自動アーカイブ。迷うものは「メール要確認」ラベルと通知で人に回し、判定はシートに記録して二重処理しない。",
+      "card": "新着メールをGeminiで判定し、自信のある広告だけラベルを付けて受信箱から外す。迷うものは人に回す。",
+      "series_title": "Gmailの広告メールをAIで自動仕分け"
+    },
+    {
+      "slug": "gemini-api-gas",
+      "date": "2026-10-12",
+      "title": "GASからGemini APIを呼ぶ処理が静かに止まるのを防ぐ——モデル廃止404・503再試行・エラー通知の間引き",
+      "description": "GASからGemini APIを呼ぶ共通関数の実録。モデル名をスクリプトプロパティに逃がして廃止の404をスマホから直せるようにし、503は数回だけ再試行、JSONは安全に取り出し、同じ失敗の通知は間引く。",
+      "card": "モデル名はプロパティへ、503は再試行、JSONは安全に取り出す。同じ失敗の通知は間引く。",
+      "series_title": "Gemini APIの404・503対策と通知の間引き"
+    },
+    {
+      "slug": "clasp-github-actions",
+      "date": "2026-10-19",
+      "title": "GASをclaspとGitHub Actionsで自動デプロイする——バージョン上限200と夜間停止",
+      "description": "mainへのマージでGitHub Actionsがclaspを動かし、GASへ自動で反映する仕組みの実録。認証情報の渡し方、.claspignore、バージョン上限200への対策、夜間の停止と翌朝の自動再実行まで。",
+      "card": "mainへのマージでGASへ自動反映。バージョン上限200への対策と、夜間停止・翌朝の自動再実行。",
+      "series_title": "GitHub ActionsでGASを自動デプロイ"
+    },
+    {
+      "slug": "weekly-digest",
+      "date": "2026-10-26",
+      "title": "GASで週次レポートを自動メール送信——スプレッドシートの集計を毎週月曜に1通で届ける",
+      "description": "毎週日曜の夜にシートを見て回る点検をやめ、GASで集計した週次ダイジェストを毎週月曜の朝にメールで自動送信している。異常が無くても毎週1行出して、仕組みの生存確認を兼ねる設計の記録。",
+      "card": "日曜夜のシート巡回をやめ、スプレッドシートの集計結果を毎週月曜に1通のメールで自動送信する。",
+      "series_title": "週次ダイジェストメールで日曜夜の点検を廃止"
+    },
+    {
+      "slug": "gbp-report-import",
+      "date": "2026-11-02",
+      "title": "Googleビジネスプロフィールの月次レポートをGASでスプレッドシートに自動記録する——APIを使わずメールを読む",
+      "description": "Googleビジネスプロフィール（GBP）の月次実績メールをGASとGeminiで読み、通話やルート検索の数をスプレッドシートに毎月残す実録。APIを使わない理由と、Googleマップ投稿文の週次生成も扱う。",
+      "card": "GBPの月次実績メールをGASで読み、通話やルート検索の数をシートに毎月残す。APIは使わない。",
+      "series_title": "GBPの月次実績をメールから自動記録"
+    }
+  ]
+}

@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GASでGmailの添付ファイルをドライブへ自動保存——請求書・領収書の整理とGemini OCRの書類台帳｜一人塾のGAS自動化 実録｜田中力磨</title>
+<meta name="description" content="Gmailに届いた請求書・領収書の添付ファイルを、GASで毎朝Googleドライブの年/月フォルダへ自動保存して台帳に記録。「OCR受信箱」フォルダに置いた画像・PDFはGeminiで読み取り、スプレッドシートに書く。">
+<link rel="canonical" href="https://rikimat.github.io/bridge-site/gas/gmail-attachment-drive/">
+<link rel="alternate" type="application/rss+xml" title="一人塾のGAS自動化 実録" href="https://rikimat.github.io/bridge-site/gas/feed.xml">
+<meta property="og:type" content="article">
+<meta property="og:title" content="GASでGmailの添付ファイルをドライブへ自動保存——請求書・領収書の整理とGemini OCRの書類台帳">
+<meta property="og:description" content="Gmailに届いた請求書・領収書の添付ファイルを、GASで毎朝Googleドライブの年/月フォルダへ自動保存して台帳に記録。「OCR受信箱」フォルダに置いた画像・PDFはGeminiで読み取り、スプレッドシートに書く。">
+<meta property="og:url" content="https://rikimat.github.io/bridge-site/gas/gmail-attachment-drive/">
+<meta property="og:image" content="https://rikimat.github.io/bridge-site/og-rikima.jpg">
+<meta property="og:site_name" content="田中力磨｜総合学習教室ブリッジ">
+<meta property="og:locale" content="ja_JP">
+<meta name="twitter:card" content="summary_large_image">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "TechArticle",
+  "headline": "GASでGmailの添付ファイルをドライブへ自動保存——請求書・領収書の整理とGemini OCRの書類台帳",
+  "description": "Gmailに届いた請求書・領収書の添付ファイルを、GASで毎朝Googleドライブの年/月フォルダへ自動保存して台帳に記録。「OCR受信箱」フォルダに置いた画像・PDFはGeminiで読み取り、スプレッドシートに書く。",
+  "inLanguage": "ja",
+  "datePublished": "2026-09-28",
+  "dateModified": "2026-09-28",
+  "keywords": "GAS, Gmail 添付ファイル 自動保存, Googleドライブ, 請求書 自動保存, 領収書, Gemini OCR, スプレッドシート",
+  "author": {
+    "@type": "Person",
+    "name": "田中力磨",
+    "url": "https://rikimat.github.io/bridge-site/"
+  },
+  "publisher": {
+    "@type": "Person",
+    "name": "田中力磨"
+  },
+  "mainEntityOfPage": "https://rikimat.github.io/bridge-site/gas/gmail-attachment-drive/",
+  "isPartOf": {
+    "@type": "Blog",
+    "name": "一人塾のGAS自動化 実録",
+    "url": "https://rikimat.github.io/bridge-site/gas/"
+  }
+}
+</script>
+<style>
+:root{--ink:#1d2433;--paper:#f5f9fc;--white:#fff;--amber:#2b8fd0;--amber-dark:#1667a0;--line:#dde7ef;--sub:#5d6473;--muted:#949aa8;--code:#0f172a;}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:"Hiragino Kaku Gothic ProN","Noto Sans JP",sans-serif;background:var(--paper);color:var(--ink);line-height:1.95;font-size:16px;}
+.wrap{max-width:760px;margin:0 auto;padding:0 20px;}
+nav{position:sticky;top:0;z-index:50;background:rgba(245,249,252,.92);backdrop-filter:blur(10px);border-bottom:1px solid var(--line);}
+.nv{max-width:760px;margin:0 auto;padding:12px 20px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;}
+.nv .nm{font-weight:700;letter-spacing:2px;font-size:14px;}.nv .nm small{display:block;font-size:9px;letter-spacing:3px;color:var(--amber-dark);}
+.nv ul{display:flex;gap:14px;list-style:none;}.nv a{color:var(--sub);text-decoration:none;font-size:12.5px;white-space:nowrap;}.nv a:hover{color:var(--amber-dark);}
+header.art{padding:48px 0 24px;border-bottom:1px solid var(--line);}
+.crumb{font-size:12px;color:var(--muted);margin-bottom:12px;}.crumb a{color:var(--amber-dark);text-decoration:none;}
+h1{font-size:26px;line-height:1.5;letter-spacing:.5px;margin-bottom:12px;}
+.lead{color:var(--sub);font-size:15px;}
+.meta{font-size:12px;color:var(--muted);margin-top:10px;}
+article{padding:24px 0 40px;}
+article h2{font-size:20px;margin:40px 0 12px;padding-left:12px;border-left:4px solid var(--amber);line-height:1.5;}
+article h3{font-size:16.5px;margin:26px 0 8px;color:var(--amber-dark);}
+article p{margin:0 0 14px;}
+article ul,article ol{margin:0 0 14px 22px;}article li{margin-bottom:4px;}
+article table{border-collapse:collapse;width:100%;margin:0 0 16px;font-size:14px;display:block;overflow-x:auto;}
+article th,article td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top;background:var(--white);}
+article th{background:#e8f3fb;}
+pre{background:var(--code);color:#e2e8f0;padding:16px 18px;border-radius:8px;overflow-x:auto;font-size:13px;line-height:1.6;margin:0 0 16px;}
+code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;}
+p code,li code,td code{background:#e8f3fb;padding:1px 6px;border-radius:4px;font-size:.92em;color:var(--amber-dark);word-break:break-all;}
+.note{background:var(--white);border:1px solid var(--line);border-left:4px solid var(--amber);padding:12px 16px;border-radius:6px;margin:0 0 16px;font-size:14.5px;}
+.box{background:var(--white);border:1px solid var(--line);border-radius:10px;padding:20px 22px;margin:36px 0 0;}
+.box h2{border:0;padding:0;margin:0 0 10px;font-size:18px;}
+.box a{color:var(--amber-dark);font-weight:700;text-decoration:none;}
+.box ul{list-style:none;margin:0;}.box li{margin-bottom:8px;}
+.box small{color:var(--muted);display:block;font-size:12px;}
+.series{margin:32px 0 0;font-size:14px;}.series a{color:var(--amber-dark);text-decoration:none;}.series li{margin-bottom:4px;}
+footer{border-top:1px solid var(--line);padding:32px 0 48px;text-align:center;color:var(--muted);font-size:12.5px;}
+footer a{color:var(--amber-dark);text-decoration:none;}
+footer .privacy{max-width:560px;margin:10px auto 0;font-size:11px;line-height:1.7;}
+@media (max-width:480px){h1{font-size:22px;}article h2{font-size:18px;}}
+</style>
+</head>
+<body>
+<nav><div class="nv">
+  <div class="nm"><a href="../../" style="color:inherit;text-decoration:none">田中力磨<small>RIKIMA TANAKA</small></a></div>
+  <ul>
+    <li><a href="../">実録シリーズ一覧</a></li>
+    <li><a href="../../#book">著書</a></li>
+    <li><a href="../../#school">教室</a></li>
+    <li><a href="https://note.com/rikima81" target="_blank" rel="noopener">note</a></li>
+  </ul>
+</div></nav>
+
+<header class="art"><div class="wrap">
+  <div class="crumb"><a href="../../">田中力磨</a> › <a href="../">一人塾のGAS自動化 実録</a> › Gmail添付の自動保存</div>
+  <h1>GASでGmailの添付ファイルをドライブへ自動保存——請求書・領収書の整理とGemini OCRの書類台帳</h1>
+  <p class="lead">請求書メールの添付は毎朝ドライブへ保存し、「OCR受信箱」フォルダに置いた書類は4時間ごとにGeminiが読んで台帳へ書く。2本の定期処理の作りと注意点の記録。</p>
+  <p class="meta">2026-09-28 公開 ／ 滋賀県彦根市の一人塾「総合学習教室ブリッジ」で実際に動いている仕組みの記録 ／ Google Apps Script（GAS）</p>
+  <p class="meta">この記事は、教室で動いているコードと運用の記録をもとに、AI（Claude）が書きました。</p>
+</div></header>
+
+<article><div class="wrap">
+<h2>何を自動化したか</h2>
+<p>請求書や領収書の整理は、メールの添付を保存して月ごとに分け、紙の分は日付や金額を書き写す、という手作業になりやすい。ためると月末や申告の前にまとめて探すことになる。</p>
+<p>この教室では2本の定期処理にしている。毎朝の <code>officeFileInvoices</code> が請求書・領収書らしいメールの添付をGoogleドライブの年/月フォルダへ保存して台帳シートに記録し、4時間ごとの <code>officeOcrInbox</code> が「OCR受信箱」に入れた書類の画像・PDFをGeminiで読み取って、種別・日付・金額・発行元を別の台帳に書く。作業時間は計測していないので、削減量は数字では示さない。</p>
+<h2>仕組み（データの流れ）</h2>
+<table>
+<tr><th>処理</th><th>実行</th><th>読む場所</th><th>書く場所</th></tr>
+<tr><td><code>officeFileInvoices</code></td><td>毎朝6時台（<code>autoDailyMorning</code>）</td><td>Gmail。直近7日・添付あり・請求書/領収書/invoice/receipt を含むスレッドを最大20件</td><td>ドライブ「経理書類/年/月」、シート「経理書類」</td></tr>
+<tr><td><code>officeOcrInbox</code></td><td>4時間ごと（<code>autoEvery4Hours</code>）</td><td>ドライブ「OCR受信箱」の画像・PDFを1回5件まで（1日最大30件）</td><td>シート「書類OCR」。ファイルは改名して「OCR処理済み」へ</td></tr>
+</table>
+<p>フォルダはすべてドライブの「ブリッジ自動化」の下にある。2本は独立していて、メールの添付が自動でOCRにかかることはない。処理済みかどうかは台帳ではなく、ラベルとフォルダの移動で見分ける。処理したスレッドにはGmailのラベル「ブリッジ自動化/経理済み」が付き、読み取った書類は「OCR受信箱」から「OCR処理済み」へ移るので、Gmailとドライブの画面で確かめられる。「書類OCR」の領収書・請求書の金額は、毎月1日の月次レポートで経費として合計される。</p>
+<h2>コード（要点）</h2>
+<p>毎朝の添付保存。検索、ラベルの確認、年/月フォルダへの保存、台帳への記録、ラベル付けの順に進む。</p>
+<pre><code>function officeFileInvoices() {
+  var label = officeGetLabel('ブリッジ自動化/経理済み');
+  var threads = GmailApp.search('has:attachment (請求書 OR 領収書 OR invoice OR receipt) newer_than:7d', 0, 20);
+  var sheet = autoSheet('経理書類', ['処理日時', '出所', '件名/ファイル名', '保存先URL']);
+  var now = new Date();
+  var yearFolder  = autoSubFolder(autoFolder('経理書類'), Utilities.formatDate(now, 'Asia/Tokyo', 'yyyy'));
+  var monthFolder = autoSubFolder(yearFolder, Utilities.formatDate(now, 'Asia/Tokyo', 'MM'));
+  var saved = 0;
+
+  threads.forEach(function(thread) {
+    // 処理済みラベルが付いたスレッドはスキップ
+    if (thread.getLabels().some(function(l) { return l.getName() === label.getName(); })) return;
+    thread.getMessages().forEach(function(msg) {
+      msg.getAttachments().forEach(function(att) {
+        try {
+          var file = monthFolder.createFile(att.copyBlob());
+          file.setName(Utilities.formatDate(msg.getDate(), 'Asia/Tokyo', 'yyyyMMdd') + '_' + att.getName());
+          sheet.appendRow([new Date(), msg.getFrom(), msg.getSubject() + ' / ' + att.getName(), file.getUrl()]);
+          saved++;
+        } catch (e) {
+          Logger.log('添付保存失敗: ' + e.message);
+        }
+      });
+    });
+    thread.addLabel(label);
+  });
+  Logger.log('経理書類: ' + saved + '件保存');
+}
+
+function officeGetLabel(name) {
+  return GmailApp.getUserLabelByName(name) || GmailApp.createLabel(name);
+}</code></pre>
+<p><code>autoFolder</code>・<code>autoSubFolder</code>・<code>autoSheet</code> もラベルと同じく、名前で探して無ければ作る共通関数で、初回の実行でフォルダ・シート・ラベルがそろう。保存の失敗は添付1件ごとに捕まえ、残りは続ける。</p>
+<p>4時間ごとのOCR。画像とPDF以外は飛ばす。</p>
+<pre><code>function officeOcrInbox() {
+  var inbox = autoFolder('OCR受信箱');
+  var done  = autoFolder('OCR処理済み');
+  var sheet = autoSheet('書類OCR', ['処理日時', 'ファイル名', '種別', '日付', '金額', '発行元', '概要', 'ファイルURL']);
+  var files = inbox.getFiles();
+  var processed = 0;
+
+  while (files.hasNext() &amp;&amp; processed &lt; 5) {  // Gemini呼び出し節約のため1回5件まで
+    var file = files.next();
+    var mime = file.getMimeType();
+    if (mime.indexOf('image/') !== 0 &amp;&amp; mime !== 'application/pdf') {
+      Logger.log('OCR対象外のためスキップ: ' + file.getName() + ' (' + mime + ')');
+      continue;
+    }
+    try {
+      var raw = autoGeminiVision(file.getBlob(), [
+        'この書類を読み取り、次のJSONで返してください。読み取れない項目は空文字。',
+        '{"type":"領収書|請求書|申込書|テスト|手紙|その他","date":"yyyy-MM-dd","amount":"金額（数字のみ）","issuer":"発行元・差出人","summary":"内容の要約1文"}',
+      ].join('\n'));
+      var info;
+      try {
+        info = autoParseJson(raw);
+      } catch (e) {
+        // JSONにならなくても読み取り結果は残す（要約欄に生テキスト）
+        info = { type: 'その他', date: '', amount: '', issuer: '', summary: raw.slice(0, 100) };
+      }
+
+      sheet.appendRow([new Date(), file.getName(), info.type || '', info.date || '', info.amount || '', info.issuer || '', info.summary || '', file.getUrl()]);
+      // 内容に基づいてリネームして処理済みへ移動
+      // …（省略）…
+      file.moveTo(done);
+      processed++;
+    } catch (e) {
+      Logger.log('OCR失敗(' + file.getName() + '): ' + e.message);
+    }
+  }
+  // …（省略）…
+}</code></pre>
+<p>応答がJSONとして読めなくても、生のテキストを概要欄に残して進む。記録のあとは、省略した部分でファイル名を「日付_種別_発行元_元の名前」に変えてから「OCR処理済み」へ移す。Geminiの呼び出しで失敗したファイルは「OCR受信箱」に残り、次の回に読み直される。1回5件の上限は処理できた件数で数え、失敗した分は数に入らない。読めないファイル（壊れたPDFなど）は取り出すまで毎回読み直されるので、同じファイルの失敗が続いたら「OCR受信箱」から出す。</p>
+<p>Geminiへの送信は共通関数で、ファイルをBase64にして <code>inline_data</code> で送る（抜粋）。</p>
+<pre><code>/** 画像・PDFの読み取り（OCR・内容理解）。blob は Drive/Gmail の Blob */
+function autoGeminiVision(blob, prompt) {
+  var url = 'https://generativelanguage.googleapis.com/v1beta/models/'
+          + AUTO_GEMINI_TEXT_MODEL + ':generateContent?key=' + autoGeminiKey();
+  var res = autoGeminiFetch_(url, {
+    method: 'POST',
+    contentType: 'application/json',
+    payload: JSON.stringify({
+      contents: [{ parts: [
+        { text: prompt },
+        { inline_data: { mime_type: blob.getContentType(), data: Utilities.base64Encode(blob.getBytes()) } }
+      ] }],
+      generationConfig: { temperature: 0.1, maxOutputTokens: 2000, thinkingConfig: { thinkingBudget: 0 } }
+    }),
+    muteHttpExceptions: true
+  });
+  var json = JSON.parse(res.getContentText());
+  // …（省略）…
+  return json.candidates[0].content.parts.map(function(p) { return p.text || ''; }).join('').trim();
+}</code></pre>
+<p>gemini-2.5系は既定で「思考」にもトークンを使い、出力が途中で切れることがある。<code>thinkingBudget: 0</code> はそれを避ける設定だ。省略部分では、応答に <code>candidates</code> が無ければ失敗を記録してから例外を投げる。記録は毎晩のまとめ通知に載る（<a href="../trigger-dispatcher/">トリガー集約の記事</a>。同じ種類の失敗の繰り返しは毎晩ではなく間を空けて通知され、全件は台帳と同じスプレッドシートの「通知抑制ログ」シートに残る）。ブラウザから直接送る版は<a href="../receipt-ocr-budget/">レシートOCR家計簿</a>で扱った。</p>
+<h2>ハマった点と回避策</h2>
+<h3>モデルの廃止で読み取りが止まる</h3>
+<p>共通関数のコメントには、過去に gemini-1.5-flash の廃止で404になった前歴が記録されている。そこで2026-07-05から、モデル名をスクリプトプロパティ <code>AUTO_GEMINI_TEXT_MODEL</code> で上書きできるようにしてある（未設定なら gemini-2.5-flash）。OCRもテキスト生成と同じこの設定を使うので、モデル名はコードを直さずに差し替えられる（生成の設定が新しいモデルで通るかは、差し替えた後の実行で確かめる）。毎晩のまとめ通知にもこの手順を書いてある。</p>
+<h3>作業フォルダは空に見えても消さない</h3>
+<p>2026-07-02にドライブの整理候補をまとめた報告には、「ブリッジ自動化」の下の作業フォルダについて「空でもトリガーが使うので残す」と明記してある。OCR受信箱は処理が進むほど空になるのが正常だが、空のフォルダは整理で消されやすい。コードは名前で探して無ければ作るだけで、消されたことを知らせる処理は無い。同名のフォルダが2つあると <code>getFoldersByName</code> が返す最初の1つを使うため、どちらに保存されるかはコードからは決まらない。</p>
+<h3>目印はスレッド単位、年/月は実行日で決まる</h3>
+<p>事故の記録は無いが、コードを読み返すと注意点が2つある。1つは、ラベルがスレッド単位で付くこと。処理済みのスレッドに後から届いた添付は飛ばされ、保存に失敗してもラベルは付く（失敗はログにだけ残る）。ラベルを外せば、直近7日・20件の検索範囲にある限り翌朝拾い直すが、前に保存した分も重複する。もう1つは、年/月フォルダが実行した日で決まること。月末日の実行より後に届いたメールは翌月のフォルダに入るので、受信日はファイル名の先頭の日付で見る。</p>
+<h2>導入手順</h2>
+<ol>
+<li>Gemini APIキーを取得し、スクリプトプロパティ <code>GEMINI_API_KEY</code> に保存する。このキーは課金を有効にした有料枠で使う。規約（<a href="https://ai.google.dev/gemini-api/terms" target="_blank" rel="noopener">Gemini API 追加利用規約</a>）には、無料枠では送った内容がGoogleの製品やサービスの改善に使われ、人が読むこともあると書かれており、無料枠には個人情報を送らないよう求めている。申込書やテストの写真を読ませるこの処理は、有料枠にしてから動かす。この教室も有料枠で使っている。</li>
+<li>本文のコードと、そこから呼ぶ共通関数を1つのGASプロジェクトに置く。共通関数は自分で用意する。<code>autoGeminiKey</code> はスクリプトプロパティ <code>GEMINI_API_KEY</code> を読んで返し（無ければ例外）、<code>AUTO_GEMINI_TEXT_MODEL</code> はプロパティ <code>AUTO_GEMINI_TEXT_MODEL</code> の値（未設定なら <code>'gemini-2.5-flash'</code>）を入れておく変数。<code>autoHub</code> は台帳のスプレッドシートを返し、無ければ作ってIDをスクリプトプロパティ <code>AUTOMATION_HUB_ID</code> に保存する。<code>autoSheet</code>・<code>autoFolder</code>・<code>autoSubFolder</code> はシートやフォルダを名前で探し、無ければ作る。<code>autoParseJson</code> は応答から <code>{…}</code>（または <code>[…]</code>）を取り出して <code>JSON.parse</code> し、<code>autoGeminiFetch_</code> は混雑時に再試行する <code>UrlFetchApp.fetch</code> にあたる。</li>
+<li>GASエディタで <code>officeFileInvoices</code> と <code>officeOcrInbox</code> を1回ずつ手で実行し、権限を承認する。フォルダ・シート・ラベルはこのとき作られる。<code>officeFileInvoices</code> の初回の実行で、直近7日の該当メール（最大20スレッド）がその場で処理され、添付の保存とラベル付けまで進む。</li>
+<li>Gmailの検索式を、自分に届く請求書メールに合わせて調整する（<code>from:</code> や <code>subject:</code> を足すなど）。</li>
+<li>件名に「請求書」と入れたPDF付きのメールを自分宛に送り、<code>officeFileInvoices</code> を実行して、ファイル・台帳の行・ラベルができるかを見る。</li>
+<li>領収書の写真を「OCR受信箱」に入れて <code>officeOcrInbox</code> を実行し、「書類OCR」に1行増えてファイルが移るかを見る。</li>
+<li>毎朝（<code>officeFileInvoices</code>）と4時間ごと（<code>officeOcrInbox</code>）の時間主導型トリガーを1本ずつ作る（この教室ではトリガーを増やさず、<code>autoDailyMorning</code> に <code>autoRunSafely('請求書・領収書の整理', officeFileInvoices);</code>、<code>autoEvery4Hours</code> に <code>autoRunSafely('OCR受信箱の処理', officeOcrInbox);</code> を1行ずつ置いている）。</li>
+</ol>
+<h2>よくある質問</h2>
+<h3>Q. メールで届いた請求書のPDFもOCRされますか</h3>
+<p>されない。メールの添付は「経理書類」フォルダへの保存と台帳への記録までで、中身を読ませたい書類は「OCR受信箱」に入れる。</p>
+<h3>Q. 署名のロゴ画像まで保存されませんか</h3>
+<p>されることがある。<code>getAttachments()</code> は本文に埋め込まれた画像も既定で含む（<a href="https://developers.google.com/apps-script/reference/gmail/gmail-message" target="_blank" rel="noopener">公式リファレンス</a>）。今のコードは区別しておらず、除くなら <code>getAttachments({ includeInlineImages: false })</code> を使う。</p>
+
+<div class="box">
+  <h2>筆者の本とnote（有料）で、まとめて読む</h2>
+  <ul>
+    <li><a href="https://www.amazon.co.jp/dp/B0HCGTWG3J?ref=site-gas-gmail-attachment-drive" target="_blank" rel="noopener">Kindle『個人塾長、AIを雇う。』（500円・Kindle Unlimited対応）</a><small>一人塾の自動化を、何をどの順で進めたか・失敗も含めて1冊にまとめた実録</small></li>
+    <li><a href="https://note.com/rikima81/n/n32a261a6e064?ref=site-gas-gmail-attachment-drive" target="_blank" rel="noopener">note『個人塾をGASで自動化した実録（実コード付き）』（1,800円）</a><small>教室で動かしているGAS×AIの仕組みを、手順とコードつきでまとめた有料記事</small></li>
+    <li><a href="https://www.amazon.com/dp/B0HBPFZXDQ?ref=site-gas-gmail-attachment-drive" target="_blank" rel="noopener">English edition: How I Automated My One-Man Tutoring School with AI ($6.99)</a></li>
+  </ul>
+</div>
+
+<div class="series"></div>
+</div></article>
+
+<footer>
+  <p><a href="../../">田中力磨｜RIKIMA TANAKA</a></p>
+  <p>総合学習教室ブリッジ（滋賀県彦根市稲枝町311-5）</p>
+  <p class="privacy">このサイトでは、よく読まれている記事を知るために、ページが表示されたときとリンクが押されたときに、日時・ページ・リンク先・どのサイトから来たか（ドメイン名とURLの ref などの値）を、筆者の Google Apps Script（Googleのサーバー）へ送って記録しています。Cookie は使わず、IPアドレスなど個人を特定できる情報は記録しません。ブラウザでトラッキング拒否（Do Not Track／GPC）を有効にしていると送りません。</p>
+</footer>
+<script src="../../assets/beacon.js" defer></script>
+</body>
+</html>
