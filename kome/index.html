@@ -1,0 +1,942 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<meta name="theme-color" content="#F2F3EF">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="米在庫">
+<link rel="manifest" href="./manifest.webmanifest">
+<link rel="apple-touch-icon" href="./apple-touch-icon.png">
+<link rel="icon" type="image/png" href="./icon-192.png">
+<title>お米の在庫帳</title>
+<!--
+  お米の在庫帳（スマホ用・オフラインで動く）
+  ・データはこの端末のブラウザ（localStorage）だけに保存する。サーバーには何も送らない。
+  ・名簿は URL の #i=<base64url(JSON)> で受け渡す（「その他」→「データのリンクを作る」）。
+  ・ソースの正は bridge-app/kome/。公開は bridge-site/kome/（rikimat.github.io/bridge-site/kome/）。
+-->
+<style>
+/* 帳面の紙（明るい生成り）に、藍の見出しと稲穂色のボタン。1画面1操作・大きな押し場所・数字は等幅 */
+:root{
+  color-scheme: light;
+  --bg:#F2F3EF; --card:#FFFFFF; --ink:#1B232E; --muted:#5F6973; --line:#DCE0D8; --line-strong:#C3C9BF;
+  --primary:#274B6D; --primary-ink:#FFFFFF; --primary-soft:#E4ECF4;
+  --accent:#C99A2E; --accent-ink:#231A02;
+  --danger:#B3261E; --danger-soft:#FBE7E5;
+  --azukari-bg:#FBE1EA; --azukari-ink:#8E1B4C;
+  --hikitori-bg:#DCEBFA; --hikitori-ink:#134B86;
+  --paid-bg:#D9F0DC; --paid-ink:#1F6B33;
+  --unpaid-bg:#D9342B; --unpaid-ink:#FFFFFF;
+  --done-bg:#E6E8E4; --done-ink:#5B6560;
+  --part-bg:#D3F0F2; --part-ink:#0B5D63;
+  --wait-bg:#FFE4C2; --wait-ink:#9A4A00;
+  --over-bg:#D9342B; --over-ink:#FFFFFF;
+  --radius:12px;
+  --shadow:0 1px 2px rgba(20,30,40,.06), 0 4px 14px rgba(20,30,40,.06);
+  --font:-apple-system, BlinkMacSystemFont, "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Noto Sans JP", "Yu Gothic UI", "Meiryo", sans-serif;
+  --tab-h:60px;
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--font);font-size:16px;line-height:1.6;
+  -webkit-text-size-adjust:100%;-webkit-tap-highlight-color:transparent;
+  padding-bottom:calc(var(--tab-h) + 24px + env(safe-area-inset-bottom,0px))}
+button,input,textarea,select{font:inherit;color:inherit}
+button{cursor:pointer}
+h1,h2,h3{margin:0;line-height:1.35;text-wrap:balance}
+p{margin:0}
+ul{list-style:none;margin:0;padding:0}
+[hidden]{display:none!important}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.num{font-variant-numeric:tabular-nums}
+.muted{color:var(--muted)}
+.small{font-size:13px}
+.wrap{padding-inline:16px;max-width:720px;margin-inline:auto}
+
+/* ヘッダーと集計 */
+.top{padding-top:calc(10px + env(safe-area-inset-top,0px));padding-bottom:12px;background:var(--bg)}
+.title-row{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:44px}
+.title-row h1{font-size:19px;font-weight:700;letter-spacing:.01em;min-width:0;overflow-wrap:anywhere}
+.badge-off{font-size:12px;color:var(--muted);border:1px solid var(--line-strong);border-radius:6px;padding:2px 8px;white-space:nowrap}
+.summary{display:grid;grid-template-columns:1.25fr 1fr 1fr;gap:8px;margin-top:8px}
+.tile{display:flex;flex-direction:column;align-items:flex-start;gap:0;padding:10px 12px;border:1px solid var(--line);border-radius:var(--radius);background:var(--card);text-align:left;min-height:74px;box-shadow:var(--shadow)}
+.tile.main{grid-row:span 2;background:var(--primary);color:var(--primary-ink);border-color:var(--primary);justify-content:center}
+.tile .t-label{font-size:12px;letter-spacing:.04em;opacity:.85}
+.tile .t-num{font-size:26px;font-weight:700;line-height:1.15}
+.tile.main .t-num{font-size:44px}
+.tile .t-sub{font-size:12px;opacity:.8}
+.tile.warn .t-num{color:var(--wait-ink)}
+.tile.bad .t-num{color:var(--unpaid-bg)}
+.tile[aria-pressed="true"]:not(.main){border-color:var(--accent);box-shadow:0 0 0 2px var(--accent) inset}
+.tile.main[aria-pressed="true"]{box-shadow:0 0 0 3px var(--accent) inset}
+.tile.static{cursor:default}
+
+/* 検索と絞り込み（スクロールしても上に残る） */
+.toolbar{position:sticky;top:0;z-index:5;background:var(--bg);padding-block:8px 10px;margin-inline:-16px;padding-inline:16px}
+.search{display:flex;align-items:center;gap:8px;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:0 12px;height:46px}
+.search input{flex:1;min-width:0;border:0;background:transparent;height:44px;font-size:16px;outline:none}
+.search button{border:0;background:transparent;color:var(--muted);font-size:14px;padding:6px 4px}
+.chips{display:flex;gap:8px;overflow-x:auto;padding-block:10px 2px;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+.chips::-webkit-scrollbar{display:none}
+.chips button{flex:0 0 auto;border:1px solid var(--line-strong);background:var(--card);border-radius:999px;padding:8px 14px;font-size:14px;min-height:38px}
+.chips button[aria-pressed="true"]{background:var(--ink);color:#fff;border-color:var(--ink)}
+
+/* 名簿の行 */
+.row{margin-top:8px}
+.row-btn{display:flex;width:100%;align-items:center;gap:12px;text-align:left;border:1px solid var(--line);background:var(--card);border-radius:var(--radius);padding:12px 14px;min-height:72px;box-shadow:var(--shadow)}
+.row-btn:active{background:#F7F8F5}
+.row-main{flex:1;min-width:0}
+.row-name{font-size:17px;font-weight:700;overflow-wrap:anywhere}
+.row.done .row-name{color:var(--done-ink);text-decoration:line-through;text-decoration-thickness:2px;text-decoration-color:#B34A5C}
+.row-chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.row-memo{font-size:13px;color:var(--muted);margin-top:4px;overflow-wrap:anywhere}
+.row-num{text-align:right;flex:0 0 auto;min-width:64px}
+.row-num .stock{font-size:26px;font-weight:700;line-height:1.1}
+.row-num .stock small{font-size:12px;font-weight:600;color:var(--muted);margin-right:4px}
+.row.done .row-num .stock{color:var(--done-ink)}
+.row.over .row-num .stock{color:var(--danger)}
+.row-num .sub{font-size:12px;color:var(--muted);margin-top:2px}
+.row.flash .row-btn{animation:flash 1.6s ease-out 1}
+@keyframes flash{0%{box-shadow:0 0 0 3px var(--accent)}100%{box-shadow:var(--shadow)}}
+
+.chip{display:inline-block;font-size:12px;font-weight:700;border-radius:6px;padding:2px 8px;line-height:1.5;white-space:nowrap}
+.chip.k1{background:var(--azukari-bg);color:var(--azukari-ink)}
+.chip.k2{background:var(--hikitori-bg);color:var(--hikitori-ink)}
+.chip.paid{background:var(--paid-bg);color:var(--paid-ink)}
+.chip.unpaid{background:var(--unpaid-bg);color:var(--unpaid-ink)}
+.chip.st-済{background:var(--done-bg);color:var(--done-ink)}
+.chip.st-一部{background:var(--part-bg);color:var(--part-ink)}
+.chip.st-まだ{background:var(--wait-bg);color:var(--wait-ink)}
+.chip.st-超過{background:var(--over-bg);color:var(--over-ink)}
+
+.empty{margin-top:28px;padding:24px 18px;border:1px dashed var(--line-strong);border-radius:var(--radius);text-align:center;color:var(--muted)}
+.empty b{color:var(--ink)}
+
+/* 記録タブ */
+.day{margin-top:16px}
+.day h3{font-size:14px;color:var(--muted);font-weight:700;letter-spacing:.04em;padding:0 4px 6px}
+.log-row{display:flex;align-items:center;gap:10px;width:100%;text-align:left;border:1px solid var(--line);border-top:0;background:var(--card);padding:12px 14px;min-height:56px}
+.day li:first-child .log-row{border-top:1px solid var(--line);border-radius:var(--radius) var(--radius) 0 0}
+.day li:last-child .log-row{border-radius:0 0 var(--radius) var(--radius)}
+.day li:only-child .log-row{border-radius:var(--radius)}
+.log-row .n{flex:1;min-width:0;font-weight:700;overflow-wrap:anywhere}
+.log-row .m{font-size:13px;color:var(--muted);font-weight:400;display:block}
+.log-row .q{font-size:22px;font-weight:700}
+.log-row .q small{font-size:12px;color:var(--muted);font-weight:600;margin-right:3px}
+
+/* その他タブ */
+.sec{margin-top:16px;background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:16px;box-shadow:var(--shadow)}
+.sec h2{font-size:16px;font-weight:700;margin-bottom:8px}
+.sec p{color:var(--muted);font-size:14px}
+.sec .note{margin-top:8px}
+.sec + .sec{margin-top:12px}
+.stack{display:grid;gap:10px;margin-top:12px}
+details.sec summary{cursor:pointer;font-weight:700;font-size:16px;list-style:none;display:flex;justify-content:space-between;align-items:center;min-height:32px}
+details.sec summary::-webkit-details-marker{display:none}
+details.sec summary::after{content:"＋";color:var(--muted);font-weight:400}
+details.sec[open] summary::after{content:"－"}
+details.sec .body{margin-top:10px;font-size:15px}
+details.sec ol{padding-left:22px;margin:6px 0 0}
+details.sec li{margin-top:4px}
+textarea.code{width:100%;min-height:96px;border:1px solid var(--line-strong);border-radius:10px;padding:10px;font-size:13px;line-height:1.4;font-family:ui-monospace,Menlo,Consolas,monospace;resize:vertical;overflow-wrap:anywhere;background:#FBFBF9}
+.foot{margin:28px 0 8px;text-align:center;color:var(--muted);font-size:12px;line-height:1.7}
+.banner{margin-top:12px;background:var(--primary-soft);border:1px solid #C9D8E8;border-radius:var(--radius);padding:12px 14px;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.banner p{flex:1 1 200px;font-size:14px}
+.banner .acts{display:flex;gap:8px}
+
+/* ボタン */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;border:1px solid var(--line-strong);background:var(--card);border-radius:10px;padding:0 16px;min-height:46px;font-weight:700;font-size:15px}
+.btn:active{transform:translateY(1px)}
+.btn.primary{background:var(--primary);border-color:var(--primary);color:var(--primary-ink)}
+.btn.accent{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.btn.danger{background:var(--card);border-color:#E3B6B2;color:var(--danger)}
+.btn.danger.armed{background:var(--danger);border-color:var(--danger);color:#fff}
+.btn.big{width:100%;min-height:54px;font-size:17px}
+.btn.ghost{border-color:transparent;background:transparent;color:var(--primary)}
+.btn.block{width:100%}
+.btn:disabled{opacity:.5;cursor:default}
+.btn-row{display:flex;gap:8px;flex-wrap:wrap}
+.btn-row .btn{flex:1 1 120px}
+.fab{position:fixed;right:16px;bottom:calc(var(--tab-h) + 16px + env(safe-area-inset-bottom,0px));z-index:6;border:0;background:var(--accent);color:var(--accent-ink);border-radius:999px;min-height:54px;padding:0 20px 0 16px;font-size:16px;font-weight:700;box-shadow:0 6px 18px rgba(80,60,10,.28)}
+.fab span{font-size:22px;line-height:1;margin-right:6px}
+
+/* 下のタブ */
+.tabbar{position:fixed;left:0;right:0;bottom:0;z-index:7;display:flex;background:var(--card);border-top:1px solid var(--line);
+  height:calc(var(--tab-h) + env(safe-area-inset-bottom,0px));padding-bottom:env(safe-area-inset-bottom,0px)}
+.tabbar button{flex:1;border:0;background:transparent;color:var(--muted);font-size:12px;font-weight:700;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px}
+.tabbar button svg{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.tabbar button[aria-selected="true"]{color:var(--primary)}
+
+/* 下から出る画面（シート） */
+dialog.sheet{border:0;padding:0;margin:0 auto;width:100%;max-width:640px;max-height:min(92vh,92dvh);inset:auto 0 0 0;position:fixed;
+  border-radius:18px 18px 0 0;background:var(--card);color:var(--ink);box-shadow:0 -8px 30px rgba(20,30,40,.18);overflow:hidden}
+dialog.sheet::backdrop{background:rgba(20,30,40,.45)}
+dialog.center{inset:0;margin:auto;border-radius:16px;max-width:420px;width:calc(100% - 32px);max-height:80vh}
+.sheet-head{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 8px 0 18px;min-height:52px;position:sticky;top:0;background:var(--card);z-index:2}
+.sheet-head h2{font-size:18px;min-width:0;overflow-wrap:anywhere}
+.sheet-head .grip{position:absolute;left:50%;top:6px;width:40px;height:4px;border-radius:2px;background:var(--line-strong);transform:translateX(-50%)}
+.x{border:0;background:transparent;min-width:64px;min-height:44px;color:var(--primary);font-weight:700;font-size:15px;flex:0 0 auto}
+.sheet-body{padding:6px 18px calc(24px + env(safe-area-inset-bottom,0px));overflow:auto;max-height:calc(min(92vh,92dvh) - 52px)}
+.p-chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}
+.p-stock{display:flex;align-items:baseline;gap:10px;margin-top:14px;padding:14px 16px;border-radius:var(--radius);background:var(--bg)}
+.p-stock .lab{font-size:14px;font-weight:700;color:var(--muted)}
+.p-stock b{font-size:40px;line-height:1;font-weight:800}
+.p-stock.over b{color:var(--danger)}
+.p-stock.done b{color:var(--done-ink)}
+.p-stock .sub{font-size:13px;color:var(--muted);margin-left:auto;text-align:right}
+.p-act{margin-top:12px}
+.form{display:grid;gap:12px;margin-top:12px;padding:14px;border:1px solid var(--line);border-radius:var(--radius);background:#FBFBF9}
+.field{display:grid;gap:6px}
+.field>span{font-size:13px;font-weight:700;color:var(--muted)}
+.field input[type=text],.field input[type=date],.field textarea{width:100%;border:1px solid var(--line-strong);border-radius:10px;padding:0 12px;min-height:48px;background:var(--card);font-size:17px}
+.field textarea{padding:10px 12px;min-height:60px;resize:vertical}
+.field input[type=date]{-webkit-appearance:none;appearance:none}
+.field .err{color:var(--danger);font-size:13px;font-weight:700}
+.stepper{display:grid;grid-template-columns:56px 1fr 56px;gap:0;border:1px solid var(--line-strong);border-radius:10px;overflow:hidden;background:var(--card)}
+.stepper button{border:0;background:var(--primary-soft);color:var(--primary);font-size:26px;font-weight:700;min-height:52px}
+.stepper button:active{background:#D4E0EE}
+.stepper input{border:0;text-align:center;font-size:24px;font-weight:700;min-width:0;width:100%;min-height:52px;outline:none}
+.seg{display:flex;border:1px solid var(--line-strong);border-radius:10px;overflow:hidden;background:var(--card)}
+.seg button{flex:1;border:0;background:transparent;min-height:46px;font-weight:700;font-size:15px;color:var(--muted)}
+.seg button+button{border-left:1px solid var(--line)}
+.seg button[aria-pressed="true"]{background:var(--ink);color:#fff}
+.seg.pay button[aria-pressed="true"][data-v="未払い"]{background:var(--unpaid-bg)}
+.seg.pay button[aria-pressed="true"][data-v="支払済"]{background:var(--paid-ink)}
+.seg.kind button[aria-pressed="true"][data-v="預かり"]{background:var(--azukari-ink)}
+.seg.kind button[aria-pressed="true"][data-v="引き取り"]{background:var(--hikitori-ink)}
+.p-sec{margin-top:20px}
+.p-sec h3{font-size:14px;color:var(--muted);letter-spacing:.04em;margin-bottom:8px}
+.hist li{display:flex;align-items:center;gap:10px;padding:10px 0;border-top:1px solid var(--line)}
+.hist li:last-child{border-bottom:1px solid var(--line)}
+.hist .d{font-weight:700;min-width:84px}
+.hist .d.none{color:var(--wait-ink);background:var(--wait-bg);border-radius:6px;padding:0 6px;font-size:13px}
+.hist .q{font-size:20px;font-weight:700;min-width:44px;text-align:right}
+.hist .q small{font-size:12px;color:var(--muted);font-weight:600;margin-right:2px}
+.hist .m{flex:1;min-width:0;font-size:13px;color:var(--muted);overflow-wrap:anywhere}
+.hist .ops{display:flex;gap:4px;margin-left:auto}
+.hist .ops button{border:1px solid var(--line-strong);background:var(--card);border-radius:8px;min-height:38px;padding:0 10px;font-size:13px;font-weight:700}
+.hist .ops button.del{color:var(--danger);border-color:#E3B6B2}
+.hist .ops button.del.armed{background:var(--danger);color:#fff;border-color:var(--danger)}
+.hist li.editing{display:block}
+.hist .edit-form{display:grid;gap:10px;padding:10px 0 4px}
+.hist .edit-form .two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.hist .empty-h{color:var(--muted);font-size:14px;padding:10px 0}
+.danger-zone{margin-top:20px;padding-top:14px;border-top:1px dashed var(--line-strong)}
+.pay-date{margin-top:10px}
+
+/* 通知 */
+.toast{position:fixed;left:50%;bottom:calc(var(--tab-h) + 80px + env(safe-area-inset-bottom,0px));transform:translateX(-50%) translateY(20px);opacity:0;pointer-events:none;
+  background:var(--ink);color:#fff;border-radius:12px;padding:12px 16px;font-size:15px;max-width:calc(100% - 32px);display:flex;gap:14px;align-items:center;z-index:20;box-shadow:0 8px 24px rgba(0,0,0,.25);transition:transform .2s,opacity .2s}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0);pointer-events:auto}
+.toast button{border:0;background:transparent;color:var(--accent);font-weight:800;font-size:15px;padding:4px 2px;min-height:36px}
+
+@media (min-width:640px){
+  .summary{grid-template-columns:1.2fr repeat(4,1fr)}
+  .tile.main{grid-row:auto}
+  dialog.sheet{inset:auto 0 24px 0;border-radius:18px}
+}
+@media (prefers-reduced-motion:reduce){
+  *{animation:none!important;transition:none!important}
+}
+</style>
+</head>
+<body>
+
+<header class="top wrap">
+  <div class="title-row">
+    <h1 id="h-title">お米の在庫帳</h1>
+    <span class="badge-off" id="offline" hidden>オフライン</span>
+  </div>
+  <section class="summary" aria-label="集計">
+    <button class="tile main" id="tile-stock" data-filter="stock" aria-pressed="false">
+      <span class="t-label">在庫（残り）</span><span class="t-num num" id="t-stock">0</span><span class="t-sub" id="t-stock-sub">0人</span>
+    </button>
+    <button class="tile" data-filter="all" aria-pressed="false">
+      <span class="t-label">注文の合計</span><span class="t-num num" id="t-order">0</span><span class="t-sub" id="t-order-sub">0人</span>
+    </button>
+    <div class="tile static">
+      <span class="t-label">渡した数</span><span class="t-num num" id="t-given">0</span><span class="t-sub" id="t-given-sub">0人</span>
+    </div>
+    <button class="tile warn" data-filter="wait" aria-pressed="false">
+      <span class="t-label">引き取り待ち</span><span class="t-num num" id="t-wait">0</span><span class="t-sub" id="t-wait-sub">0人</span>
+    </button>
+    <button class="tile bad" data-filter="unpaid" aria-pressed="false">
+      <span class="t-label">未払い</span><span class="t-num num" id="t-unpaid">0</span><span class="t-sub" id="t-unpaid-sub">0人</span>
+    </button>
+  </section>
+</header>
+
+<main class="wrap">
+  <!-- 一覧 -->
+  <section id="view-home" class="view" aria-labelledby="tab-home">
+    <div class="banner" id="install-banner" hidden>
+      <p><b>ホーム画面に追加</b>しておくと、アプリのように開けます。</p>
+      <div class="acts">
+        <button class="btn" id="btn-install" hidden>追加する</button>
+        <button class="btn ghost" id="btn-install-how">やり方</button>
+        <button class="btn ghost" id="btn-install-close" aria-label="閉じる">閉じる</button>
+      </div>
+    </div>
+    <div class="toolbar">
+      <div class="search">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+        <input id="q" type="search" placeholder="名前でさがす" autocomplete="off" aria-label="名前でさがす">
+        <button id="q-clear" hidden>消す</button>
+      </div>
+      <div class="chips" role="group" aria-label="絞り込み">
+        <button data-filter="all" aria-pressed="true">すべて</button>
+        <button data-filter="stock" aria-pressed="false">在庫あり</button>
+        <button data-filter="wait" aria-pressed="false">引き取り待ち</button>
+        <button data-filter="unpaid" aria-pressed="false">未払い</button>
+        <button data-filter="done" aria-pressed="false">済</button>
+      </div>
+    </div>
+    <ul id="people-list"></ul>
+    <div class="empty" id="empty-home" hidden></div>
+  </section>
+
+  <!-- 記録 -->
+  <section id="view-log" class="view" hidden aria-labelledby="tab-log">
+    <p class="muted" style="margin-top:12px" id="log-summary"></p>
+    <div id="log-list"></div>
+    <div class="empty" id="empty-log" hidden>まだ渡した記録がありません。<br>一覧で名前を押して「お米を渡す」から記録します。</div>
+  </section>
+
+  <!-- その他 -->
+  <section id="view-more" class="view" hidden aria-labelledby="tab-more">
+    <details class="sec" id="sec-howto">
+      <summary>使い方</summary>
+      <div class="body">
+        <ol>
+          <li><b>お米を渡したら</b>：一覧で名前を押す → 「お米を渡す」 → 数と日付を入れて「記録する」。残りは自動で減ります。</li>
+          <li><b>お金をもらったら</b>：名前を押す → 「支払い」で「支払済」を選ぶ。</li>
+          <li><b>人を増やす</b>：一覧の右下「＋ 人を追加」。</li>
+          <li><b>直す・消す</b>：名前を押した画面のいちばん下「名前・注文数を直す」。渡した記録は「直す」「削除」で。</li>
+          <li>上の数字（在庫・引き取り待ち・未払い）を押すと、その人だけに絞れます。</li>
+        </ol>
+        <p class="note">色：<span class="chip k1">預かり</span> <span class="chip k2">引き取り</span> <span class="chip paid">支払済</span> <span class="chip unpaid">未払い</span> <span class="chip st-済">済</span>＝全部渡した <span class="chip st-一部">一部</span>＝残りあり <span class="chip st-まだ">まだ</span>＝引き取りで未渡し</p>
+      </div>
+    </details>
+
+    <details class="sec" id="sec-home">
+      <summary>ホーム画面に追加する（アプリのように使う）</summary>
+      <div class="body">
+        <p><b>iPhone（Safari）</b></p>
+        <ol><li>画面下の「共有」ボタン（四角から矢印が出ている印）を押す</li><li>「ホーム画面に追加」を押す</li><li>右上の「追加」を押す</li></ol>
+        <p style="margin-top:10px"><b>Android（Chrome）</b></p>
+        <ol><li>右上の「︙」を押す</li><li>「ホーム画面に追加」か「アプリをインストール」を押す</li></ol>
+        <div class="stack"><button class="btn primary" id="btn-install2" hidden>このスマホに追加する</button></div>
+        <p class="note">追加したあとは、ホーム画面の「米在庫」から開いてください。電波がなくても開けます。</p>
+      </div>
+    </details>
+
+    <section class="sec">
+      <h2>見出し</h2>
+      <p>一覧のいちばん上に出る名前です（例：令和8年 米注文 きぬむすめ）。</p>
+      <form id="form-title" class="stack">
+        <label class="field"><span>見出し</span><input type="text" id="in-title" maxlength="40" autocomplete="off"></label>
+        <button class="btn" type="submit">保存する</button>
+      </form>
+    </section>
+
+    <section class="sec">
+      <h2>データのリンク（バックアップ・別のスマホへ引っ越し）</h2>
+      <p>今の名簿と記録を、ひとつのリンクにします。LINEで自分に送っておけばバックアップになり、別のスマホで開けば同じ内容が入ります。</p>
+      <p class="small" id="last-backup"></p>
+      <div class="stack">
+        <button class="btn primary" id="btn-make-link">データのリンクを作る</button>
+        <div id="link-box" hidden class="stack">
+          <textarea class="code" id="link-out" readonly rows="4" aria-label="データのリンク"></textarea>
+          <div class="btn-row">
+            <button class="btn" id="btn-copy-link">コピー</button>
+            <button class="btn" id="btn-share-link">LINEなどで送る</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <details class="sec" id="sec-restore">
+      <summary>リンクから戻す（復元）</summary>
+      <div class="body">
+        <p>もらったリンク（またはバックアップのリンク）を下に貼り付けて「読み込む」を押します。今の内容は置き換わります。</p>
+        <div class="stack">
+          <textarea class="code" id="restore-in" rows="4" placeholder="ここに貼り付け" aria-label="リンクを貼り付け"></textarea>
+          <p class="err small" id="restore-err" style="color:var(--danger);font-weight:700" hidden></p>
+          <button class="btn" id="btn-restore">読み込む</button>
+        </div>
+      </div>
+    </details>
+
+    <details class="sec" id="sec-excel">
+      <summary>表をコピーする（Excelに貼り付け用）</summary>
+      <div class="body">
+        <p>名簿と在庫を、Excelやスプレッドシートに貼り付けられる形でコピーします。</p>
+        <div class="stack"><button class="btn" id="btn-copy-tsv">表をコピー</button></div>
+      </div>
+    </details>
+
+    <details class="sec" id="sec-reset">
+      <summary>最初からやり直す（全部消す）</summary>
+      <div class="body">
+        <p>名簿と記録をすべて消します。消す前に「データのリンクを作る」で控えを取っておくと安心です。</p>
+        <div class="stack"><button class="btn danger" id="btn-reset">全部消す</button></div>
+      </div>
+    </details>
+
+    <p class="foot">データはこのスマホの中だけに保存されます（どこにも送られません）。<br>スマホを替えるときは「データのリンク」で引っ越してください。<br><span id="ver"></span></p>
+  </section>
+</main>
+
+<button class="fab" id="fab"><span aria-hidden="true">＋</span>人を追加</button>
+
+<nav class="tabbar" role="tablist" aria-label="画面の切り替え">
+  <button role="tab" id="tab-home" data-view="home" aria-selected="true">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h10"/></svg>一覧
+  </button>
+  <button role="tab" id="tab-log" data-view="log" aria-selected="false">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="5" width="16" height="15" rx="2"/><path d="M8 3v4M16 3v4M4 10h16"/></svg>記録
+  </button>
+  <button role="tab" id="tab-more" data-view="more" aria-selected="false">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>その他
+  </button>
+</nav>
+
+<!-- 人の画面 -->
+<dialog class="sheet" id="dlg-person" aria-labelledby="p-name">
+  <div class="sheet-head"><span class="grip"></span><h2 id="p-name"></h2><button class="x" data-close>閉じる</button></div>
+  <div class="sheet-body">
+    <div class="p-chips" id="p-chips"></div>
+    <div class="p-stock" id="p-stock-box"><span class="lab">残り</span><b class="num" id="p-stock">0</b><span class="sub num" id="p-sub"></span></div>
+    <div class="p-act">
+      <button class="btn accent big" id="btn-hand">お米を渡す</button>
+      <form class="form" id="form-hand" hidden>
+        <label class="field"><span>渡す数</span>
+          <div class="stepper"><button type="button" data-step="-1" data-for="hand-qty" aria-label="1へらす">−</button><input id="hand-qty" type="text" inputmode="decimal" value="1" aria-label="渡す数"><button type="button" data-step="1" data-for="hand-qty" aria-label="1ふやす">＋</button></div>
+        </label>
+        <label class="field"><span>渡した日</span><input type="date" id="hand-date"></label>
+        <label class="field"><span>メモ（なくてもOK）</span><input type="text" id="hand-memo" maxlength="60" autocomplete="off"></label>
+        <p class="err" id="hand-err" hidden></p>
+        <div class="btn-row"><button class="btn primary" type="submit">記録する</button><button class="btn" type="button" data-cancel-hand>やめる</button></div>
+      </form>
+    </div>
+
+    <section class="p-sec">
+      <h3>支払い</h3>
+      <div class="seg pay" id="p-pay" role="group" aria-label="支払い">
+        <button type="button" data-v="" aria-pressed="false">未記入</button>
+        <button type="button" data-v="未払い" aria-pressed="false">未払い</button>
+        <button type="button" data-v="支払済" aria-pressed="false">支払済</button>
+      </div>
+      <label class="field pay-date" id="p-paydate-wrap" hidden><span>入金日（わかれば）</span><input type="date" id="p-paydate"></label>
+    </section>
+
+    <section class="p-sec">
+      <h3>渡した記録</h3>
+      <ul class="hist" id="p-log"></ul>
+    </section>
+
+    <details class="p-sec" id="p-edit">
+      <summary class="btn block">名前・注文数を直す</summary>
+      <form class="form" id="form-edit">
+        <label class="field"><span>名前</span><input type="text" id="ed-name" maxlength="30" autocomplete="off"><span class="err" id="ed-err" hidden></span></label>
+        <label class="field"><span>注文の数</span>
+          <div class="stepper"><button type="button" data-step="-1" data-for="ed-qty" aria-label="1へらす">−</button><input id="ed-qty" type="text" inputmode="decimal" aria-label="注文の数"><button type="button" data-step="1" data-for="ed-qty" aria-label="1ふやす">＋</button></div>
+        </label>
+        <div class="field"><span>預かり・引き取り</span>
+          <div class="seg kind" id="ed-kind" role="group"><button type="button" data-v="預かり" aria-pressed="true">預かり</button><button type="button" data-v="引き取り" aria-pressed="false">引き取り</button></div>
+        </div>
+        <label class="field"><span>メモ</span><input type="text" id="ed-memo" maxlength="60" autocomplete="off"></label>
+        <button class="btn primary" type="submit">保存する</button>
+      </form>
+      <div class="danger-zone"><button class="btn danger block" id="btn-del-person">この人を削除</button></div>
+    </details>
+  </div>
+</dialog>
+
+<!-- 人を追加 -->
+<dialog class="sheet" id="dlg-add" aria-labelledby="add-title">
+  <div class="sheet-head"><span class="grip"></span><h2 id="add-title">人を追加</h2><button class="x" data-close>閉じる</button></div>
+  <div class="sheet-body">
+    <form class="form" id="form-add" style="margin-top:4px">
+      <label class="field"><span>名前</span><input type="text" id="ad-name" maxlength="30" autocomplete="off" placeholder="例：山田（彦根）"><span class="err" id="ad-err" hidden></span></label>
+      <label class="field"><span>注文の数</span>
+        <div class="stepper"><button type="button" data-step="-1" data-for="ad-qty" aria-label="1へらす">−</button><input id="ad-qty" type="text" inputmode="decimal" value="1" aria-label="注文の数"><button type="button" data-step="1" data-for="ad-qty" aria-label="1ふやす">＋</button></div>
+      </label>
+      <div class="field"><span>預かり・引き取り</span>
+        <div class="seg kind" id="ad-kind" role="group"><button type="button" data-v="預かり" aria-pressed="true">預かり</button><button type="button" data-v="引き取り" aria-pressed="false">引き取り</button></div>
+      </div>
+      <div class="field"><span>支払い</span>
+        <div class="seg pay" id="ad-pay" role="group"><button type="button" data-v="" aria-pressed="true">未記入</button><button type="button" data-v="未払い" aria-pressed="false">未払い</button><button type="button" data-v="支払済" aria-pressed="false">支払済</button></div>
+      </div>
+      <label class="field"><span>メモ（なくてもOK）</span><input type="text" id="ad-memo" maxlength="60" autocomplete="off"></label>
+      <button class="btn primary big" type="submit">登録する</button>
+    </form>
+  </div>
+</dialog>
+
+<!-- リンクの取り込み確認 -->
+<dialog class="sheet center" id="dlg-seed" aria-labelledby="seed-title">
+  <div class="sheet-head" style="padding-left:18px"><h2 id="seed-title">リンクのデータを読み込みますか？</h2></div>
+  <div class="sheet-body">
+    <p id="seed-msg" style="font-size:15px"></p>
+    <div class="stack" style="margin-top:16px">
+      <button class="btn primary big" id="seed-yes">置き換える</button>
+      <button class="btn big" id="seed-no">今のまま使う</button>
+    </div>
+  </div>
+</dialog>
+
+<div class="toast" id="toast" role="status" aria-live="polite"><span id="toast-msg"></span><button id="toast-undo" hidden>元に戻す</button></div>
+
+<script>
+(() => {
+'use strict';
+const KEY = 'kome.v1';
+const HINT = 'kome.hint';
+const APP_VER = '2026-09-30';
+const PAY = ['', '未払い', '支払済'];
+
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+const pad = n => String(n).padStart(2, '0');
+const todayStr = () => { const d = new Date(); return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`; };
+const WD = ['日', '月', '火', '水', '木', '金', '土'];
+const num = v => { const n = Math.round(Number(String(v).replace(/[，,]/g, '').trim()) * 100) / 100; return Number.isFinite(n) ? n : NaN; };
+const n0 = v => { const n = num(v); return Number.isNaN(n) ? 0 : n; };
+const fmt = n => { n = n0(n); return Number.isInteger(n) ? String(n) : n.toFixed(n * 10 % 1 ? 2 : 1); };
+const fmtDate = s => {
+  if (!s) return '';
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s); if (!m) return s;
+  const d = new Date(+m[1], +m[2] - 1, +m[3]); const y = new Date().getFullYear();
+  return (d.getFullYear() !== y ? `${d.getFullYear()}/` : '') + `${d.getMonth() + 1}/${d.getDate()}(${WD[d.getDay()]})`;
+};
+const validDate = s => !s || /^\d{4}-\d{2}-\d{2}$/.test(s);
+
+/* ---------- 保存 ---------- */
+const blank = () => ({ v: 1, title: '米の注文', unit: '', people: [], log: [], updated: '', lastBackup: '' });
+function load() {
+  try {
+    const raw = localStorage.getItem(KEY);
+    if (raw) { const o = JSON.parse(raw); if (o && o.v === 1 && Array.isArray(o.people) && Array.isArray(o.log)) return Object.assign(blank(), o); }
+  } catch (e) { /* 読めないときは空で始める */ }
+  return blank();
+}
+let S = load();
+function save() {
+  S.updated = new Date().toISOString();
+  try { localStorage.setItem(KEY, JSON.stringify(S)); }
+  catch (e) { toast('保存できませんでした。ブラウザの「サイトデータ」が使えない設定か、容量がいっぱいです。'); }
+  render();
+}
+const U = { view: 'home', filter: 'all', q: '', person: null, editLog: null, seed: null };
+let undoSnap = null, toastTimer = null, deferredInstall = null;
+
+/* ---------- 計算 ---------- */
+function stats(p) {
+  let given = 0, last = '';
+  for (const l of S.log) if (l.pid === p.id) { given += n0(l.qty); if (l.date && l.date > last) last = l.date; }
+  given = n0(given); const qty = n0(p.qty); const stock = n0(qty - given);
+  let st = '';
+  if (stock < 0) st = '超過'; else if (qty > 0 && stock === 0) st = '済'; else if (given > 0) st = '一部'; else if (p.kind === '引き取り') st = 'まだ';
+  return { given, stock, last, st, qty };
+}
+function totals() {
+  const t = { order: 0, given: 0, stock: 0, wait: 0, waitN: 0, unpaid: 0, unpaidN: 0, n: S.people.length, stockN: 0, givenN: 0 };
+  for (const p of S.people) {
+    const s = stats(p);
+    t.order += s.qty; t.given += s.given; t.stock += s.stock;
+    if (s.stock > 0) t.stockN++; if (s.given > 0) t.givenN++;
+    if (p.kind === '引き取り' && s.stock > 0) { t.wait += s.stock; t.waitN++; }
+    if (p.pay === '未払い') { t.unpaid += s.qty; t.unpaidN++; }
+  }
+  for (const k of ['order', 'given', 'stock', 'wait', 'unpaid']) t[k] = n0(t[k]);
+  return t;
+}
+function matches(p, s) {
+  if (U.q && !p.name.toLowerCase().includes(U.q) && !(p.memo || '').toLowerCase().includes(U.q)) return false;
+  switch (U.filter) {
+    case 'stock': return s.stock > 0;
+    case 'wait': return p.kind === '引き取り' && s.stock > 0;
+    case 'unpaid': return p.pay === '未払い';
+    case 'done': return s.st === '済';
+    default: return true;
+  }
+}
+const byId = id => S.people.find(p => p.id === id);
+const nameTaken = (name, exceptId) => S.people.some(p => p.id !== exceptId && p.name === name);
+
+/* ---------- 描画 ---------- */
+function render() {
+  const t = totals();
+  $('#h-title').textContent = S.title || 'お米の在庫帳';
+  document.title = (S.title ? S.title + ' | ' : '') + 'お米の在庫帳';
+  $('#t-stock').textContent = fmt(t.stock); $('#t-stock-sub').textContent = `${t.stockN}人に残りあり`;
+  $('#t-order').textContent = fmt(t.order); $('#t-order-sub').textContent = `${t.n}人`;
+  $('#t-given').textContent = fmt(t.given); $('#t-given-sub').textContent = `${t.givenN}人`;
+  $('#t-wait').textContent = fmt(t.wait); $('#t-wait-sub').textContent = `${t.waitN}人`;
+  $('#t-unpaid').textContent = fmt(t.unpaid); $('#t-unpaid-sub').textContent = `${t.unpaidN}人`;
+  $$('.tile[data-filter]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.filter === U.filter && U.filter !== 'all')));
+  $$('.chips button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.filter === U.filter)));
+  renderList(); renderLog(); renderMore();
+  if (U.person) renderPerson();
+}
+function renderList() {
+  const ul = $('#people-list'); const empty = $('#empty-home');
+  const items = [];
+  for (const p of S.people) {
+    const s = stats(p); if (!matches(p, s)) continue;
+    const chips = [`<span class="chip k${p.kind === '引き取り' ? 2 : 1}">${p.kind}</span>`];
+    if (p.pay === '未払い') chips.push('<span class="chip unpaid">未払い</span>');
+    if (p.pay === '支払済') chips.push('<span class="chip paid">支払済</span>');
+    if (s.st) chips.push(`<span class="chip st-${s.st}">${s.st}</span>`);
+    const cls = ['row', s.st === '済' ? 'done' : '', s.st === '超過' ? 'over' : ''].join(' ').trim();
+    items.push(`<li class="${cls}" data-id="${p.id}"><button class="row-btn" type="button">
+      <div class="row-main"><div class="row-name">${esc(p.name)}</div><div class="row-chips">${chips.join('')}</div>${p.memo ? `<div class="row-memo">${esc(p.memo)}</div>` : ''}</div>
+      <div class="row-num num"><div class="stock"><small>残り</small>${fmt(s.stock)}</div><div class="sub">注文 ${fmt(s.qty)}${s.given ? ` ・ 渡した ${fmt(s.given)}` : ''}</div></div>
+    </button></li>`);
+  }
+  ul.innerHTML = items.join('');
+  if (!S.people.length) {
+    empty.innerHTML = 'まだ誰も登録されていません。<br>右下の「<b>＋ 人を追加</b>」から始めます。<br><span class="small">名簿のリンクをもらっている場合は、そのリンクを開くと自動で入ります。</span>';
+    empty.hidden = false;
+  } else if (!items.length) {
+    empty.textContent = U.q ? `「${U.q}」に合う人はいません。` : 'この条件に合う人はいません。';
+    empty.hidden = false;
+  } else empty.hidden = true;
+}
+function renderLog() {
+  const box = $('#log-list'); const empty = $('#empty-log');
+  const logs = S.log.map(l => ({ ...l, p: byId(l.pid) })).filter(l => l.p);
+  $('#log-summary').textContent = logs.length ? `渡した数の合計 ${fmt(logs.reduce((a, l) => a + n0(l.qty), 0))}（${logs.length}件）` : '';
+  empty.hidden = logs.length > 0;
+  logs.sort((a, b) => (b.date || '') < (a.date || '') ? -1 : (b.date || '') > (a.date || '') ? 1 : (b.created || '').localeCompare(a.created || ''));
+  const groups = new Map();
+  for (const l of logs) { const k = l.date || ''; if (!groups.has(k)) groups.set(k, []); groups.get(k).push(l); }
+  const html = [];
+  for (const [k, arr] of groups) {
+    html.push(`<div class="day"><h3>${k ? fmtDate(k) : '日付なし'}<span class="muted" style="font-weight:400"> ・ ${fmt(arr.reduce((a, l) => a + n0(l.qty), 0))}</span></h3><ul>` +
+      arr.map(l => `<li><button class="log-row" type="button" data-id="${l.pid}"><span class="n">${esc(l.p.name)}${l.memo ? `<span class="m">${esc(l.memo)}</span>` : ''}</span><span class="q num"><small>渡した</small>${fmt(l.qty)}</span></button></li>`).join('') + '</ul></div>');
+  }
+  box.innerHTML = html.join('');
+}
+function renderMore() {
+  $('#last-backup').textContent = S.lastBackup ? `最後にリンクを作った日：${fmtDate(S.lastBackup)}` : 'まだリンクを作っていません。';
+  $('#ver').textContent = `お米の在庫帳 ${APP_VER}`;
+}
+
+/* ---------- 人の画面 ---------- */
+const dlgP = $('#dlg-person');
+function openPerson(id) {
+  if (!byId(id)) return;
+  U.person = id; U.editLog = null;
+  $('#form-hand').hidden = true; $('#btn-hand').hidden = false; $('#hand-err').hidden = true;
+  $('#p-edit').open = false; $('#ed-err').hidden = true;
+  disarm($('#btn-del-person'), 'この人を削除');
+  renderPerson(true);
+  if (!dlgP.open) dlgP.showModal();
+  $('.sheet-body', dlgP).scrollTop = 0;
+}
+function renderPerson(fillForms) {
+  const p = byId(U.person); if (!p) { if (dlgP.open) dlgP.close(); return; }
+  const s = stats(p);
+  $('#p-name').textContent = p.name;
+  const chips = [`<span class="chip k${p.kind === '引き取り' ? 2 : 1}">${p.kind}</span>`];
+  if (p.pay) chips.push(`<span class="chip ${p.pay === '未払い' ? 'unpaid' : 'paid'}">${p.pay}</span>`);
+  if (s.st) chips.push(`<span class="chip st-${s.st}">${s.st}</span>`);
+  if (p.memo) chips.push(`<span class="small muted">${esc(p.memo)}</span>`);
+  $('#p-chips').innerHTML = chips.join('');
+  $('#p-stock').textContent = fmt(s.stock);
+  $('#p-sub').innerHTML = `注文 ${fmt(s.qty)}<br>渡した ${fmt(s.given)}${s.last ? `<br>最後 ${fmtDate(s.last)}` : ''}`;
+  $('#p-stock-box').className = 'p-stock' + (s.st === '超過' ? ' over' : s.st === '済' ? ' done' : '');
+  $('#btn-hand').textContent = s.stock > 0 ? 'お米を渡す' : 'さらに渡す（追加で記録）';
+  $$('#p-pay button').forEach(b => b.setAttribute('aria-pressed', String((p.pay || '') === b.dataset.v)));
+  $('#p-paydate-wrap').hidden = p.pay !== '支払済';
+  if (fillForms || document.activeElement !== $('#p-paydate')) $('#p-paydate').value = p.paidDate || '';
+  if (fillForms) {
+    $('#ed-name').value = p.name; $('#ed-qty').value = fmt(p.qty); $('#ed-memo').value = p.memo || '';
+    $$('#ed-kind button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.v === p.kind)));
+  }
+  // 渡した記録
+  const rows = S.log.filter(l => l.pid === p.id).sort((a, b) => (b.date || '') < (a.date || '') ? -1 : (b.date || '') > (a.date || '') ? 1 : (b.created || '').localeCompare(a.created || ''));
+  const ul = $('#p-log');
+  if (!rows.length) ul.innerHTML = '<li class="empty-h">まだ渡していません。</li>';
+  else ul.innerHTML = rows.map(l => {
+    if (U.editLog === l.id) return `<li class="editing" data-log="${l.id}"><form class="edit-form" data-edit-log="${l.id}">
+      <div class="two"><label class="field"><span>渡した日</span><input type="date" name="date" value="${esc(l.date || '')}"></label>
+      <label class="field"><span>数</span><input type="text" inputmode="decimal" name="qty" value="${fmt(l.qty)}"></label></div>
+      <label class="field"><span>メモ</span><input type="text" name="memo" maxlength="60" value="${esc(l.memo || '')}"></label>
+      <p class="err" data-err hidden></p>
+      <div class="btn-row"><button class="btn primary" type="submit">保存する</button><button class="btn" type="button" data-cancel-edit>やめる</button></div></form></li>`;
+    return `<li data-log="${l.id}"><span class="d num ${l.date ? '' : 'none'}">${l.date ? fmtDate(l.date) : '日付なし'}</span><span class="q num"><small>渡した</small>${fmt(l.qty)}</span><span class="m">${esc(l.memo || '')}</span>
+      <span class="ops"><button type="button" data-edit="${l.id}">直す</button><button type="button" class="del" data-del="${l.id}">削除</button></span></li>`;
+  }).join('');
+}
+
+/* ---------- 部品 ---------- */
+function toast(msg, opts = {}) {
+  const el = $('#toast'), undo = $('#toast-undo');
+  $('#toast-msg').textContent = msg;
+  undo.hidden = !opts.undo;
+  undoSnap = opts.undo ? opts.undo : null;
+  el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { el.classList.remove('show'); undoSnap = null; }, opts.undo ? 7000 : 3200);
+}
+$('#toast-undo').addEventListener('click', () => { if (undoSnap) { const f = undoSnap; undoSnap = null; f(); } $('#toast').classList.remove('show'); });
+function snapshot() { return JSON.stringify(S); }
+function restoreSnap(js) { S = Object.assign(blank(), JSON.parse(js)); save(); }
+function arm(btn, text, fn) {
+  if (btn.dataset.armed === '1') { disarm(btn); fn(); return; }
+  btn.dataset.armed = '1'; btn.dataset.label = btn.textContent; btn.textContent = text; btn.classList.add('armed');
+  btn._t = setTimeout(() => disarm(btn), 4500);
+}
+function disarm(btn, label) {
+  clearTimeout(btn._t); btn.dataset.armed = ''; btn.classList.remove('armed');
+  btn.textContent = label || btn.dataset.label || btn.textContent;
+}
+function segValue(seg) { const b = $('button[aria-pressed="true"]', seg); return b ? b.dataset.v : ''; }
+function setSeg(seg, v) { $$('button', seg).forEach(b => b.setAttribute('aria-pressed', String(b.dataset.v === v))); }
+document.addEventListener('click', e => {
+  const st = e.target.closest('[data-step]');
+  if (st) { const inp = document.getElementById(st.dataset.for); let v = num(inp.value); if (Number.isNaN(v)) v = 0; v = Math.max(0, n0(v + Number(st.dataset.step))); inp.value = fmt(v); return; }
+  const sb = e.target.closest('.seg button');
+  if (sb && !sb.closest('#p-pay')) { setSeg(sb.closest('.seg'), sb.dataset.v); }
+});
+async function copyText(text, ta) {
+  try { await navigator.clipboard.writeText(text); return true; }
+  catch (e) {
+    try { if (ta) { ta.focus(); ta.select(); ta.setSelectionRange(0, text.length); } return document.execCommand('copy'); } catch (e2) { return false; }
+  }
+}
+
+/* ---------- 画面の切り替え・絞り込み ---------- */
+function showView(v) {
+  U.view = v;
+  $$('.view').forEach(s => s.hidden = s.id !== 'view-' + v);
+  $$('.tabbar button').forEach(b => b.setAttribute('aria-selected', String(b.dataset.view === v)));
+  $('#fab').hidden = v !== 'home';
+  if (v === 'more') $('#in-title').value = S.title || '';
+  window.scrollTo(0, 0);
+}
+$$('.tabbar button').forEach(b => b.addEventListener('click', () => showView(b.dataset.view)));
+function setFilter(f) { U.filter = f; render(); }
+$$('.tile[data-filter]').forEach(b => b.addEventListener('click', () => { setFilter(U.filter === b.dataset.filter ? 'all' : b.dataset.filter); showView('home'); $('#people-list').scrollIntoView({ block: 'start', behavior: 'smooth' }); }));
+$$('.chips button').forEach(b => b.addEventListener('click', () => setFilter(b.dataset.filter)));
+$('#q').addEventListener('input', e => { U.q = e.target.value.trim().toLowerCase(); $('#q-clear').hidden = !U.q; renderList(); });
+$('#q-clear').addEventListener('click', () => { $('#q').value = ''; U.q = ''; $('#q-clear').hidden = true; renderList(); $('#q').focus(); });
+$('#people-list').addEventListener('click', e => { const li = e.target.closest('li[data-id]'); if (li) openPerson(li.dataset.id); });
+$('#log-list').addEventListener('click', e => { const b = e.target.closest('[data-id]'); if (b) openPerson(b.dataset.id); });
+
+/* ---------- 人の画面の操作 ---------- */
+$$('dialog [data-close]').forEach(b => b.addEventListener('click', () => b.closest('dialog').close()));
+$$('dialog.sheet').forEach(d => d.addEventListener('click', e => { if (e.target === d) d.close(); }));
+dlgP.addEventListener('close', () => { U.person = null; U.editLog = null; });
+
+$('#btn-hand').addEventListener('click', () => {
+  const p = byId(U.person); if (!p) return;
+  const s = stats(p);
+  $('#hand-qty').value = fmt(s.stock > 0 ? s.stock : 1);
+  $('#hand-date').value = todayStr(); $('#hand-memo').value = ''; $('#hand-err').hidden = true;
+  $('#btn-hand').hidden = true; $('#form-hand').hidden = false;
+  $('#form-hand').scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+});
+$('[data-cancel-hand]').addEventListener('click', () => { $('#form-hand').hidden = true; $('#btn-hand').hidden = false; });
+$('#form-hand').addEventListener('submit', e => {
+  e.preventDefault();
+  const p = byId(U.person); if (!p) return;
+  const q = num($('#hand-qty').value), d = $('#hand-date').value, err = $('#hand-err');
+  if (!(q > 0)) { err.textContent = '渡す数を1以上で入れてください。'; err.hidden = false; return; }
+  if (!validDate(d)) { err.textContent = '日付の形がちがいます。'; err.hidden = false; return; }
+  S.log.push({ id: uid(), pid: p.id, date: d, qty: q, memo: $('#hand-memo').value.trim(), created: new Date().toISOString() });
+  $('#form-hand').hidden = true; $('#btn-hand').hidden = false;
+  save();
+  const s = stats(p);
+  toast(s.st === '済' ? `${p.name}さん：全部渡し終わりました（済）` : s.st === '超過' ? `記録しました。注文より多く渡しています（残り ${fmt(s.stock)}）` : `記録しました。${p.name}さんの残りは ${fmt(s.stock)} です`);
+});
+$('#p-pay').addEventListener('click', e => {
+  const b = e.target.closest('button'); if (!b) return;
+  const p = byId(U.person); if (!p) return;
+  p.pay = b.dataset.v;
+  if (p.pay === '支払済' && !p.paidDate) p.paidDate = todayStr();
+  save();
+});
+$('#p-paydate').addEventListener('change', e => { const p = byId(U.person); if (!p) return; if (!validDate(e.target.value)) return; p.paidDate = e.target.value; save(); });
+$('#p-log').addEventListener('click', e => {
+  const ed = e.target.closest('[data-edit]'); const del = e.target.closest('[data-del]'); const cancel = e.target.closest('[data-cancel-edit]');
+  if (ed) { U.editLog = ed.dataset.edit; renderPerson(); return; }
+  if (cancel) { U.editLog = null; renderPerson(); return; }
+  if (del) {
+    arm(del, 'もう一度押すと削除', () => {
+      const snap = snapshot(); const l = S.log.find(x => x.id === del.dataset.del);
+      S.log = S.log.filter(x => x.id !== del.dataset.del); save();
+      toast(`記録を削除しました（${l ? fmt(l.qty) : ''}）`, { undo: () => restoreSnap(snap) });
+    });
+  }
+});
+$('#p-log').addEventListener('submit', e => {
+  const f = e.target.closest('form[data-edit-log]'); if (!f) return;
+  e.preventDefault();
+  const l = S.log.find(x => x.id === f.dataset.editLog); if (!l) return;
+  const q = num(f.qty.value), d = f.date.value, err = $('[data-err]', f);
+  if (!(q > 0)) { err.textContent = '数を1以上で入れてください。'; err.hidden = false; return; }
+  if (!validDate(d)) { err.textContent = '日付の形がちがいます。'; err.hidden = false; return; }
+  l.qty = q; l.date = d; l.memo = f.memo.value.trim(); U.editLog = null; save(); toast('記録を直しました');
+});
+$('#form-edit').addEventListener('submit', e => {
+  e.preventDefault();
+  const p = byId(U.person); if (!p) return;
+  const name = $('#ed-name').value.trim(), q = num($('#ed-qty').value), err = $('#ed-err');
+  if (!name) { err.textContent = '名前を入れてください。'; err.hidden = false; return; }
+  if (nameTaken(name, p.id)) { err.textContent = '同じ名前の人がいます。区別できる名前にしてください（例：岡崎 妹）。'; err.hidden = false; return; }
+  if (Number.isNaN(q) || q < 0) { err.textContent = '注文の数は数字で入れてください。'; err.hidden = false; return; }
+  err.hidden = true;
+  p.name = name; p.qty = q; p.kind = segValue($('#ed-kind')) || '預かり'; p.memo = $('#ed-memo').value.trim();
+  $('#p-edit').open = false; save(); toast('保存しました');
+});
+$('#btn-del-person').addEventListener('click', e => {
+  arm(e.currentTarget, 'もう一度押すと削除します', () => {
+    const p = byId(U.person); if (!p) return;
+    const snap = snapshot();
+    S.people = S.people.filter(x => x.id !== p.id); S.log = S.log.filter(x => x.pid !== p.id);
+    dlgP.close(); save();
+    toast(`${p.name}さんを削除しました`, { undo: () => restoreSnap(snap) });
+  });
+});
+
+/* ---------- 人を追加 ---------- */
+const dlgA = $('#dlg-add');
+$('#fab').addEventListener('click', () => {
+  $('#ad-name').value = ''; $('#ad-qty').value = '1'; $('#ad-memo').value = ''; $('#ad-err').hidden = true;
+  setSeg($('#ad-kind'), '預かり'); setSeg($('#ad-pay'), '');
+  dlgA.showModal(); setTimeout(() => $('#ad-name').focus(), 50);
+});
+$('#form-add').addEventListener('submit', e => {
+  e.preventDefault();
+  const name = $('#ad-name').value.trim(), q = num($('#ad-qty').value), err = $('#ad-err');
+  if (!name) { err.textContent = '名前を入れてください。'; err.hidden = false; return; }
+  if (nameTaken(name)) { err.textContent = '同じ名前の人がいます。区別できる名前にしてください（例：岡崎 妹）。'; err.hidden = false; return; }
+  if (Number.isNaN(q) || q < 0) { err.textContent = '注文の数は数字で入れてください。'; err.hidden = false; return; }
+  const p = { id: uid(), name, qty: q, kind: segValue($('#ad-kind')) || '預かり', pay: segValue($('#ad-pay')), paidDate: '', memo: $('#ad-memo').value.trim(), created: new Date().toISOString() };
+  if (p.pay === '支払済') p.paidDate = todayStr();
+  S.people.push(p); dlgA.close();
+  U.filter = 'all'; U.q = ''; $('#q').value = ''; $('#q-clear').hidden = true;
+  save(); toast(`${name}さんを登録しました`);
+  const li = $(`#people-list li[data-id="${p.id}"]`); if (li) { li.classList.add('flash'); li.scrollIntoView({ block: 'center', behavior: 'smooth' }); }
+});
+
+/* ---------- データのリンク（#i=） ---------- */
+function b64u(bytes) { let s = ''; for (let i = 0; i < bytes.length; i += 0x8000) s += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000)); return btoa(s).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, ''); }
+function unb64u(code) { code = code.replace(/-/g, '+').replace(/_/g, '/'); while (code.length % 4) code += '='; const s = atob(code); const b = new Uint8Array(s.length); for (let i = 0; i < s.length; i++) b[i] = s.charCodeAt(i); return b; }
+function encodeData() {
+  const idx = new Map(S.people.map((p, i) => [p.id, i]));
+  const o = { v: 1, t: S.title, u: S.unit,
+    p: S.people.map(p => [p.name, n0(p.qty), p.kind === '引き取り' ? 2 : 1, Math.max(0, PAY.indexOf(p.pay || '')), p.memo || '', p.paidDate || '']),
+    l: S.log.filter(l => idx.has(l.pid)).map(l => [idx.get(l.pid), l.date || '', n0(l.qty), l.memo || '']) };
+  return b64u(new TextEncoder().encode(JSON.stringify(o)));
+}
+function decodeData(code) {
+  const o = JSON.parse(new TextDecoder().decode(unb64u(code)));
+  if (!o || o.v !== 1 || !Array.isArray(o.p)) throw new Error('形式がちがいます');
+  const st = blank(); const now = new Date().toISOString();
+  st.title = String(o.t || st.title).slice(0, 40); st.unit = String(o.u || '');
+  st.people = o.p.map(a => ({ id: uid(), name: String(a[0] || '').trim().slice(0, 30), qty: n0(a[1]), kind: a[2] === 2 ? '引き取り' : '預かり', pay: PAY[a[3]] || '', memo: String(a[4] || '').slice(0, 60), paidDate: validDate(String(a[5] || '')) ? String(a[5] || '') : '', created: now })).filter(p => p.name);
+  st.log = (Array.isArray(o.l) ? o.l : []).map(a => { const p = st.people[a[0]]; return p ? { id: uid(), pid: p.id, date: validDate(String(a[1] || '')) ? String(a[1] || '') : '', qty: n0(a[2]), memo: String(a[3] || '').slice(0, 60), created: now } : null; }).filter(l => l && l.qty > 0);
+  return st;
+}
+const linkBase = () => location.origin + location.pathname;
+function applyData(data) { S = Object.assign(blank(), data, { lastBackup: S.lastBackup }); U.filter = 'all'; U.q = ''; $('#q').value = ''; save(); }
+const dlgS = $('#dlg-seed');
+function offerImport(data) {
+  const n = data.people.length, m = data.log.length;
+  if (!S.people.length && !S.log.length) { applyData(data); toast(`${n}人分の名簿を読み込みました`); return; }
+  U.seed = data;
+  $('#seed-msg').innerHTML = `リンクには <b>${n}人・記録${m}件</b>（${esc(data.title)}）が入っています。<br><br>このスマホには今 <b>${S.people.length}人・記録${S.log.length}件</b> があります。置き換えると、今の内容は消えます。`;
+  dlgS.showModal();
+}
+$('#seed-yes').addEventListener('click', () => { const snap = snapshot(); if (U.seed) applyData(U.seed); U.seed = null; dlgS.close(); showView('home'); toast('置き換えました', { undo: () => restoreSnap(snap) }); });
+$('#seed-no').addEventListener('click', () => { U.seed = null; dlgS.close(); });
+function extractCode(text) { const m = /#i=([A-Za-z0-9_-]+)/.exec(text) || /^\s*([A-Za-z0-9_-]{16,})\s*$/.exec(text); return m ? m[1] : null; }
+function checkHash() {
+  const code = /^#i=/.test(location.hash) ? extractCode(location.hash) : null;
+  if (!/^#i=/.test(location.hash)) return;
+  history.replaceState(null, '', location.pathname + location.search);
+  let data = null;
+  try { if (code) data = decodeData(code); } catch (e) { data = null; }
+  if (!data) { toast('リンクのデータが読めませんでした。リンクが途中で切れていないか確かめてください。'); return; }
+  offerImport(data);
+}
+$('#btn-make-link').addEventListener('click', async () => {
+  if (!S.people.length) { toast('名簿がまだありません'); return; }
+  const url = linkBase() + '#i=' + encodeData();
+  $('#link-out').value = url; $('#link-box').hidden = false;
+  S.lastBackup = todayStr(); save();
+  const ok = await copyText(url, $('#link-out'));
+  toast(ok ? 'リンクを作ってコピーしました。LINEなどに貼り付けて送れます' : 'リンクを作りました。長押しでコピーできます');
+});
+$('#btn-copy-link').addEventListener('click', async () => { const ok = await copyText($('#link-out').value, $('#link-out')); toast(ok ? 'コピーしました' : 'コピーできませんでした。枠を長押ししてコピーしてください'); });
+$('#btn-share-link').addEventListener('click', async () => {
+  const url = $('#link-out').value; if (!url) return;
+  if (navigator.share) { try { await navigator.share({ text: `お米の在庫帳（${S.title}）のデータ\n${url}` }); return; } catch (e) { if (e && e.name === 'AbortError') return; } }
+  const ok = await copyText(url, $('#link-out')); toast(ok ? 'この端末では直接送れないので、コピーしました。LINEに貼り付けてください' : '枠を長押ししてコピーしてください');
+});
+$('#btn-restore').addEventListener('click', () => {
+  const err = $('#restore-err'); const code = extractCode($('#restore-in').value);
+  let data = null; try { if (code) data = decodeData(code); } catch (e) { data = null; }
+  if (!data) { err.textContent = 'リンクが読めませんでした。「…/#i=」から後ろまで全部貼り付けてください。'; err.hidden = false; return; }
+  err.hidden = true; $('#restore-in').value = '';
+  if (!S.people.length && !S.log.length) { applyData(data); showView('home'); toast(`${data.people.length}人分を読み込みました`); return; }
+  offerImport(data);
+});
+
+/* ---------- 見出し・表のコピー・全消し ---------- */
+$('#form-title').addEventListener('submit', e => { e.preventDefault(); S.title = $('#in-title').value.trim().slice(0, 40) || '米の注文'; save(); toast('見出しを保存しました'); });
+$('#btn-copy-tsv').addEventListener('click', async () => {
+  const head = ['名前', '注文', '預かり・引き取り', '支払い', '渡した数', '在庫（残り）', '最後に渡した日', 'メモ'];
+  const lines = [head.join('\t')];
+  for (const p of S.people) { const s = stats(p); lines.push([p.name, fmt(s.qty), p.kind, p.pay || '', fmt(s.given), fmt(s.stock), s.last || '', (p.memo || '').replace(/\s+/g, ' ')].join('\t')); }
+  lines.push(['合計', fmt(totals().order), '', '', fmt(totals().given), fmt(totals().stock), '', ''].join('\t'));
+  const ok = await copyText(lines.join('\n'));
+  toast(ok ? `${S.people.length}人分をコピーしました。Excelのマスを選んで貼り付けてください` : 'コピーできませんでした');
+});
+$('#btn-reset').addEventListener('click', e => {
+  arm(e.currentTarget, 'もう一度押すと全部消えます', () => {
+    const snap = snapshot(); S = blank(); save(); showView('home');
+    toast('全部消しました', { undo: () => restoreSnap(snap) });
+  });
+});
+
+/* ---------- ホーム画面に追加 ---------- */
+const standalone = matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+function hintSeen() { try { return localStorage.getItem(HINT) === '1'; } catch (e) { return true; } }
+function showInstallUI() {
+  const banner = $('#install-banner');
+  banner.hidden = standalone || hintSeen();
+  $('#btn-install').hidden = !deferredInstall; $('#btn-install2').hidden = !deferredInstall;
+}
+window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferredInstall = e; showInstallUI(); });
+window.addEventListener('appinstalled', () => { deferredInstall = null; showInstallUI(); toast('ホーム画面に追加しました'); });
+async function doInstall() { if (!deferredInstall) return; const ev = deferredInstall; deferredInstall = null; try { ev.prompt(); await ev.userChoice; } catch (e) { /* 断られたときは何もしない */ } showInstallUI(); }
+$('#btn-install').addEventListener('click', doInstall); $('#btn-install2').addEventListener('click', doInstall);
+$('#btn-install-how').addEventListener('click', () => { showView('more'); const d = $('#sec-home'); d.open = true; d.scrollIntoView({ block: 'start' }); });
+$('#btn-install-close').addEventListener('click', () => { try { localStorage.setItem(HINT, '1'); } catch (e) { } $('#install-banner').hidden = true; });
+
+/* ---------- 起動 ---------- */
+function updateOnline() { $('#offline').hidden = navigator.onLine !== false; }
+window.addEventListener('online', updateOnline); window.addEventListener('offline', updateOnline);
+window.addEventListener('storage', e => { if (e.key === KEY) { S = load(); render(); } });
+window.addEventListener('pageshow', e => { if (e.persisted) { S = load(); render(); } });
+if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => { });
+if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('./sw.js').catch(() => { });
+$('#in-title').value = S.title || '';
+updateOnline(); render(); showView('home'); showInstallUI(); checkHash();
+window.addEventListener('hashchange', checkHash);
+})();
+</script>
+</body>
+</html>
