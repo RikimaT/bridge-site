@@ -68,6 +68,9 @@ jobs:
           # Pixi AI PC版（PWA）
           mkdir -p _site/pixi-ai
           cp -r pixi-ai/. _site/pixi-ai/
+          # お米の在庫帳（PWA。データは端末内のみ・noindex。2026-09-30）
+          mkdir -p _site/kome
+          cp -r kome/. _site/kome/
       - name: 予約記事のうち公開日が来たものを組み込む（公開日前の記事は配信物から外す）
         run: |
           if [ -f _site/_scheduled/release.py ]; then

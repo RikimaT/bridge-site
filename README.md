@@ -17,6 +17,7 @@
 | `/kanri/` | 生徒管理アプリ（noindex） | `bridge-app/index.html`・`app.js`・`style.css`・`data/` |
 | `/pr-video-maker/` | 金曜PR動画メーカー（PWA） | `bridge-app/pr-video-maker/` |
 | `/pixi-ai/` | Pixi AI PC版（PWA） | `bridge-app/pixi-ai/` |
+| `/kome/` | お米の在庫帳（知人用PWA・noindex。名簿は端末内＋URLの`#i=`で受け渡し。個人名はここに置かない） | `bridge-app/kome/` |
 
 ## 運用ルール（重要）
 
