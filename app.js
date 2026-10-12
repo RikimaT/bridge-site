@@ -1048,6 +1048,7 @@ function openAddTrialModal(){
   document.getElementById('tr-school').value='';document.getElementById('tr-contact').value='';
   document.getElementById('tr-date').value=todayStr();
   document.getElementById('tr-memo').value='';
+  document.getElementById('tr-source').value='';
   document.getElementById('trial-modal').classList.remove('hide');
 }
 
@@ -1056,7 +1057,10 @@ async function submitTrial(){
   if(!name){showToast('氏名を入力してください','err');return;}
   var btn=document.getElementById('trial-submit-btn');btn.disabled=true;btn.textContent='追加中...';
   try{
-    var p={name:name,grade:document.getElementById('tr-grade').value,school:document.getElementById('tr-school').value.trim(),contact:document.getElementById('tr-contact').value.trim(),trialDate:document.getElementById('tr-date').value,memo:document.getElementById('tr-memo').value.trim(),status:'予定'};
+    // 「何で知りましたか」はメモの先頭に「きっかけ: 〇〇」で残す（週次メールが経路の件数だけ数える。2026-10-12 SNS緊急会議）
+    var source=document.getElementById('tr-source').value,memo=document.getElementById('tr-memo').value.trim();
+    if(source)memo='きっかけ: '+source+(memo?' / '+memo:'');
+    var p={name:name,grade:document.getElementById('tr-grade').value,school:document.getElementById('tr-school').value.trim(),contact:document.getElementById('tr-contact').value.trim(),trialDate:document.getElementById('tr-date').value,memo:memo,status:'予定'};
     var r=await gas('addTrial',p);
     if(r.status!=='ok')throw new Error(r.message||'追加に失敗しました');
     ALL_TRIALS.unshift(Object.assign({trialID:r.trialID},p));
